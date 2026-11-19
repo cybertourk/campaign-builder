@@ -10,6 +10,7 @@ import {
 } from "./firebase-manager.js";
 import { setState } from "./state.js";
 import { renderCampaignSettingChapter } from "./chapter-setting.js";
+import { renderPlotChapter } from "./chapter-plot.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -277,35 +278,73 @@ export function renderCampaignWorkspace(container, state) {
               </div>
             `
         }
+
+        <!-- Chapter Misc Notes (Available on every chapter) -->
+        <div class="mt-6 pt-5 border-t border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="sticky-note" class="w-3.5 h-3.5 text-amber-400"></i> ${escapeHtml(currentChapter.label)} — Misc Notes
+            </label>
+            <div class="flex items-center gap-2">
+              <span id="misc-notes-status" class="text-[11px] text-slate-500"></span>
+              <button type="button" id="save-misc-notes-btn" class="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1 rounded text-xs font-medium transition">
+                <i data-lucide="save" class="w-3 h-3"></i> Save Notes
+              </button>
+            </div>
+          </div>
+          <textarea id="chapter-misc-notes-input" rows="4"
+            placeholder="Miscellaneous notes, quick ideas, or reminders for ${escapeHtml(currentChapter.label)}..."
+            class="w-full bg-slate-950/70 border border-slate-800 rounded-lg p-3 text-xs sm:text-sm text-slate-200 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(
+              state.entities.find((e) => e.type === `${currentChapter.id}-misc`)?.content || ""
+            )}</textarea>
+        </div>
       </section>
     </div>
-
-    <!-- New Chapter Entry Modal -->
-    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">New ${escapeHtml(currentChapter.label)} Entry</h2>
-          <button id="close-entity-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-        <form id="create-entity-form" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Entry Title *</label>
-            <input type="text" id="new-ent-title" required placeholder="Enter title..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" id="cancel-entity-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-
-  // If Chapter 1 (Campaign Setting) is active, replace the generic placeholder pane with its dedicated workbook
+  // If Chapter 1 (Campaign Setting) or Chapter 2 (Plot & Adventures) is active, render its dedicated workbook
   if (currentChapter.id === "campaign-setting") {
     const mainPane = container.querySelector("#chapter-main-pane");
     renderCampaignSettingChapter(mainPane, state);
+  } else if (currentChapter.id === "plot-adventures") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderPlotChapter(mainPane, state);
+  }
+
+  // Wire Misc Notes on placeholder chapters
+  const miscBtn = container.querySelector("#save-misc-notes-btn");
+  if (miscBtn) {
+    const miscInput = container.querySelector("#chapter-misc-notes-input");
+    const miscStatus = container.querySelector("#misc-notes-status");
+    const miscType = `${currentChapter.id}-misc`;
+    const existingMisc = state.entities.find((e) => e.type === miscType);
+
+    miscInput?.addEventListener("input", () => {
+      miscStatus.textContent = "Unsaved";
+      miscStatus.className = "text-[11px] text-amber-400";
+    });
+
+    miscBtn.addEventListener("click", async () => {
+      miscStatus.textContent = "Saving...";
+      miscStatus.className = "text-[11px] text-amber-400";
+      try {
+        if (existingMisc) {
+          await updateEntity(existingMisc.id, {
+            title: `${currentChapter.label} Misc Notes`,
+            content: miscInput.value
+          });
+        } else {
+          await createEntity({
+            type: miscType,
+            title: `${currentChapter.label} Misc Notes`,
+            content: miscInput.value
+          });
+        }
+        miscStatus.textContent = "Saved";
+        miscStatus.className = "text-[11px] text-emerald-400";
+      } catch (err) {
+        miscStatus.textContent = "Error";
+        miscStatus.className = "text-[11px] text-rose-400";
+      }
+    });
   }
 
   // Breadcrumb Navigation
