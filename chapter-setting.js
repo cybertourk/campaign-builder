@@ -681,6 +681,214 @@ function wireKingdomControls(paneContainer, state, existingDoc, data) {
 }
 
 /**
+ * Renders Pages 14–15: Towns & Cities (Repeatable 2-Page Town Sheet + Town Map).
+ */
+function renderTownsTab(data) {
+  const towns = data.towns || [];
+  const activeTown = towns[selectedTownIndex] || null;
+
+  return `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div>
+        <h3 class="text-sm font-bold text-white">Towns, Cities & Settlements</h3>
+        <p class="text-xs text-slate-400">Build detailed settlement sheets with key NPCs, businesses, local laws, rumors, and town maps.</p>
+      </div>
+      <button type="button" id="add-town-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Town / City
+      </button>
+    </div>
+
+    ${
+      towns.length === 0
+        ? `
+          <div class="text-center py-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/30">
+            <i data-lucide="building-2" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <p class="text-sm font-medium text-slate-300">No Towns or Cities Added Yet</p>
+            <p class="text-xs text-slate-500 mt-1">Click "Add Town / City" to fill out a settlement profile and attach a town map.</p>
+          </div>
+        `
+        : `
+          <!-- Town Selector Pills -->
+          <div class="flex items-center gap-2 flex-wrap">
+            ${towns
+              .map(
+                (t, i) => `
+              <button type="button" data-town-idx="${i}" class="select-town-btn px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  i === selectedTownIndex
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700"
+                }">
+                ${escapeHtml(t.name || `Town #${i + 1}`)}
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+
+          ${
+            activeTown
+              ? `
+                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-5">
+                  <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div class="flex-1">
+                      <label class="block text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-1">Town / City Name</label>
+                      <input type="text" data-town-field="name" value="${escapeHtml(activeTown.name || "")}"
+                        placeholder="e.g., Oakhaven, Port Brass"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-base font-bold text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <button type="button" id="delete-town-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2.5 py-1.5 rounded border border-slate-800 hover:border-rose-800/60 transition self-end">
+                      Remove Town
+                    </button>
+                  </div>
+
+                  <!-- Page 14 Grid: Key NPCs, Notable Locations & Businesses, Local History -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Key NPCs</label>
+                      <textarea data-town-field="keyNpcs" rows="4"
+                        placeholder="Mayor, captain of the guard, innkeepers, guild leaders..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.keyNpcs || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Notable Locations and Businesses</label>
+                      <textarea data-town-field="notableLocations" rows="4"
+                        placeholder="Taverns, blacksmiths, temples, docks, landmarks..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.notableLocations || "")}</textarea>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Local History</label>
+                    <textarea data-town-field="localHistory" rows="3"
+                      placeholder="How the settlement was founded, past disasters, famous events..."
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.localHistory || "")}</textarea>
+                  </div>
+
+                  <!-- Local Government, Laws, Social/Economic, Races & Languages, Rumors -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Local Government and Leadership</label>
+                      <textarea data-town-field="localGovernment" rows="3"
+                        placeholder="Council, lord, sheriff, guild magistrates..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.localGovernment || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Laws</label>
+                      <textarea data-town-field="laws" rows="3"
+                        placeholder="Gate taxes, weapon restrictions, curfews, local justice..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.laws || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Social / Economic Factors</label>
+                      <textarea data-town-field="socialEconomic" rows="3"
+                        placeholder="Primary exports, wealth gap, slums vs. noble quarters..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.socialEconomic || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Races and Languages</label>
+                      <textarea data-town-field="racesLanguages" rows="3"
+                        placeholder="Local demographics, districts, spoken languages..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.racesLanguages || "")}</textarea>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Rumors</label>
+                    <textarea data-town-field="rumors" rows="3"
+                      placeholder="Local gossip, missing persons, haunted cellars, job postings..."
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.rumors || "")}</textarea>
+                  </div>
+
+                  <!-- Page 15: Town Map -->
+                  <div class="pt-3 border-t border-slate-800/80 space-y-3">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Town Map Image URL (Optional)
+                    </label>
+                    <input type="url" data-town-field="townMapUrl" value="${escapeHtml(activeTown.townMapUrl || "")}"
+                      placeholder="https://... (Paste a Watabou, Inkarnate, or town map image link)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    <div id="town-map-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+                      ${
+                        activeTown.townMapUrl
+                          ? `<img src="${escapeHtml(activeTown.townMapUrl)}" alt="Town Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                          : `<p class="text-xs text-slate-500 py-5">Paste a town map URL above to preview it here.</p>`
+                      }
+                    </div>
+                  </div>
+                </div>
+              `
+              : ""
+          }
+        `
+    }
+  `;
+}
+
+function wireTownControls(paneContainer, state, existingDoc, data) {
+  const rerenderWithLocalData = () => {
+    const tempEntity = existingDoc
+      ? { ...existingDoc, systemData: data }
+      : { type: "campaign-setting", title: data.worldName || "Campaign Setting", systemData: data };
+    const otherEntities = state.entities.filter((e) => e.type !== "campaign-setting");
+    renderCampaignSettingChapter(paneContainer, {
+      ...state,
+      entities: [tempEntity, ...otherEntities]
+    });
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  paneContainer.querySelector("#add-town-btn")?.addEventListener("click", () => {
+    collectFormIntoData(paneContainer, data);
+    data.towns.push({
+      name: `Town ${data.towns.length + 1}`,
+      keyNpcs: "",
+      notableLocations: "",
+      localHistory: "",
+      localGovernment: "",
+      laws: "",
+      socialEconomic: "",
+      racesLanguages: "",
+      rumors: "",
+      townMapUrl: ""
+    });
+    selectedTownIndex = data.towns.length - 1;
+    rerenderWithLocalData();
+  });
+
+  paneContainer.querySelectorAll(".select-town-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      collectFormIntoData(paneContainer, data);
+      selectedTownIndex = Number(btn.getAttribute("data-town-idx")) || 0;
+      rerenderWithLocalData();
+    });
+  });
+
+  const delBtn = paneContainer.querySelector("#delete-town-btn");
+  delBtn?.addEventListener("click", () => {
+    if (delBtn.dataset.armed !== "true") {
+      delBtn.dataset.armed = "true";
+      delBtn.textContent = "Click again to confirm";
+      delBtn.classList.add("text-rose-400", "border-rose-700");
+      return;
+    }
+    data.towns.splice(selectedTownIndex, 1);
+    selectedTownIndex = Math.max(0, selectedTownIndex - 1);
+    rerenderWithLocalData();
+  });
+
+  const tMapInput = paneContainer.querySelector('[data-town-field="townMapUrl"]');
+  const tMapPreview = paneContainer.querySelector("#town-map-preview");
+  tMapInput?.addEventListener("input", () => {
+    const val = tMapInput.value.trim();
+    if (val) {
+      tMapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Town Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      tMapPreview.innerHTML = `<p class="text-xs text-slate-500 py-5">Paste a town map URL above to preview it here.</p>`;
+    }
+  });
+}
+
+/**
  * Renders Page 16: Markets (Repeatable Market Name, Trader Name, Town/Location, Items and Prices).
  */
 function renderMarketsTab(data) {
