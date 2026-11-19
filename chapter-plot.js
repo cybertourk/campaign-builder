@@ -1,16 +1,14 @@
 // chapter-plot.js
 // Dedicated interactive workbook for Chapter 2: Plot and Adventures.
-// Covers Central Tension of the World, Central Tension Synopsis, repeatable Adventure Sheets
-// (with Start Location, Player Level, XP, Key NPCs, Plot Hook, Battles/Enemies/XP, Loot,
-// Description, and Dungeon Battle Map), plus a Misc Notes section.
+// Renders the active section selected from the vertical nested sidebar in ui-campaign.js.
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
 
-const PLOT_TABS = [
-  { id: "central-tension", label: "1. Central Tension", icon: "flame" },
-  { id: "synopsis", label: "2. Central Tension Synopsis", icon: "file-text" },
-  { id: "adventures", label: "3. Adventures & Battle Maps", icon: "swords" },
-  { id: "misc-notes", label: "4. Misc Notes", icon: "sticky-note" }
+export const PLOT_TABS = [
+  { id: "central-tension", label: "Central Tension", icon: "flame" },
+  { id: "synopsis", label: "Central Tension Synopsis", icon: "file-text" },
+  { id: "adventures", label: "Adventures & Battle Maps", icon: "swords" },
+  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
 ];
 
 let activePlotTab = "central-tension";
@@ -55,11 +53,37 @@ export function renderPlotChapter(paneContainer, state) {
         <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
           <i data-lucide="compass" class="w-5 h-5 text-indigo-400"></i>
         </div>
+export function renderPlotChapter(paneContainer, state, options = {}) {
+  if (options.activeSectionId) {
+    activePlotTab = options.activeSectionId;
+  }
+
+  const existingDoc = state.entities.find((e) => e.type === "plot-adventures");
+  const data = {
+    ...getDefaultPlotData(),
+    ...(existingDoc?.systemData || {})
+  };
+  if (!Array.isArray(data.adventures)) data.adventures = [];
+
+  if (selectedAdventureIndex >= data.adventures.length) {
+    selectedAdventureIndex = Math.max(0, data.adventures.length - 1);
+  }
+
+  const currentSection =
+    PLOT_TABS.find((t) => t.id === activePlotTab) || PLOT_TABS[0];
+
+  paneContainer.innerHTML = `
+    <!-- Chapter & Active Section Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="${currentSection.icon}" class="w-5 h-5 text-indigo-400"></i>
+        </div>
         <div>
           <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="text-xl font-bold text-white">Chapter 2: Plot and Adventures</h1>
-            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-800/50">
-              Workbook Active
+            <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
+              Chapter 2: Plot & Adventures
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
@@ -78,51 +102,25 @@ export function renderPlotChapter(paneContainer, state) {
       </div>
     </div>
 
-    <!-- Sub-Tabs -->
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-6 border-b border-slate-800/80">
-      ${PLOT_TABS.map((tab) => {
-        const isActive = tab.id === activePlotTab;
-        const count = tab.id === "adventures" ? data.adventures.length : 0;
-        const badge =
-          count > 0
-            ? `<span class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
-                isActive ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400"
-              }">${count}</span>`
-            : "";
-        return `
-          <button type="button" data-plot-tab="${tab.id}" class="plot-tab-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-            isActive
-              ? "bg-slate-800 text-white border border-slate-700"
-              : "text-slate-400 hover:text-white hover:bg-slate-850"
-          }">
-            <i data-lucide="${tab.icon}" class="w-3.5 h-3.5 ${isActive ? "text-indigo-400" : ""}"></i>
-            ${tab.label}${badge}
-          </button>
-        `;
-      }).join("")}
-    </div>
-
-    <!-- Active Sub-Tab Body -->
+    <!-- Active Section Body -->
     <div id="plot-tab-body" class="space-y-6 flex-1">
       ${renderPlotTabContent(activePlotTab, data)}
     </div>
   `;
 
-  // Wire Sub-Tab Switching
-  paneContainer.querySelectorAll(".plot-tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      collectPlotForm(paneContainer, data);
-      activePlotTab = btn.getAttribute("data-plot-tab");
-      const tempEntity = existingDoc
-        ? { ...existingDoc, systemData: data }
-        : { type: "plot-adventures", title: "Plot and Adventures", systemData: data };
-      const otherEntities = state.entities.filter((e) => e.type !== "plot-adventures");
-      renderPlotChapter(paneContainer, {
-        ...state,
-        entities: [tempEntity, ...otherEntities]
-      });
-      if (window.lucide) window.lucide.createIcons();
-    });
+  // Preserve unsaved edits in memory when switching vertical sections in the sidebar
+  const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="plot-adventures"]');
+  sidebarSectionBtns.forEach((btn) => {
+    btn.addEventListener(
+      "click",
+      () => {
+        collectPlotForm(paneContainer, data);
+        if (existingDoc) {
+          existingDoc.systemData = data;
+        }
+      },
+      { capture: true }
+    );
   });
 
   // Unsaved indicator
