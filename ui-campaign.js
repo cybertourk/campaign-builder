@@ -9,6 +9,7 @@ import {
   deleteEntity
 } from "./firebase-manager.js";
 import { setState } from "./state.js";
+import { renderCampaignSettingChapter } from "./chapter-setting.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -180,8 +181,8 @@ export function renderCampaignWorkspace(container, state) {
         </nav>
       </aside>
 
-      <!-- Right Main Pane: Active Chapter Placeholder & Scratchpad -->
-      <section class="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
+      <!-- Right Main Pane: Active Chapter View -->
+      <section id="chapter-main-pane" class="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
         
         <!-- Chapter Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
@@ -300,6 +301,12 @@ export function renderCampaignWorkspace(container, state) {
       </div>
     </div>
   `;
+
+  // If Chapter 1 (Campaign Setting) is active, replace the generic placeholder pane with its dedicated workbook
+  if (currentChapter.id === "campaign-setting") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderCampaignSettingChapter(mainPane, state);
+  }
 
   // Breadcrumb Navigation
   container.querySelector("#ws-nav-systems").addEventListener("click", () => {
