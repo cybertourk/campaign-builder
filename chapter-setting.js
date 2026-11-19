@@ -1,17 +1,19 @@
 // chapter-setting.js
-// Dedicated interactive workbook for Chapter 1: Campaign Setting (Pages 1–13 of the Campaign Planner).
-// Organizes the book's guided prompts, World Profile, Ecology/Magic/Society pages, World Map,
-// and repeatable 2-page Kingdom Sheets into a clean tabbed workspace backed by Firestore.
-// Sub-tabs mirroring the flow of Pages 1–16 in the book
-const SETTING_TABS = [
-  { id: "overview", label: "1. Core Concept & Prompts", icon: "compass" },
-  { id: "world-profile", label: "2. World Profile", icon: "globe" },
-  { id: "world-details", label: "3. Nature, Magic & Society", icon: "sparkles" },
-  { id: "world-map", label: "4. World Map", icon: "map" },
-  { id: "kingdoms", label: "5. Kingdoms & Regions", icon: "castle" },
-  { id: "towns", label: "6. Towns & Cities", icon: "building-2" },
-  { id: "markets", label: "7. Markets & Shops", icon: "store" },
-  { id: "misc-notes", label: "8. Misc Notes", icon: "sticky-note" }
+// Dedicated interactive workbook for Chapter 1: Campaign Setting (Pages 1–16 of the Campaign Planner).
+// Renders the active section selected from the vertical nested sidebar in ui-campaign.js.
+
+import { createEntity, updateEntity } from "./firebase-manager.js";
+
+// Sub-sections displayed vertically under "1. Campaign Setting" in the sidebar
+export const SETTING_TABS = [
+  { id: "overview", label: "Core Concept & Prompts", icon: "compass" },
+  { id: "world-profile", label: "World Profile", icon: "globe" },
+  { id: "world-details", label: "Nature, Magic & Society", icon: "sparkles" },
+  { id: "world-map", label: "World Map", icon: "map" },
+  { id: "kingdoms", label: "Kingdoms & Regions", icon: "castle" },
+  { id: "towns", label: "Towns & Cities", icon: "building-2" },
+  { id: "markets", label: "Markets & Shops", icon: "store" },
+  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
 ];
 
 let activeSettingTab = "overview";
@@ -86,7 +88,11 @@ function getDefaultSettingData() {
 /**
  * Renders the complete Chapter 1: Campaign Setting workbook inside the main workspace pane.
  */
-export function renderCampaignSettingChapter(paneContainer, state) {
+export function renderCampaignSettingChapter(paneContainer, state, options = {}) {
+  if (options.activeSectionId) {
+    activeSettingTab = options.activeSectionId;
+  }
+
   // Find existing 'campaign-setting' document or prepare defaults
   const existingDoc = state.entities.find((e) => e.type === "campaign-setting");
   const data = {
@@ -104,22 +110,25 @@ export function renderCampaignSettingChapter(paneContainer, state) {
     selectedTownIndex = Math.max(0, data.towns.length - 1);
   }
 
+  const currentSection =
+    SETTING_TABS.find((t) => t.id === activeSettingTab) || SETTING_TABS[0];
+
   paneContainer.innerHTML = `
-    <!-- Chapter Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-5 border-b border-slate-800">
+    <!-- Chapter & Active Section Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
-          <i data-lucide="globe" class="w-5 h-5 text-indigo-400"></i>
+          <i data-lucide="${currentSection.icon}" class="w-5 h-5 text-indigo-400"></i>
         </div>
         <div>
           <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="text-xl font-bold text-white">Chapter 1: Campaign Setting</h1>
-            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-800/50">
-              Workbook Active
+            <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
+              Chapter 1: Campaign Setting
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Flesh out your world's era, geography, cultures, magic, map, and individual kingdoms.
+            Flesh out your world's era, geography, cultures, magic, map, kingdoms, towns, and markets.
           </p>
         </div>
       </div>
@@ -134,59 +143,25 @@ export function renderCampaignSettingChapter(paneContainer, state) {
       </div>
     </div>
 
-    <!-- Book Section Sub-Tabs -->
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-6 border-b border-slate-800/80">
-      ${SETTING_TABS.map((tab) => {
-        const isActive = tab.id === activeSettingTab;
-        const count =
-          tab.id === "kingdoms"
-            ? data.kingdoms.length
-            : tab.id === "towns"
-            ? data.towns.length
-            : tab.id === "markets"
-            ? data.markets.length
-            : 0;
-        const badge =
-          count > 0
-            ? `<span class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
-                isActive ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400"
-              }">${count}</span>`
-            : "";
-        return `
-          <button type="button" data-setting-tab="${tab.id}" class="setting-tab-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-            isActive
-              ? "bg-slate-800 text-white border border-slate-700"
-              : "text-slate-400 hover:text-white hover:bg-slate-850"
-          }">
-            <i data-lucide="${tab.icon}" class="w-3.5 h-3.5 ${isActive ? "text-indigo-400" : ""}"></i>
-            ${tab.label}${badge}
-          </button>
-        `;
-      }).join("")}
-    </div>
-
-    <!-- Active Sub-Tab Form Content -->
+    <!-- Active Section Form Content -->
     <div id="setting-tab-body" class="space-y-6 flex-1">
       ${renderActiveTabContent(activeSettingTab, data)}
     </div>
   `;
 
-  // Wire sub-tab switching (preserves unsaved edits in memory while switching tabs)
-  paneContainer.querySelectorAll(".setting-tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      collectFormIntoData(paneContainer, data);
-      activeSettingTab = btn.getAttribute("data-setting-tab");
-      // Temporarily cache in state so tab switches don't lose typed text before Firestore save
-      const tempEntity = existingDoc
-        ? { ...existingDoc, systemData: data }
-        : { type: "campaign-setting", title: data.worldName || "Campaign Setting", systemData: data };
-      const otherEntities = state.entities.filter((e) => e.type !== "campaign-setting");
-      renderCampaignSettingChapter(paneContainer, {
-        ...state,
-        entities: [tempEntity, ...otherEntities]
-      });
-      if (window.lucide) window.lucide.createIcons();
-    });
+  // Preserve unsaved edits in memory if user clicks another vertical section in the sidebar
+  const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="campaign-setting"]');
+  sidebarSectionBtns.forEach((btn) => {
+    btn.addEventListener(
+      "click",
+      () => {
+        collectFormIntoData(paneContainer, data);
+        if (existingDoc) {
+          existingDoc.systemData = data;
+        }
+      },
+      { capture: true }
+    );
   });
 
   // Mark unsaved on any input change
