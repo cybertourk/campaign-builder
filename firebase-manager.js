@@ -8,8 +8,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
   updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -108,18 +106,6 @@ export async function loginWithEmail(email, password) {
   setLoading(true);
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    setLoading(false);
-  } catch (error) {
-    setLoading(false, formatAuthError(error));
-    throw error;
-  }
-}
-
-export async function loginWithGoogle() {
-  setLoading(true);
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
     setLoading(false);
   } catch (error) {
     setLoading(false, formatAuthError(error));
