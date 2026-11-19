@@ -1,6 +1,7 @@
 // ui-campaign.js
-// Level 3: System-agnostic Campaign Builder workspace with category filtering,
-// entity creation (Sessions, NPCs, Locations, Factions, Lore), and cloud auto-save.
+// Level 3: Campaign Builder workspace organized into the 12 Campaign Planner chapters.
+// Each chapter currently renders a structured placeholder wired to Firestore, ready to be
+// upgraded with custom forms and interactive tools chapter by chapter.
 
 import {
   createEntity,
@@ -9,36 +10,118 @@ import {
 } from "./firebase-manager.js";
 import { setState } from "./state.js";
 
-const ENTITY_TYPES = [
-  { id: "ALL", label: "All Entries", icon: "layers" },
-  { id: "Session", label: "Sessions", icon: "calendar" },
-  { id: "NPC", label: "NPCs", icon: "users" },
-  { id: "Location", label: "Locations", icon: "map-pin" },
-  { id: "Faction", label: "Factions", icon: "flag" },
-  { id: "Lore", label: "Lore & Rules", icon: "book-open" }
+export const CAMPAIGN_CHAPTERS = [
+  {
+    id: "campaign-setting",
+    label: "Campaign Setting",
+    icon: "globe",
+    mode: "single",
+    description: "World overview, tone, geography, major regions, and foundational truths."
+  },
+  {
+    id: "plot-adventures",
+    label: "Plot and Adventures",
+    icon: "compass",
+    mode: "collection",
+    description: "Main story arcs, adventure hooks, milestones, and branching plotlines."
+  },
+  {
+    id: "random-encounters",
+    label: "Random Encounters",
+    icon: "dices",
+    mode: "collection",
+    description: "Environment-based encounter tables, twists, and quick-roll triggers."
+  },
+  {
+    id: "enemies",
+    label: "Enemies",
+    icon: "skull",
+    mode: "collection",
+    description: "Monsters, villains, stat blocks, tactics, and threat profiles."
+  },
+  {
+    id: "deities",
+    label: "Deities",
+    icon: "sun",
+    mode: "collection",
+    description: "Pantheons, domains, alignments, tenets, symbols, and divine boons."
+  },
+  {
+    id: "faction",
+    label: "Faction",
+    icon: "flag",
+    mode: "collection",
+    description: "Guilds, kingdoms, cults, leadership, goals, and inter-faction standings."
+  },
+  {
+    id: "npc",
+    label: "NPC",
+    icon: "users",
+    mode: "collection",
+    description: "Non-player characters, appearances, motivations, secrets, and relationships."
+  },
+  {
+    id: "item-list",
+    label: "Item List",
+    icon: "sword",
+    mode: "collection",
+    description: "Magic items, relics, custom gear, economy items, and loot tables."
+  },
+  {
+    id: "character-sheets",
+    label: "Character Sheets",
+    icon: "user-check",
+    mode: "collection",
+    description: "Party roster, player character stats, backstories, and personal quests."
+  },
+  {
+    id: "session-log",
+    label: "Session Log",
+    icon: "scroll-text",
+    mode: "collection",
+    description: "Chronological session recaps, MVP moments, XP/milestones, and next-session prep."
+  },
+  {
+    id: "initiative-tracker",
+    label: "Initiative Tracker",
+    icon: "swords",
+    mode: "tool",
+    description: "Live combat turn order, HP/condition tracking, and round counter."
+  },
+  {
+    id: "overland-travel",
+    label: "Overland Travel Tables",
+    icon: "map",
+    mode: "tool",
+    description: "Travel pace, navigation checks, weather tables, and hex/region terrain hazards."
+  }
 ];
 
-let activeFilter = "ALL";
-let searchQuery = "";
+let activeChapterId = "campaign-setting";
 
 export function renderCampaignWorkspace(container, state) {
   const sys = state.activeSystem;
   const camp = state.activeCampaign;
   if (!sys || !camp) return;
 
-  const filteredEntities = state.entities.filter((ent) => {
-    const matchesType = activeFilter === "ALL" || ent.type === activeFilter;
-    const matchesSearch =
-      !searchQuery ||
-      ent.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (ent.content || "").toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesType && matchesSearch;
-  });
+  const currentChapter =
+    CAMPAIGN_CHAPTERS.find((c) => c.id === activeChapterId) || CAMPAIGN_CHAPTERS[0];
 
-  const active = state.activeEntity;
+  // Filter saved Firestore entities belonging to this chapter
+  const chapterEntries = state.entities.filter(
+    (ent) => ent.type === currentChapter.id || ent.type === currentChapter.label
+  );
+
+  // Ensure activeEntity belongs to the currently selected chapter if one exists
+  const activeEntry =
+    state.activeEntity &&
+    (state.activeEntity.type === currentChapter.id ||
+      state.activeEntity.type === currentChapter.label)
+      ? state.activeEntity
+      : chapterEntries[0] || null;
 
   container.innerHTML = `
-    <!-- Breadcrumb Hierarchy: Game Systems > System > Campaign -->
+    <!-- Breadcrumb Hierarchy: Game Systems > System > Campaign > Chapter -->
     <nav class="flex items-center gap-2 text-sm text-slate-400 mb-5 flex-wrap">
       <button id="ws-nav-systems" class="hover:text-white flex items-center gap-1.5 transition">
         <i data-lucide="layers" class="w-4 h-4"></i> Game Systems
@@ -48,166 +131,170 @@ export function renderCampaignWorkspace(container, state) {
         ${escapeHtml(sys.name)}
       </button>
       <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <span class="text-indigo-400 font-medium">${escapeHtml(camp.title)}</span>
+      <span class="text-slate-200 font-medium">${escapeHtml(camp.title)}</span>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      <span class="text-indigo-400 font-medium">${escapeHtml(currentChapter.label)}</span>
     </nav>
 
     <!-- Workspace Split Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       
-      <!-- Left Sidebar: Categories & Entries List -->
-      <aside class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
-        <div class="p-4 border-b border-slate-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="font-bold text-white text-base truncate">${escapeHtml(camp.title)}</h2>
-            <button id="new-entity-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Entry
-            </button>
-          </div>
+      <!-- Left Sidebar: 12 Campaign Planner Chapters -->
+      <aside class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Campaign Planner</p>
+          <h2 class="font-bold text-white text-base truncate mt-0.5">${escapeHtml(camp.title)}</h2>
+        </div>
 
-          <!-- Search Input -->
-          <div class="relative">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5"></i>
-            <input type="text" id="entity-search" value="${escapeHtml(searchQuery)}" placeholder="Filter notes, NPCs, places..."
-              class="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500" />
-          </div>
+        <nav class="p-2 space-y-1 max-h-[72vh] overflow-y-auto">
+          ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
+            const isSelected = chap.id === currentChapter.id;
+            const count = state.entities.filter(
+              (e) => e.type === chap.id || e.type === chap.label
+            ).length;
 
-          <!-- Category Pills -->
-          <div class="flex flex-wrap gap-1.5 pt-1">
-            ${ENTITY_TYPES.map(
-              (t) => `
-              <button data-filter="${t.id}" class="filter-pill px-2.5 py-1 rounded-md text-xs font-medium transition ${
-                activeFilter === t.id
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+            return `
+              <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs font-medium transition ${
+                isSelected
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                  : "text-slate-300 hover:bg-slate-850 hover:text-white"
               }">
-                ${t.label}
+                <span class="flex items-center gap-2.5 min-w-0">
+                  <i data-lucide="${chap.icon}" class="w-4 h-4 shrink-0 ${
+                    isSelected ? "text-white" : "text-indigo-400"
+                  }"></i>
+                  <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
+                </span>
+                ${
+                  count > 0
+                    ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
+                        isSelected
+                          ? "bg-indigo-500 text-white"
+                          : "bg-slate-800 text-slate-400"
+                      }">${count}</span>`
+                    : ""
+                }
               </button>
-            `
-            ).join("")}
-          </div>
-        </div>
-
-        <!-- Entries List -->
-        <div class="divide-y divide-slate-800/70 max-h-[62vh] overflow-y-auto">
-          ${
-            filteredEntities.length === 0
-              ? `<div class="p-8 text-center text-xs text-slate-500">
-                  No entries found. Click <strong>New Entry</strong> to add a Session, NPC, Location, or Lore note.
-                </div>`
-              : filteredEntities
-                  .map(
-                    (ent) => `
-                <div data-entity-id="${ent.id}" class="entity-item p-3.5 cursor-pointer transition flex items-start justify-between gap-2 ${
-                      active?.id === ent.id
-                        ? "bg-indigo-950/40 border-l-2 border-indigo-500"
-                        : "hover:bg-slate-850"
-                    }">
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300">
-                        ${escapeHtml(ent.type)}
-                      </span>
-                      <span class="font-medium text-sm text-white truncate">${escapeHtml(ent.title)}</span>
-                    </div>
-                    <p class="text-xs text-slate-400 truncate">
-                      ${escapeHtml((ent.content || "").replace(/\n/g, " ") || "Empty note...")}
-                    </p>
-                  </div>
-                </div>
-              `
-                  )
-                  .join("")
-          }
-        </div>
+            `;
+          }).join("")}
+        </nav>
       </aside>
 
-      <!-- Right Main Pane: Active Entry Editor -->
-      <section class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 min-h-[65vh] flex flex-col">
+      <!-- Right Main Pane: Active Chapter Placeholder & Scratchpad -->
+      <section class="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
+        
+        <!-- Chapter Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+              <i data-lucide="${currentChapter.icon}" class="w-5 h-5 text-indigo-400"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h1 class="text-xl font-bold text-white">${escapeHtml(currentChapter.label)}</h1>
+                <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-950/70 text-amber-300 border border-amber-800/50">
+                  Chapter Placeholder
+                </span>
+              </div>
+              <p class="text-slate-400 text-xs sm:text-sm mt-1">${escapeHtml(currentChapter.description)}</p>
+            </div>
+          </div>
+
+          <button id="chapter-new-entry-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add ${escapeHtml(currentChapter.label)} Entry
+          </button>
+        </div>
+
+        <!-- Chapter Placeholder Notice -->
+        <div class="mb-5 p-3.5 rounded-xl bg-slate-950/80 border border-dashed border-slate-700 flex items-center justify-between gap-3 text-xs text-slate-300">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="layout-template" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+            <span>
+              <strong>Placeholder Active:</strong> Custom fields and tables for <strong>${escapeHtml(currentChapter.label)}</strong> will be added here next. You can already save freeform notes below.
+            </span>
+          </div>
+        </div>
+
+        <!-- Chapter Entries & Quick Editor -->
         ${
-          !active
+          chapterEntries.length === 0
             ? `
-              <div class="flex-1 flex flex-col items-center justify-center text-center py-16">
-                <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center mb-3">
-                  <i data-lucide="feather" class="w-6 h-6 text-indigo-400"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-white">Your Campaign Ledger is Ready</h3>
-                <p class="text-slate-400 text-sm max-w-md mt-1 mb-5">
-                  Create an entry on the left to start building your world—track session logs, key NPCs, factions, or locations.
+              <div class="flex-1 flex flex-col items-center justify-center text-center py-12 border border-slate-800/60 rounded-xl bg-slate-950/40">
+                <i data-lucide="${currentChapter.icon}" class="w-8 h-8 text-slate-600 mb-2"></i>
+                <p class="text-sm font-medium text-slate-300">No entries in ${escapeHtml(currentChapter.label)} yet</p>
+                <p class="text-xs text-slate-500 max-w-sm mt-1 mb-4">
+                  Click the button above to create a placeholder entry, or share the book's fields for this chapter to build its custom form.
                 </p>
-                <button id="empty-create-entity" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                  <i data-lucide="plus" class="w-4 h-4"></i> Create First Entry
-                </button>
               </div>
             `
             : `
-              <!-- Editor Header -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-800">
-                <div class="flex items-center gap-2.5 flex-1">
-                  <select id="edit-entity-type" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-medium text-indigo-300 focus:outline-none focus:border-indigo-500">
-                    ${ENTITY_TYPES.filter((t) => t.id !== "ALL")
-                      .map(
-                        (t) =>
-                          `<option value="${t.id}" ${active.type === t.id ? "selected" : ""}>${t.id}</option>`
-                      )
-                      .join("")}
-                  </select>
-                  <input type="text" id="edit-entity-title" value="${escapeHtml(active.title)}"
-                    class="flex-1 bg-transparent text-lg font-bold text-white focus:outline-none border-b border-transparent focus:border-indigo-500 px-1" />
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1">
+                <!-- Entry Selector List -->
+                <div class="md:col-span-4 border border-slate-800 rounded-xl bg-slate-950/50 divide-y divide-slate-800/70 max-h-[50vh] overflow-y-auto">
+                  ${chapterEntries
+                    .map(
+                      (ent) => `
+                    <div data-entity-id="${ent.id}" class="entity-item p-3 cursor-pointer transition ${
+                        activeEntry?.id === ent.id
+                          ? "bg-indigo-950/50 border-l-2 border-indigo-500"
+                          : "hover:bg-slate-850"
+                      }">
+                      <div class="font-medium text-xs text-white truncate">${escapeHtml(ent.title)}</div>
+                      <div class="text-[11px] text-slate-500 truncate mt-0.5">
+                        ${escapeHtml((ent.content || "").replace(/\n/g, " ") || "Empty entry...")}
+                      </div>
+                    </div>
+                  `
+                    )
+                    .join("")}
                 </div>
 
-                <div class="flex items-center gap-2">
-                  <span id="save-indicator" class="text-xs text-slate-500">Saved</span>
-                  <button id="save-entity-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                    <i data-lucide="save" class="w-3.5 h-3.5"></i> Save
-                  </button>
-                  <button id="delete-entity-btn" title="Delete Entry" class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
+                <!-- Entry Editor -->
+                <div class="md:col-span-8 flex flex-col border border-slate-800 rounded-xl bg-slate-950/50 p-4">
+                  ${
+                    activeEntry
+                      ? `
+                        <div class="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
+                          <input type="text" id="edit-entity-title" value="${escapeHtml(activeEntry.title)}"
+                            class="flex-1 bg-transparent text-base font-bold text-white focus:outline-none border-b border-transparent focus:border-indigo-500" />
+                          <div class="flex items-center gap-2">
+                            <span id="save-indicator" class="text-xs text-slate-500">Saved</span>
+                            <button id="save-entity-btn" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-md text-xs font-medium transition">
+                              <i data-lucide="save" class="w-3.5 h-3.5"></i> Save
+                            </button>
+                            <button id="delete-entity-btn" title="Delete Entry" class="p-1 text-slate-400 hover:text-rose-400 rounded transition">
+                              <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <textarea id="edit-entity-content" placeholder="Notes for ${escapeHtml(currentChapter.label)}..."
+                          class="flex-1 min-h-[260px] w-full bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-xs sm:text-sm text-slate-200 leading-relaxed focus:outline-none focus:border-indigo-500 resize-none font-mono">${escapeHtml(activeEntry.content || "")}</textarea>
+                      `
+                      : ""
+                  }
                 </div>
               </div>
-
-              <!-- Placeholder Hook for Future Game-Specific Modules (D&D, Vampire, Daggerheart) -->
-              <div id="system-module-slot" class="mb-4 px-3 py-2 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <span class="flex items-center gap-2">
-                  <i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i>
-                  <span>System-Agnostic Sheet • Ready for future <strong>${escapeHtml(sys.name)}</strong> custom fields</span>
-                </span>
-              </div>
-
-              <!-- Notes / Content Textarea -->
-              <textarea id="edit-entity-content" placeholder="Write your session notes, NPC motivations, location secrets, or lore here..."
-                class="flex-1 w-full bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 text-sm text-slate-200 leading-relaxed focus:outline-none focus:border-indigo-500 resize-none font-mono">${escapeHtml(active.content || "")}</textarea>
             `
         }
       </section>
     </div>
 
-    <!-- New Entry Modal -->
+    <!-- New Chapter Entry Modal -->
     <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">New Campaign Entry</h2>
+          <h2 class="text-lg font-bold text-white">New ${escapeHtml(currentChapter.label)} Entry</h2>
           <button id="close-entity-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
         <form id="create-entity-form" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
-            <select id="new-ent-type" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
-              <option value="Session">Session Log</option>
-              <option value="NPC">NPC / Character</option>
-              <option value="Location">Location</option>
-              <option value="Faction">Faction / Organization</option>
-              <option value="Lore">Lore / Worldbuilding</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Title *</label>
-            <input type="text" id="new-ent-title" required placeholder="e.g. Session 01: The Shattered Gate"
+            <label class="block text-xs font-medium text-slate-300 mb-1">Entry Title *</label>
+            <input type="text" id="new-ent-title" required placeholder="Enter title..."
               class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" id="cancel-entity-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create Entry</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create</button>
           </div>
         </form>
       </div>
@@ -222,21 +309,14 @@ export function renderCampaignWorkspace(container, state) {
     setState({ activeCampaign: null, currentView: "campaigns" });
   });
 
-  // Search & Category Filters
-  container.querySelector("#entity-search").addEventListener("input", (e) => {
-    searchQuery = e.target.value;
-    renderCampaignWorkspace(container, state);
-    if (window.lucide) window.lucide.createIcons();
-    const input = container.querySelector("#entity-search");
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-  });
-
-  container.querySelectorAll(".filter-pill").forEach((pill) => {
-    pill.addEventListener("click", () => {
-      activeFilter = pill.getAttribute("data-filter");
-      renderCampaignWorkspace(container, state);
-      if (window.lucide) window.lucide.createIcons();
+  // Switch between the 12 Chapters
+  container.querySelectorAll(".chapter-nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeChapterId = btn.getAttribute("data-chapter-id");
+      const firstMatch = state.entities.find(
+        (e) => e.type === activeChapterId || e.type === btn.textContent.trim()
+      );
+      setState({ activeEntity: firstMatch || null });
     });
   });
 
@@ -245,20 +325,18 @@ export function renderCampaignWorkspace(container, state) {
   const openModal = () => modal.classList.remove("hidden");
   const closeModal = () => modal.classList.add("hidden");
 
-  container.querySelector("#new-entity-btn")?.addEventListener("click", openModal);
-  container.querySelector("#empty-create-entity")?.addEventListener("click", openModal);
+  container.querySelector("#chapter-new-entry-btn")?.addEventListener("click", openModal);
   container.querySelector("#close-entity-modal")?.addEventListener("click", closeModal);
   container.querySelector("#cancel-entity-modal")?.addEventListener("click", closeModal);
 
   container.querySelector("#create-entity-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const type = container.querySelector("#new-ent-type").value;
     const title = container.querySelector("#new-ent-title").value;
     closeModal();
-    await createEntity({ type, title, content: "" });
+    await createEntity({ type: currentChapter.id, title, content: "" });
   });
 
-  // Select Entity from Sidebar
+  // Select Entry
   container.querySelectorAll(".entity-item").forEach((item) => {
     item.addEventListener("click", () => {
       const id = item.getAttribute("data-entity-id");
@@ -267,42 +345,36 @@ export function renderCampaignWorkspace(container, state) {
     });
   });
 
-  // Save & Delete Active Entity
-  if (active) {
+  // Save & Delete Active Entry
+  if (activeEntry) {
     const saveBtn = container.querySelector("#save-entity-btn");
     const saveIndicator = container.querySelector("#save-indicator");
     const titleInput = container.querySelector("#edit-entity-title");
-    const typeSelect = container.querySelector("#edit-entity-type");
     const contentArea = container.querySelector("#edit-entity-content");
 
-    const triggerSave = async () => {
+    saveBtn.addEventListener("click", async () => {
       saveIndicator.textContent = "Saving...";
       saveIndicator.className = "text-xs text-amber-400";
-      await updateEntity(active.id, {
+      await updateEntity(activeEntry.id, {
         title: titleInput.value.trim() || "Untitled Entry",
-        type: typeSelect.value,
         content: contentArea.value
       });
       saveIndicator.textContent = "Saved";
       saveIndicator.className = "text-xs text-emerald-400";
-    };
+    });
 
-    saveBtn.addEventListener("click", triggerSave);
-
-    // Mark unsaved on typing
-    [titleInput, typeSelect, contentArea].forEach((el) => {
+    [titleInput, contentArea].forEach((el) => {
       el.addEventListener("input", () => {
         saveIndicator.textContent = "Unsaved changes";
         saveIndicator.className = "text-xs text-amber-400";
       });
     });
 
-    // Delete with two-click safety
     const delBtn = container.querySelector("#delete-entity-btn");
     delBtn.addEventListener("click", async () => {
       if (delBtn.dataset.armed !== "true") {
         delBtn.dataset.armed = "true";
-        delBtn.innerHTML = `<span class="text-xs font-semibold text-rose-400">Confirm Delete?</span>`;
+        delBtn.innerHTML = `<span class="text-xs font-semibold text-rose-400">Confirm?</span>`;
         setTimeout(() => {
           if (delBtn) {
             delBtn.dataset.armed = "false";
@@ -312,7 +384,7 @@ export function renderCampaignWorkspace(container, state) {
         }, 3000);
         return;
       }
-      await deleteEntity(active.id);
+      await deleteEntity(activeEntry.id);
     });
   }
 }
