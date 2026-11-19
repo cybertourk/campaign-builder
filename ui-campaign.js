@@ -11,6 +11,8 @@ import {
 import { setState } from "./state.js";
 import { renderCampaignSettingChapter, SETTING_TABS } from "./chapter-setting.js";
 import { renderPlotChapter, PLOT_TABS } from "./chapter-plot.js";
+import { renderEncountersChapter, ENCOUNTERS_TABS } from "./chapter-encounters.js";
+import { renderEnemiesChapter, ENEMIES_TABS } from "./chapter-enemies.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -34,14 +36,16 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Random Encounters",
     icon: "dices",
     mode: "collection",
-    description: "Environment-based encounter tables, twists, and quick-roll triggers."
+    description: "Environment-based encounter tables, twists, and quick-roll triggers.",
+    sections: ENCOUNTERS_TABS
   },
   {
     id: "enemies",
     label: "Enemies",
     icon: "skull",
     mode: "collection",
-    description: "Monsters, villains, stat blocks, tactics, and threat profiles."
+    description: "Monsters, villains, stat blocks, tactics, and threat profiles.",
+    sections: ENEMIES_TABS
   },
   {
     id: "deities",
@@ -104,7 +108,9 @@ export const CAMPAIGN_CHAPTERS = [
 let activeChapterId = "campaign-setting";
 let activeSectionMap = {
   "campaign-setting": "overview",
-  "plot-adventures": "central-tension"
+  "plot-adventures": "central-tension",
+  "random-encounters": "encounter-tables",
+  "enemies": "bbg-hierarchy"
 };
 
 export function renderCampaignWorkspace(container, state) {
@@ -162,6 +168,8 @@ export function renderCampaignWorkspace(container, state) {
             // Compute item counts for nested sections (Kingdoms, Towns, Markets, Adventures)
             const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
             const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
+            const encountersDoc = state.entities.find((e) => e.type === "random-encounters")?.systemData || {};
+            const enemiesDoc = state.entities.find((e) => e.type === "enemies")?.systemData || {};
 
             return `
               <div class="rounded-lg ${isSelected ? "bg-slate-950/60 border border-slate-800/80 pb-1.5" : ""}">
@@ -206,6 +214,8 @@ export function renderCampaignWorkspace(container, state) {
                             if (sec.id === "towns") secCount = (settingDoc.towns || []).length;
                             if (sec.id === "markets") secCount = (settingDoc.markets || []).length;
                             if (sec.id === "adventures") secCount = (plotDoc.adventures || []).length;
+                            if (sec.id === "encounter-tables") secCount = (encountersDoc.rows || []).length;
+                            if (sec.id === "bestiary") secCount = (enemiesDoc.enemies || []).length;
 
                             return `
                               <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
@@ -362,27 +372,7 @@ export function renderCampaignWorkspace(container, state) {
     <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">New ${escapeHtml(currentChapter.label)} Entry</h2>
-          <button type="button" id="close-entity-modal" class="text-slate-400 hover:text-white">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-        <form id="create-entity-form" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Entry Title *</label>
-            <input type="text" id="new-ent-title" required placeholder="Enter a title..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" id="cancel-entity-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-
-  // If Chapter 1 (Campaign Setting) or Chapter 2 (Plot & Adventures) is active, render its dedicated workbook
+  // If Chapter 1–4 is active, render its dedicated workbook
   if (currentChapter.id === "campaign-setting") {
     const mainPane = container.querySelector("#chapter-main-pane");
     renderCampaignSettingChapter(mainPane, state, {
@@ -399,6 +389,26 @@ export function renderCampaignWorkspace(container, state) {
       activeSectionId: activeSectionMap["plot-adventures"],
       onSectionChange: (secId) => {
         activeSectionMap["plot-adventures"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "random-encounters") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderEncountersChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["random-encounters"],
+      onSectionChange: (secId) => {
+        activeSectionMap["random-encounters"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "enemies") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderEnemiesChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["enemies"],
+      onSectionChange: (secId) => {
+        activeSectionMap["enemies"] = secId;
         renderCampaignWorkspace(container, state);
         if (window.lucide) window.lucide.createIcons();
       }
