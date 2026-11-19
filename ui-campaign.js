@@ -9,8 +9,8 @@ import {
   deleteEntity
 } from "./firebase-manager.js";
 import { setState } from "./state.js";
-import { renderCampaignSettingChapter } from "./chapter-setting.js";
-import { renderPlotChapter } from "./chapter-plot.js";
+import { renderCampaignSettingChapter, SETTING_TABS } from "./chapter-setting.js";
+import { renderPlotChapter, PLOT_TABS } from "./chapter-plot.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -18,14 +18,16 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Campaign Setting",
     icon: "globe",
     mode: "single",
-    description: "World overview, tone, geography, major regions, and foundational truths."
+    description: "World overview, tone, geography, major regions, and foundational truths.",
+    sections: SETTING_TABS
   },
   {
     id: "plot-adventures",
     label: "Plot and Adventures",
     icon: "compass",
     mode: "collection",
-    description: "Main story arcs, adventure hooks, milestones, and branching plotlines."
+    description: "Main story arcs, adventure hooks, milestones, and branching plotlines.",
+    sections: PLOT_TABS
   },
   {
     id: "random-encounters",
@@ -100,83 +102,96 @@ export const CAMPAIGN_CHAPTERS = [
 ];
 
 let activeChapterId = "campaign-setting";
+let activeSectionMap = {
+  "campaign-setting": "overview",
+  "plot-adventures": "central-tension"
+};
 
 export function renderCampaignWorkspace(container, state) {
-  const sys = state.activeSystem;
-  const camp = state.activeCampaign;
-  if (!sys || !camp) return;
-
-  const currentChapter =
-    CAMPAIGN_CHAPTERS.find((c) => c.id === activeChapterId) || CAMPAIGN_CHAPTERS[0];
-
-  // Filter saved Firestore entities belonging to this chapter
-  const chapterEntries = state.entities.filter(
-    (ent) => ent.type === currentChapter.id || ent.type === currentChapter.label
-  );
-
-  // Ensure activeEntity belongs to the currently selected chapter if one exists
-  const activeEntry =
-    state.activeEntity &&
-    (state.activeEntity.type === currentChapter.id ||
-      state.activeEntity.type === currentChapter.label)
-      ? state.activeEntity
-      : chapterEntries[0] || null;
-
-  container.innerHTML = `
-    <!-- Breadcrumb Hierarchy: Game Systems > System > Campaign > Chapter -->
-    <nav class="flex items-center gap-2 text-sm text-slate-400 mb-5 flex-wrap">
-      <button id="ws-nav-systems" class="hover:text-white flex items-center gap-1.5 transition">
-        <i data-lucide="layers" class="w-4 h-4"></i> Game Systems
-      </button>
-      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <button id="ws-nav-campaigns" class="hover:text-white transition">
-        ${escapeHtml(sys.name)}
-      </button>
-      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <span class="text-slate-200 font-medium">${escapeHtml(camp.title)}</span>
-      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <span class="text-indigo-400 font-medium">${escapeHtml(currentChapter.label)}</span>
-    </nav>
-
-    <!-- Workspace Split Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      
-      <!-- Left Sidebar: 12 Campaign Planner Chapters -->
-      <aside class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div class="p-4 border-b border-slate-800">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Campaign Planner</p>
-          <h2 class="font-bold text-white text-base truncate mt-0.5">${escapeHtml(camp.title)}</h2>
-        </div>
-
-        <nav class="p-2 space-y-1 max-h-[72vh] overflow-y-auto">
+        <nav class="p-2 space-y-1 max-h-[75vh] overflow-y-auto">
           ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
             const isSelected = chap.id === currentChapter.id;
+            const sections = chap.sections || [];
+            const activeSecId = activeSectionMap[chap.id] || sections[0]?.id;
             const count = state.entities.filter(
               (e) => e.type === chap.id || e.type === chap.label
             ).length;
 
+            // Compute item counts for nested sections (Kingdoms, Towns, Markets, Adventures)
+            const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
+            const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
+
             return `
-              <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs font-medium transition ${
-                isSelected
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                  : "text-slate-300 hover:bg-slate-850 hover:text-white"
-              }">
-                <span class="flex items-center gap-2.5 min-w-0">
-                  <i data-lucide="${chap.icon}" class="w-4 h-4 shrink-0 ${
-                    isSelected ? "text-white" : "text-indigo-400"
-                  }"></i>
-                  <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
-                </span>
+              <div class="rounded-lg ${isSelected ? "bg-slate-950/60 border border-slate-800/80 pb-1.5" : ""}">
+                <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs font-medium transition ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                    : "text-slate-300 hover:bg-slate-850 hover:text-white"
+                }">
+                  <span class="flex items-center gap-2.5 min-w-0">
+                    <i data-lucide="${chap.icon}" class="w-4 h-4 shrink-0 ${
+                      isSelected ? "text-white" : "text-indigo-400"
+                    }"></i>
+                    <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
+                  </span>
+                  <span class="flex items-center gap-1.5 shrink-0">
+                    ${
+                      count > 0 && sections.length === 0
+                        ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
+                            isSelected
+                              ? "bg-indigo-500 text-white"
+                              : "bg-slate-800 text-slate-400"
+                          }">${count}</span>`
+                        : ""
+                    }
+                    ${
+                      sections.length > 0
+                        ? `<i data-lucide="${isSelected ? "chevron-down" : "chevron-right"}" class="w-3.5 h-3.5 opacity-80"></i>`
+                        : ""
+                    }
+                  </span>
+                </button>
+
                 ${
-                  count > 0
-                    ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
-                        isSelected
-                          ? "bg-indigo-500 text-white"
-                          : "bg-slate-800 text-slate-400"
-                      }">${count}</span>`
+                  isSelected && sections.length > 0
+                    ? `
+                      <div class="mt-1.5 ml-3 pl-2.5 border-l border-slate-800 space-y-0.5">
+                        ${sections
+                          .map((sec) => {
+                            const isSecActive = sec.id === activeSecId;
+                            let secCount = 0;
+                            if (sec.id === "kingdoms") secCount = (settingDoc.kingdoms || []).length;
+                            if (sec.id === "towns") secCount = (settingDoc.towns || []).length;
+                            if (sec.id === "markets") secCount = (settingDoc.markets || []).length;
+                            if (sec.id === "adventures") secCount = (plotDoc.adventures || []).length;
+
+                            return `
+                              <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
+                                class="chapter-section-btn w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-left text-[11px] transition ${
+                                  isSecActive
+                                    ? "bg-slate-800 text-indigo-300 font-semibold"
+                                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                                }">
+                                <span class="flex items-center gap-2 min-w-0">
+                                  <i data-lucide="${sec.icon}" class="w-3.5 h-3.5 shrink-0 ${
+                                    isSecActive ? "text-indigo-400" : "text-slate-500"
+                                  }"></i>
+                                  <span class="truncate">${escapeHtml(sec.label)}</span>
+                                </span>
+                                ${
+                                  secCount > 0
+                                    ? `<span class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-900 text-slate-400 border border-slate-700/80">${secCount}</span>`
+                                    : ""
+                                }
+                              </button>
+                            `;
+                          })
+                          .join("")}
+                      </div>
+                    `
                     : ""
                 }
-              </button>
+              </div>
             `;
           }).join("")}
         </nav>
@@ -328,10 +343,24 @@ export function renderCampaignWorkspace(container, state) {
   // If Chapter 1 (Campaign Setting) or Chapter 2 (Plot & Adventures) is active, render its dedicated workbook
   if (currentChapter.id === "campaign-setting") {
     const mainPane = container.querySelector("#chapter-main-pane");
-    renderCampaignSettingChapter(mainPane, state);
+    renderCampaignSettingChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["campaign-setting"],
+      onSectionChange: (secId) => {
+        activeSectionMap["campaign-setting"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
   } else if (currentChapter.id === "plot-adventures") {
     const mainPane = container.querySelector("#chapter-main-pane");
-    renderPlotChapter(mainPane, state);
+    renderPlotChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["plot-adventures"],
+      onSectionChange: (secId) => {
+        activeSectionMap["plot-adventures"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
   }
 
   // Wire Misc Notes on placeholder chapters
@@ -388,6 +417,18 @@ export function renderCampaignWorkspace(container, state) {
         (e) => e.type === activeChapterId || e.type === btn.textContent.trim()
       );
       setState({ activeEntity: firstMatch || null });
+    });
+  });
+
+  // Switch nested vertical sections inside an active chapter
+  container.querySelectorAll(".chapter-section-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const chapId = btn.getAttribute("data-chapter-id");
+      const secId = btn.getAttribute("data-section-id");
+      activeChapterId = chapId;
+      activeSectionMap[chapId] = secId;
+      renderCampaignWorkspace(container, state);
+      if (window.lucide) window.lucide.createIcons();
     });
   });
 
