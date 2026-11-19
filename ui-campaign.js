@@ -108,6 +108,48 @@ let activeSectionMap = {
 };
 
 export function renderCampaignWorkspace(container, state) {
+  const sys = state.activeSystem;
+  const camp = state.activeCampaign;
+  if (!sys || !camp) return;
+
+  const currentChapter =
+    CAMPAIGN_CHAPTERS.find((c) => c.id === activeChapterId) || CAMPAIGN_CHAPTERS[0];
+
+  const chapterEntries = state.entities.filter(
+    (e) => e.type === currentChapter.id || e.type === currentChapter.label
+  );
+
+  const activeEntry =
+    chapterEntries.find((e) => e.id === state.activeEntity?.id) || chapterEntries[0] || null;
+
+  container.innerHTML = `
+    <!-- Breadcrumb Hierarchy: Game Systems > Active System > Active Campaign -->
+    <nav class="flex items-center gap-2 text-sm text-slate-400 mb-5 flex-wrap">
+      <button id="ws-nav-systems" class="hover:text-white flex items-center gap-1.5 transition">
+        <i data-lucide="layers" class="w-4 h-4"></i> Game Systems
+      </button>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      <button id="ws-nav-campaigns" class="hover:text-white transition">
+        ${escapeHtml(sys.name)}
+      </button>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+      <span class="text-indigo-400 font-medium">${escapeHtml(camp.title)}</span>
+    </nav>
+
+    <!-- Main 2-Column Layout: 12-Chapter Sidebar + Active Chapter Workspace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- Left Sidebar: Campaign Header & 12-Chapter Nested Vertical Navigation -->
+      <aside class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-950/50">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-0.5">
+            Campaign Planner
+          </div>
+          <h2 class="font-bold text-white text-base truncate" title="${escapeHtml(camp.title)}">
+            ${escapeHtml(camp.title)}
+          </h2>
+        </div>
+
         <nav class="p-2 space-y-1 max-h-[75vh] overflow-y-auto">
           ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
             const isSelected = chap.id === currentChapter.id;
