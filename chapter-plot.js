@@ -34,25 +34,6 @@ function getDefaultPlotData() {
   };
 }
 
-export function renderPlotChapter(paneContainer, state) {
-  const existingDoc = state.entities.find((e) => e.type === "plot-adventures");
-  const data = {
-    ...getDefaultPlotData(),
-    ...(existingDoc?.systemData || {})
-  };
-  if (!Array.isArray(data.adventures)) data.adventures = [];
-
-  if (selectedAdventureIndex >= data.adventures.length) {
-    selectedAdventureIndex = Math.max(0, data.adventures.length - 1);
-  }
-
-  paneContainer.innerHTML = `
-    <!-- Chapter Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-5 border-b border-slate-800">
-      <div class="flex items-start gap-3">
-        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
-          <i data-lucide="compass" class="w-5 h-5 text-indigo-400"></i>
-        </div>
 export function renderPlotChapter(paneContainer, state, options = {}) {
   if (options.activeSectionId) {
     activePlotTab = options.activeSectionId;
