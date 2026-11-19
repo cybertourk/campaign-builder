@@ -2,20 +2,20 @@
 // Dedicated interactive workbook for Chapter 1: Campaign Setting (Pages 1–13 of the Campaign Planner).
 // Organizes the book's guided prompts, World Profile, Ecology/Magic/Society pages, World Map,
 // and repeatable 2-page Kingdom Sheets into a clean tabbed workspace backed by Firestore.
-
-import { createEntity, updateEntity } from "./firebase-manager.js";
-
-// Sub-tabs mirroring the flow of Pages 1–13 in the book
+// Sub-tabs mirroring the flow of Pages 1–16 in the book
 const SETTING_TABS = [
   { id: "overview", label: "1. Core Concept & Prompts", icon: "compass" },
   { id: "world-profile", label: "2. World Profile", icon: "globe" },
   { id: "world-details", label: "3. Nature, Magic & Society", icon: "sparkles" },
   { id: "world-map", label: "4. World Map", icon: "map" },
-  { id: "kingdoms", label: "5. Kingdoms & Regions", icon: "castle" }
+  { id: "kingdoms", label: "5. Kingdoms & Regions", icon: "castle" },
+  { id: "towns", label: "6. Towns & Cities", icon: "building-2" },
+  { id: "markets", label: "7. Markets & Shops", icon: "store" }
 ];
 
 let activeSettingTab = "overview";
 let selectedKingdomIndex = 0;
+let selectedTownIndex = 0;
 
 /**
  * Returns a clean default structure matching every field in Chapter 1.
@@ -69,7 +69,13 @@ function getDefaultSettingData() {
     worldMapNotes: "",
 
     // Pages 8–10: Kingdoms in the World (Repeatable 2-page Kingdom Sheets)
-    kingdoms: []
+    kingdoms: [],
+
+    // Pages 14–15: Towns / Cities (Repeatable 2-page Town Sheets + Town Map)
+    towns: [],
+
+    // Page 16: Markets (Repeatable Market / Trader cards)
+    markets: []
   };
 }
 
@@ -84,8 +90,14 @@ export function renderCampaignSettingChapter(paneContainer, state) {
     ...(existingDoc?.systemData || {})
   };
   if (!Array.isArray(data.kingdoms)) data.kingdoms = [];
+  if (!Array.isArray(data.towns)) data.towns = [];
+  if (!Array.isArray(data.markets)) data.markets = [];
+
   if (selectedKingdomIndex >= data.kingdoms.length) {
     selectedKingdomIndex = Math.max(0, data.kingdoms.length - 1);
+  }
+  if (selectedTownIndex >= data.towns.length) {
+    selectedTownIndex = Math.max(0, data.towns.length - 1);
   }
 
   paneContainer.innerHTML = `
@@ -122,11 +134,19 @@ export function renderCampaignSettingChapter(paneContainer, state) {
     <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-6 border-b border-slate-800/80">
       ${SETTING_TABS.map((tab) => {
         const isActive = tab.id === activeSettingTab;
+        const count =
+          tab.id === "kingdoms"
+            ? data.kingdoms.length
+            : tab.id === "towns"
+            ? data.towns.length
+            : tab.id === "markets"
+            ? data.markets.length
+            : 0;
         const badge =
-          tab.id === "kingdoms" && data.kingdoms.length > 0
+          count > 0
             ? `<span class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
                 isActive ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400"
-              }">${data.kingdoms.length}</span>`
+              }">${count}</span>`
             : "";
         return `
           <button type="button" data-setting-tab="${tab.id}" class="setting-tab-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition ${
@@ -177,6 +197,16 @@ export function renderCampaignSettingChapter(paneContainer, state) {
   // Wire Kingdom repeater buttons if on the Kingdoms tab
   if (activeSettingTab === "kingdoms") {
     wireKingdomControls(paneContainer, state, existingDoc, data);
+  }
+
+  // Wire Town repeater buttons if on the Towns tab
+  if (activeSettingTab === "towns") {
+    wireTownControls(paneContainer, state, existingDoc, data);
+  }
+
+  // Wire Market repeater buttons if on the Markets tab
+  if (activeSettingTab === "markets") {
+    wireMarketControls(paneContainer, state, existingDoc, data);
   }
 
   // Wire World Map live preview if on the Map tab
@@ -423,6 +453,12 @@ function renderActiveTabContent(tabId, data) {
     case "kingdoms":
       return renderKingdomsTab(data);
 
+    case "towns":
+      return renderTownsTab(data);
+
+    case "markets":
+      return renderMarketsTab(data);
+
     default:
       return "";
   }
@@ -620,6 +656,334 @@ function wireKingdomControls(paneContainer, state, existingDoc, data) {
 }
 
 /**
+ * Renders Pages 14–15: Towns & Cities (2-Page Town Profile + Town Map).
+ */
+function renderTownsTab(data) {
+  const towns = data.towns || [];
+  const activeTown = towns[selectedTownIndex] || null;
+
+  return `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div>
+        <h3 class="text-sm font-bold text-white">Towns, Cities & Settlements</h3>
+        <p class="text-xs text-slate-400">Build local profiles, notable businesses, local laws, rumors, and town maps.</p>
+      </div>
+      <button type="button" id="add-town-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Town / City
+      </button>
+    </div>
+
+    ${
+      towns.length === 0
+        ? `
+          <div class="text-center py-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/30">
+            <i data-lucide="building-2" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <p class="text-sm font-medium text-slate-300">No Towns or Cities Added Yet</p>
+            <p class="text-xs text-slate-500 mt-1">Click "Add Town / City" to flesh out a local settlement.</p>
+          </div>
+        `
+        : `
+          <!-- Town Selector Pills -->
+          <div class="flex items-center gap-2 flex-wrap">
+            ${towns
+              .map(
+                (t, i) => `
+              <button type="button" data-town-idx="${i}" class="select-town-btn px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  i === selectedTownIndex
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700"
+                }">
+                ${escapeHtml(t.name || `Town #${i + 1}`)}
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+
+          ${
+            activeTown
+              ? `
+                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-5">
+                  <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div class="flex-1">
+                      <label class="block text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-1">Town / City Name</label>
+                      <input type="text" data-town-field="name" value="${escapeHtml(activeTown.name || "")}"
+                        placeholder="e.g., Oakhaven, Port Brass, Crossroad Keep"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-base font-bold text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <button type="button" id="delete-town-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2.5 py-1.5 rounded border border-slate-800 hover:border-rose-800/60 transition self-end">
+                      Remove Town
+                    </button>
+                  </div>
+
+                  <!-- Page 14 Top Grid: Key NPCs & Notable Locations / Businesses -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Key NPCs</label>
+                      <textarea data-town-field="keyNpcs" rows="4"
+                        placeholder="Mayor, captain of the guard, guild leaders, influential locals..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.keyNpcs || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Notable Locations, and Businesses</label>
+                      <textarea data-town-field="notableLocations" rows="4"
+                        placeholder="Taverns, blacksmiths, temples, town hall, secret dens, landmarks..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.notableLocations || "")}</textarea>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Local History</label>
+                    <textarea data-town-field="localHistory" rows="3"
+                      placeholder="How the settlement was founded, past disasters, local legends..."
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.localHistory || "")}</textarea>
+                  </div>
+
+                  <!-- Town Details Page: Local Government, Laws, Social/Economic, Races & Languages, Rumors -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Local Government and Leadership</label>
+                      <textarea data-town-field="localGovernment" rows="3"
+                        placeholder="Council, magistrate, sheriff, crime boss pulling the strings..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.localGovernment || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Laws</label>
+                      <textarea data-town-field="laws" rows="3"
+                        placeholder="Weapon peace-bonding, curfews, gate taxes, local ordinances..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.laws || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Social / Economic Factors</label>
+                      <textarea data-town-field="socialEconomic" rows="3"
+                        placeholder="Main exports, wealth disparity, booming trade or hard times..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.socialEconomic || "")}</textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Races and Languages</label>
+                      <textarea data-town-field="racesLanguages" rows="3"
+                        placeholder="Local demographics, foreign quarters, spoken dialects..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.racesLanguages || "")}</textarea>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Rumors</label>
+                    <textarea data-town-field="rumors" rows="3"
+                      placeholder="Local gossip, missing persons, haunted cellars, job board leads..."
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeTown.rumors || "")}</textarea>
+                  </div>
+
+                  <!-- Page 15: Town Map -->
+                  <div class="pt-3 border-t border-slate-800/80 space-y-3">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Town Map Image URL (Optional)
+                    </label>
+                    <input type="url" data-town-field="townMapUrl" value="${escapeHtml(activeTown.townMapUrl || "")}"
+                      placeholder="https://... (Paste a town map image link)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    <div id="town-map-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+                      ${
+                        activeTown.townMapUrl
+                          ? `<img src="${escapeHtml(activeTown.townMapUrl)}" alt="Town Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                          : `<p class="text-xs text-slate-500 py-5">Paste a town map URL above to preview it here.</p>`
+                      }
+                    </div>
+                  </div>
+                </div>
+              `
+              : ""
+          }
+        `
+    }
+  `;
+}
+
+function wireTownControls(paneContainer, state, existingDoc, data) {
+  const rerenderWithLocalData = () => {
+    const tempEntity = existingDoc
+      ? { ...existingDoc, systemData: data }
+      : { type: "campaign-setting", title: data.worldName || "Campaign Setting", systemData: data };
+    const otherEntities = state.entities.filter((e) => e.type !== "campaign-setting");
+    renderCampaignSettingChapter(paneContainer, {
+      ...state,
+      entities: [tempEntity, ...otherEntities]
+    });
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  paneContainer.querySelector("#add-town-btn")?.addEventListener("click", () => {
+    collectFormIntoData(paneContainer, data);
+    data.towns.push({
+      name: `Town ${data.towns.length + 1}`,
+      keyNpcs: "",
+      notableLocations: "",
+      localHistory: "",
+      localGovernment: "",
+      laws: "",
+      socialEconomic: "",
+      racesLanguages: "",
+      rumors: "",
+      townMapUrl: ""
+    });
+    selectedTownIndex = data.towns.length - 1;
+    rerenderWithLocalData();
+  });
+
+  paneContainer.querySelectorAll(".select-town-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      collectFormIntoData(paneContainer, data);
+      selectedTownIndex = Number(btn.getAttribute("data-town-idx")) || 0;
+      rerenderWithLocalData();
+    });
+  });
+
+  const delBtn = paneContainer.querySelector("#delete-town-btn");
+  delBtn?.addEventListener("click", () => {
+    if (delBtn.dataset.armed !== "true") {
+      delBtn.dataset.armed = "true";
+      delBtn.textContent = "Click again to confirm";
+      delBtn.classList.add("text-rose-400", "border-rose-700");
+      return;
+    }
+    data.towns.splice(selectedTownIndex, 1);
+    selectedTownIndex = Math.max(0, selectedTownIndex - 1);
+    rerenderWithLocalData();
+  });
+
+  const mapUrlInput = paneContainer.querySelector('[data-town-field="townMapUrl"]');
+  const mapPreview = paneContainer.querySelector("#town-map-preview");
+  mapUrlInput?.addEventListener("input", () => {
+    const val = mapUrlInput.value.trim();
+    if (val) {
+      mapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Town Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      mapPreview.innerHTML = `<p class="text-xs text-slate-500 py-5">Paste a town map URL above to preview it here.</p>`;
+    }
+  });
+}
+
+/**
+ * Renders Page 16: Markets (Repeatable Market Name, Trader Name, Town/Location, Items and Prices).
+ */
+function renderMarketsTab(data) {
+  const markets = data.markets || [];
+
+  return `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div>
+        <h3 class="text-sm font-bold text-white">Markets, Bazaars & Merchants</h3>
+        <p class="text-xs text-slate-400">Track local markets, traders, locations, and specialty goods with prices.</p>
+      </div>
+      <button type="button" id="add-market-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Market / Shop
+      </button>
+    </div>
+
+    ${
+      markets.length === 0
+        ? `
+          <div class="text-center py-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/30">
+            <i data-lucide="store" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <p class="text-sm font-medium text-slate-300">No Markets Added Yet</p>
+            <p class="text-xs text-slate-500 mt-1">Click "Add Market / Shop" to log vendors, locations, and inventory prices.</p>
+          </div>
+        `
+        : `
+          <div class="space-y-4">
+            ${markets
+              .map(
+                (m, idx) => `
+              <div data-market-card="${idx}" class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800/80">
+                  <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Market #${idx + 1}</span>
+                  <button type="button" data-delete-market="${idx}" class="delete-market-btn text-xs text-slate-400 hover:text-rose-400 transition">
+                    Remove
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                  <!-- Left Column: Market Name, Trader Name, Town/Location -->
+                  <div class="md:col-span-5 space-y-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Market Name</label>
+                      <input type="text" data-market-idx="${idx}" data-market-field="marketName" value="${escapeHtml(m.marketName || "")}"
+                        placeholder="e.g., The Gilded Anvil, Night Bazaar"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Trader Name</label>
+                      <input type="text" data-market-idx="${idx}" data-market-field="traderName" value="${escapeHtml(m.traderName || "")}"
+                        placeholder="e.g., Mistress Vespera"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Town / Location</label>
+                      <input type="text" data-market-idx="${idx}" data-market-field="townLocation" value="${escapeHtml(m.townLocation || "")}"
+                        placeholder="e.g., Oakhaven — Dock Ward"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    </div>
+                  </div>
+
+                  <!-- Right Column: Items and Prices -->
+                  <div class="md:col-span-7">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Items and Prices</label>
+                    <textarea data-market-idx="${idx}" data-market-field="itemsAndPrices" rows="7"
+                      placeholder="List notable wares, services, and prices (e.g., Healing Potion — 50 gp, Silvered Dagger — 105 gp)..."
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(m.itemsAndPrices || "")}</textarea>
+                  </div>
+                </div>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        `
+    }
+  `;
+}
+
+function wireMarketControls(paneContainer, state, existingDoc, data) {
+  const rerenderWithLocalData = () => {
+    const tempEntity = existingDoc
+      ? { ...existingDoc, systemData: data }
+      : { type: "campaign-setting", title: data.worldName || "Campaign Setting", systemData: data };
+    const otherEntities = state.entities.filter((e) => e.type !== "campaign-setting");
+    renderCampaignSettingChapter(paneContainer, {
+      ...state,
+      entities: [tempEntity, ...otherEntities]
+    });
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  paneContainer.querySelector("#add-market-btn")?.addEventListener("click", () => {
+    collectFormIntoData(paneContainer, data);
+    data.markets.push({
+      marketName: "",
+      traderName: "",
+      townLocation: "",
+      itemsAndPrices: ""
+    });
+    rerenderWithLocalData();
+  });
+
+  paneContainer.querySelectorAll(".delete-market-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-delete-market"));
+      if (btn.dataset.armed !== "true") {
+        btn.dataset.armed = "true";
+        btn.textContent = "Confirm?";
+        btn.classList.add("text-rose-400");
+        return;
+      }
+      collectFormIntoData(paneContainer, data);
+      data.markets.splice(idx, 1);
+      rerenderWithLocalData();
+    });
+  });
+}
+
+/**
  * Reads all visible inputs on the active tab and merges them into `data`.
  */
 function collectFormIntoData(container, data) {
@@ -632,6 +996,23 @@ function collectFormIntoData(container, data) {
     container.querySelectorAll("[data-kingdom-field]").forEach((el) => {
       const kField = el.getAttribute("data-kingdom-field");
       data.kingdoms[selectedKingdomIndex][kField] = el.value;
+    });
+  }
+
+  if (activeSettingTab === "towns" && data.towns[selectedTownIndex]) {
+    container.querySelectorAll("[data-town-field]").forEach((el) => {
+      const tField = el.getAttribute("data-town-field");
+      data.towns[selectedTownIndex][tField] = el.value;
+    });
+  }
+
+  if (activeSettingTab === "markets") {
+    container.querySelectorAll("[data-market-field]").forEach((el) => {
+      const idx = Number(el.getAttribute("data-market-idx"));
+      const mField = el.getAttribute("data-market-field");
+      if (data.markets[idx]) {
+        data.markets[idx][mField] = el.value;
+      }
     });
   }
 }
