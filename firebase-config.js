@@ -5,14 +5,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Replace these placeholder values with your actual Firebase Project Settings config
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCek_kKMWvKqdU-rYZGzQQ2JowYSTuhLcg",
+  authDomain: "campaign-builder-ad44c.firebaseapp.com",
+  projectId: "campaign-builder-ad44c",
+  storageBucket: "campaign-builder-ad44c.firebasestorage.app",
+  messagingSenderId: "546547882300",
+  appId: "1:546547882300:web:b935753d707379fdce6639"
 };
 
 // Initialize Firebase services
