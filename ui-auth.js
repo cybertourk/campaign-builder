@@ -4,7 +4,6 @@
 import {
   loginWithEmail,
   registerWithEmail,
-  loginWithGoogle,
   logoutUser
 } from "./firebase-manager.js";
 
@@ -66,17 +65,6 @@ export function renderAuthView(container, state) {
             ${state.isLoading ? "Connecting..." : "Sign In"}
           </button>
         </form>
-
-        <div class="relative my-6">
-          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
-          <div class="relative flex justify-center text-xs"><span class="px-2 bg-slate-900 text-slate-500">or continue with</span></div>
-        </div>
-
-        <button type="button" id="google-login-btn" ${state.isLoading ? "disabled" : ""}
-          class="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200 font-medium text-sm rounded-lg transition flex items-center justify-center gap-2">
-          <i data-lucide="chrome" class="w-4 h-4 text-indigo-400"></i>
-          Sign in with Google
-        </button>
       </div>
     </div>
   `;
@@ -115,10 +103,6 @@ export function renderAuthView(container, state) {
     } else {
       await loginWithEmail(email, password);
     }
-  });
-
-  container.querySelector("#google-login-btn").addEventListener("click", async () => {
-    await loginWithGoogle();
   });
 }
 
