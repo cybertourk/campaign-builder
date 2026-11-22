@@ -17,6 +17,8 @@ import { renderDeitiesChapter, DEITIES_TABS } from "./chapter-deities.js";
 import { renderFactionsChapter, FACTIONS_TABS } from "./chapter-factions.js";
 import { renderNpcChapter, NPC_TABS } from "./chapter-npc.js";
 import { renderItemsChapter, ITEMS_TABS } from "./chapter-items.js";
+import { renderCharactersChapter, CHARACTERS_TABS } from "./chapter-characters.js";
+import { renderSessionLogChapter, SESSION_LOG_TABS } from "./chapter-session-log.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -88,14 +90,16 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Character Sheets",
     icon: "user-check",
     mode: "collection",
-    description: "Party roster, player character stats, backstories, and personal quests."
+    description: "Party roster, player character stats, backstories, and personal quests.",
+    sections: CHARACTERS_TABS
   },
   {
     id: "session-log",
     label: "Session Log",
     icon: "scroll-text",
     mode: "collection",
-    description: "Chronological session recaps, MVP moments, XP/milestones, and next-session prep."
+    description: "Chronological session recaps, MVP moments, XP/milestones, and next-session prep.",
+    sections: SESSION_LOG_TABS
   },
   {
     id: "initiative-tracker",
@@ -122,7 +126,9 @@ let activeSectionMap = {
   "deities": "religion-overview",
   "faction": "factions-overview",
   "npc": "npc-overview",
-  "item-list": "general-items"
+  "item-list": "general-items",
+  "character-sheets": "party-roster",
+  "session-log": "session-entries"
 };
 
 export function renderCampaignWorkspace(container, state) {
@@ -186,6 +192,8 @@ export function renderCampaignWorkspace(container, state) {
             const factionsDoc = state.entities.find((e) => e.type === "faction")?.systemData || {};
             const npcDoc = state.entities.find((e) => e.type === "npc")?.systemData || {};
             const itemsDoc = state.entities.find((e) => e.type === "item-list")?.systemData || {};
+            const charsDoc = state.entities.find((e) => e.type === "character-sheets")?.systemData || {};
+            const sessionsDoc = state.entities.find((e) => e.type === "session-log")?.systemData || {};
 
             return `
               <div class="rounded-lg ${isSelected ? "bg-slate-950/60 border border-slate-800/80 pb-1.5" : ""}">
@@ -240,6 +248,8 @@ export function renderCampaignWorkspace(container, state) {
                             if (sec.id === "armor-list") secCount = (itemsDoc.armor || []).length;
                             if (sec.id === "weapon-list") secCount = (itemsDoc.weapons || []).length;
                             if (sec.id === "spell-list") secCount = (itemsDoc.spells || []).length;
+                            if (sec.id === "party-roster") secCount = (charsDoc.characters || []).length;
+                            if (sec.id === "session-entries") secCount = (sessionsDoc.sessions || []).length;
 
                             return `
                               <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
@@ -492,6 +502,26 @@ export function renderCampaignWorkspace(container, state) {
       activeSectionId: activeSectionMap["item-list"],
       onSectionChange: (secId) => {
         activeSectionMap["item-list"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "character-sheets") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderCharactersChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["character-sheets"],
+      onSectionChange: (secId) => {
+        activeSectionMap["character-sheets"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "session-log") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderSessionLogChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["session-log"],
+      onSectionChange: (secId) => {
+        activeSectionMap["session-log"] = secId;
         renderCampaignWorkspace(container, state);
         if (window.lucide) window.lucide.createIcons();
       }
