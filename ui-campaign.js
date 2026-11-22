@@ -13,6 +13,9 @@ import { renderCampaignSettingChapter, SETTING_TABS } from "./chapter-setting.js
 import { renderPlotChapter, PLOT_TABS } from "./chapter-plot.js";
 import { renderEncountersChapter, ENCOUNTERS_TABS } from "./chapter-encounters.js";
 import { renderEnemiesChapter, ENEMIES_TABS } from "./chapter-enemies.js";
+import { renderDeitiesChapter, DEITIES_TABS } from "./chapter-deities.js";
+import { renderFactionsChapter, FACTIONS_TABS } from "./chapter-factions.js";
+import { renderNpcChapter, NPC_TABS } from "./chapter-npc.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -52,21 +55,24 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Deities",
     icon: "sun",
     mode: "collection",
-    description: "Pantheons, domains, alignments, tenets, symbols, and divine boons."
+    description: "Pantheons, domains, alignments, tenets, symbols, and divine boons.",
+    sections: DEITIES_TABS
   },
   {
     id: "faction",
     label: "Faction",
     icon: "flag",
     mode: "collection",
-    description: "Guilds, kingdoms, cults, leadership, goals, and inter-faction standings."
+    description: "Guilds, kingdoms, cults, leadership, goals, and inter-faction standings.",
+    sections: FACTIONS_TABS
   },
   {
     id: "npc",
     label: "NPC",
     icon: "users",
     mode: "collection",
-    description: "Non-player characters, appearances, motivations, secrets, and relationships."
+    description: "Non-player characters, appearances, motivations, secrets, and relationships.",
+    sections: NPC_TABS
   },
   {
     id: "item-list",
@@ -110,7 +116,10 @@ let activeSectionMap = {
   "campaign-setting": "overview",
   "plot-adventures": "central-tension",
   "random-encounters": "encounter-tables",
-  "enemies": "bbg-hierarchy"
+  "enemies": "bbg-hierarchy",
+  "deities": "religion-overview",
+  "faction": "factions-overview",
+  "npc": "npc-overview"
 };
 
 export function renderCampaignWorkspace(container, state) {
@@ -162,14 +171,14 @@ export function renderCampaignWorkspace(container, state) {
             const sections = chap.sections || [];
             const activeSecId = activeSectionMap[chap.id] || sections[0]?.id;
             const count = state.entities.filter(
-              (e) => e.type === chap.id || e.type === chap.label
-            ).length;
-
-            // Compute item counts for nested sections (Kingdoms, Towns, Markets, Adventures)
+            // Compute item counts for nested sections (Kingdoms, Towns, Markets, Adventures, etc.)
             const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
             const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
             const encountersDoc = state.entities.find((e) => e.type === "random-encounters")?.systemData || {};
             const enemiesDoc = state.entities.find((e) => e.type === "enemies")?.systemData || {};
+            const deitiesDoc = state.entities.find((e) => e.type === "deities")?.systemData || {};
+            const factionsDoc = state.entities.find((e) => e.type === "faction")?.systemData || {};
+            const npcDoc = state.entities.find((e) => e.type === "npc")?.systemData || {};
 
             return `
               <div class="rounded-lg ${isSelected ? "bg-slate-950/60 border border-slate-800/80 pb-1.5" : ""}">
@@ -216,6 +225,10 @@ export function renderCampaignWorkspace(container, state) {
                             if (sec.id === "adventures") secCount = (plotDoc.adventures || []).length;
                             if (sec.id === "encounter-tables") secCount = (encountersDoc.rows || []).length;
                             if (sec.id === "bestiary") secCount = (enemiesDoc.enemies || []).length;
+                            if (sec.id === "deity-profiles") secCount = (deitiesDoc.deities || []).length;
+                            if (sec.id === "faction-profiles") secCount = (factionsDoc.factions || []).length;
+                            if (sec.id === "key-npcs") secCount = (npcDoc.keyNpcs || []).length;
+                            if (sec.id === "minor-npcs") secCount = (npcDoc.minorNpcs || []).length;
 
                             return `
                               <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
@@ -360,37 +373,7 @@ export function renderCampaignWorkspace(container, state) {
             </div>
           </div>
           <textarea id="chapter-misc-notes-input" rows="4"
-            placeholder="Miscellaneous notes, quick ideas, or reminders for ${escapeHtml(currentChapter.label)}..."
-            class="w-full bg-slate-950/70 border border-slate-800 rounded-lg p-3 text-xs sm:text-sm text-slate-200 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(
-              state.entities.find((e) => e.type === `${currentChapter.id}-misc`)?.content || ""
-            )}</textarea>
-        </div>
-      </section>
-    </div>
-
-    <!-- New Placeholder Entry Modal -->
-    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">New ${escapeHtml(currentChapter.label)} Entry</h2>
-          <button id="close-entity-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-        <form id="create-entity-form" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Entry Title *</label>
-            <input type="text" id="new-ent-title" required placeholder="Enter a title..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" id="cancel-entity-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-
-  // If Chapter 1–4 is active, render its dedicated workbook
+  // If Chapter 1–7 is active, render its dedicated workbook
   if (currentChapter.id === "campaign-setting") {
     const mainPane = container.querySelector("#chapter-main-pane");
     renderCampaignSettingChapter(mainPane, state, {
@@ -427,6 +410,36 @@ export function renderCampaignWorkspace(container, state) {
       activeSectionId: activeSectionMap["enemies"],
       onSectionChange: (secId) => {
         activeSectionMap["enemies"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "deities") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderDeitiesChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["deities"],
+      onSectionChange: (secId) => {
+        activeSectionMap["deities"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "faction") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderFactionsChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["faction"],
+      onSectionChange: (secId) => {
+        activeSectionMap["faction"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "npc") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderNpcChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["npc"],
+      onSectionChange: (secId) => {
+        activeSectionMap["npc"] = secId;
         renderCampaignWorkspace(container, state);
         if (window.lucide) window.lucide.createIcons();
       }
