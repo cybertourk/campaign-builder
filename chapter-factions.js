@@ -280,6 +280,23 @@ function renderFactionProfilesTab(data) {
                     </button>
                   </div>
 
+                  <!-- Faction Crest / Banner Image URL & Preview -->
+                  <div class="space-y-2.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Faction Crest / Banner Image URL (Optional)
+                    </label>
+                    <input type="url" data-faction-field="imageUrl" value="${escapeHtml(activeFaction.imageUrl || "")}"
+                      placeholder="https://... (Paste a heraldry crest, banner, or insignia image link)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    <div id="faction-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+                      ${
+                        activeFaction.imageUrl
+                          ? `<img src="${escapeHtml(activeFaction.imageUrl)}" alt="Faction Crest" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                          : `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the faction's crest or banner here.</p>`
+                      }
+                    </div>
+                  </div>
+
                   <!-- Two-Column Layout matching Page 128 -->
                   <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <!-- Left Column: Enemies, Allies, Characteristics -->
@@ -377,6 +394,7 @@ function wireFactionControls(paneContainer, state, existingDoc, data) {
     collectFactionsForm(paneContainer, data);
     data.factions.push({
       factionName: `Faction ${data.factions.length + 1}`,
+      imageUrl: "",
       leader: "",
       location: "",
       alignment: "",
@@ -410,6 +428,17 @@ function wireFactionControls(paneContainer, state, existingDoc, data) {
     data.factions.splice(selectedFactionIndex, 1);
     selectedFactionIndex = Math.max(0, selectedFactionIndex - 1);
     rerenderWithLocalData();
+  });
+
+  const imgInput = paneContainer.querySelector('[data-faction-field="imageUrl"]');
+  const imgPreview = paneContainer.querySelector("#faction-image-preview");
+  imgInput?.addEventListener("input", () => {
+    const val = imgInput.value.trim();
+    if (val) {
+      imgPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Faction Crest" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      imgPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the faction's crest or banner here.</p>`;
+    }
   });
 }
 
