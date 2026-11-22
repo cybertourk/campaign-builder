@@ -273,6 +273,23 @@ function renderBestiaryTab(data) {
                     </button>
                   </div>
 
+                  <!-- Enemy Artwork / Token Image URL & Preview -->
+                  <div class="space-y-2.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Enemy Artwork / Token Image URL (Optional)
+                    </label>
+                    <input type="url" data-enemy-field="imageUrl" value="${escapeHtml(activeEnemy.imageUrl || "")}"
+                      placeholder="https://... (Paste a monster illustration or VTT token image link)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    <div id="enemy-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+                      ${
+                        activeEnemy.imageUrl
+                          ? `<img src="${escapeHtml(activeEnemy.imageUrl)}" alt="Enemy Artwork" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                          : `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview enemy artwork or a token here.</p>`
+                      }
+                    </div>
+                  </div>
+
                   <!-- Combat Vitals: Armor Class, Hit Points, Speed, Challenge -->
                   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
@@ -387,6 +404,7 @@ function wireEnemyControls(paneContainer, state, existingDoc, data) {
     collectEnemiesForm(paneContainer, data);
     data.enemies.push({
       name: `Enemy ${data.enemies.length + 1}`,
+      imageUrl: "",
       strength: "",
       dexterity: "",
       constitution: "",
@@ -426,6 +444,17 @@ function wireEnemyControls(paneContainer, state, existingDoc, data) {
     data.enemies.splice(selectedEnemyIndex, 1);
     selectedEnemyIndex = Math.max(0, selectedEnemyIndex - 1);
     rerenderWithLocalData();
+  });
+
+  const imgInput = paneContainer.querySelector('[data-enemy-field="imageUrl"]');
+  const imgPreview = paneContainer.querySelector("#enemy-image-preview");
+  imgInput?.addEventListener("input", () => {
+    const val = imgInput.value.trim();
+    if (val) {
+      imgPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Enemy Artwork" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      imgPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview enemy artwork or a token here.</p>`;
+    }
   });
 }
 
