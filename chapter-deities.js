@@ -279,6 +279,23 @@ function renderDeityProfilesTab(data) {
                     </div>
                   </div>
 
+                  <!-- Deity Portrait / Symbol Image URL & Preview -->
+                  <div class="space-y-2.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Deity Portrait / Symbol Image URL (Optional)
+                    </label>
+                    <input type="url" data-deity-field="imageUrl" value="${escapeHtml(activeDeity.imageUrl || "")}"
+                      placeholder="https://... (Paste an artwork, icon, or symbol image link)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    <div id="deity-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+                      ${
+                        activeDeity.imageUrl
+                          ? `<img src="${escapeHtml(activeDeity.imageUrl)}" alt="Deity Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                          : `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the deity's portrait or holy symbol here.</p>`
+                      }
+                    </div>
+                  </div>
+
                   <!-- Left & Right Columns matching Page 119 -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-4">
@@ -354,6 +371,7 @@ function wireDeityControls(paneContainer, state, existingDoc, data) {
     data.deities.push({
       name: `Deity ${data.deities.length + 1}`,
       alignment: "",
+      imageUrl: "",
       domain: "",
       titles: "",
       characteristics: "",
@@ -384,6 +402,17 @@ function wireDeityControls(paneContainer, state, existingDoc, data) {
     data.deities.splice(selectedDeityIndex, 1);
     selectedDeityIndex = Math.max(0, selectedDeityIndex - 1);
     rerenderWithLocalData();
+  });
+
+  const imgInput = paneContainer.querySelector('[data-deity-field="imageUrl"]');
+  const imgPreview = paneContainer.querySelector("#deity-image-preview");
+  imgInput?.addEventListener("input", () => {
+    const val = imgInput.value.trim();
+    if (val) {
+      imgPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Deity Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      imgPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the deity's portrait or holy symbol here.</p>`;
+    }
   });
 }
 
