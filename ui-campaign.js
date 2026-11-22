@@ -171,6 +171,9 @@ export function renderCampaignWorkspace(container, state) {
             const sections = chap.sections || [];
             const activeSecId = activeSectionMap[chap.id] || sections[0]?.id;
             const count = state.entities.filter(
+              (e) => e.type === chap.id || e.type === chap.label
+            ).length;
+
             // Compute item counts for nested sections (Kingdoms, Towns, Markets, Adventures, etc.)
             const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
             const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
@@ -373,6 +376,37 @@ export function renderCampaignWorkspace(container, state) {
             </div>
           </div>
           <textarea id="chapter-misc-notes-input" rows="4"
+            placeholder="Jot down general notes, ideas, or reminders for ${escapeHtml(currentChapter.label)}..."
+            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">${escapeHtml(
+              state.entities.find((e) => e.type === `${currentChapter.id}-misc`)?.content || ""
+            )}</textarea>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- New Entry Modal -->
+    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-white">New ${escapeHtml(currentChapter.label)} Entry</h2>
+          <button id="close-entity-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="create-entity-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Entry Title *</label>
+            <input type="text" id="new-ent-title" required placeholder="e.g. Session 1, Lord Vance, Tavern Rumors..."
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="cancel-entity-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create Entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
   // If Chapter 1–7 is active, render its dedicated workbook
   if (currentChapter.id === "campaign-setting") {
     const mainPane = container.querySelector("#chapter-main-pane");
