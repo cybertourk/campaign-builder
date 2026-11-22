@@ -288,6 +288,23 @@ function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory) {
                     </button>
                   </div>
 
+                  <!-- NPC Portrait Image URL & Preview -->
+                  <div class="space-y-2.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      ${labelSingular} Portrait Image URL (Optional)
+                    </label>
+                    <input type="url" data-npc-field="imageUrl" value="${escapeHtml(activeNpc.imageUrl || "")}"
+                      placeholder="https://... (Paste a character portrait or token image link)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                    <div id="npc-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+                      ${
+                        activeNpc.imageUrl
+                          ? `<img src="${escapeHtml(activeNpc.imageUrl)}" alt="${labelSingular} Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                          : `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the character portrait here.</p>`
+                      }
+                    </div>
+                  </div>
+
                   <!-- 6 Core Ability Scores (STR, DEX, CON, INT, WIS, CHA) -->
                   <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
                     ${[
@@ -438,6 +455,7 @@ function wireNpcListControls(paneContainer, state, existingDoc, data, kind) {
     collectNpcForm(paneContainer, data);
     const newEntry = {
       name: `${kind === "key" ? "Key NPC" : "NPC"} ${data[listKey].length + 1}`,
+      imageUrl: "",
       strength: "",
       dexterity: "",
       constitution: "",
@@ -499,6 +517,17 @@ function wireNpcListControls(paneContainer, state, existingDoc, data, kind) {
       selectedMinorNpcIndex = Math.max(0, selectedMinorNpcIndex - 1);
     }
     rerenderWithLocalData();
+  });
+
+  const imgInput = paneContainer.querySelector('[data-npc-field="imageUrl"]');
+  const imgPreview = paneContainer.querySelector("#npc-image-preview");
+  imgInput?.addEventListener("input", () => {
+    const val = imgInput.value.trim();
+    if (val) {
+      imgPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="NPC Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      imgPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the character portrait here.</p>`;
+    }
   });
 }
 
