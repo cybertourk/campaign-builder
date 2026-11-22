@@ -16,6 +16,7 @@ import { renderEnemiesChapter, ENEMIES_TABS } from "./chapter-enemies.js";
 import { renderDeitiesChapter, DEITIES_TABS } from "./chapter-deities.js";
 import { renderFactionsChapter, FACTIONS_TABS } from "./chapter-factions.js";
 import { renderNpcChapter, NPC_TABS } from "./chapter-npc.js";
+import { renderItemsChapter, ITEMS_TABS } from "./chapter-items.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -79,7 +80,8 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Item List",
     icon: "sword",
     mode: "collection",
-    description: "Magic items, relics, custom gear, economy items, and loot tables."
+    description: "Magic items, relics, custom gear, economy items, and loot tables.",
+    sections: ITEMS_TABS
   },
   {
     id: "character-sheets",
@@ -119,7 +121,8 @@ let activeSectionMap = {
   "enemies": "bbg-hierarchy",
   "deities": "religion-overview",
   "faction": "factions-overview",
-  "npc": "npc-overview"
+  "npc": "npc-overview",
+  "item-list": "general-items"
 };
 
 export function renderCampaignWorkspace(container, state) {
@@ -182,6 +185,7 @@ export function renderCampaignWorkspace(container, state) {
             const deitiesDoc = state.entities.find((e) => e.type === "deities")?.systemData || {};
             const factionsDoc = state.entities.find((e) => e.type === "faction")?.systemData || {};
             const npcDoc = state.entities.find((e) => e.type === "npc")?.systemData || {};
+            const itemsDoc = state.entities.find((e) => e.type === "item-list")?.systemData || {};
 
             return `
               <div class="rounded-lg ${isSelected ? "bg-slate-950/60 border border-slate-800/80 pb-1.5" : ""}">
@@ -232,6 +236,10 @@ export function renderCampaignWorkspace(container, state) {
                             if (sec.id === "faction-profiles") secCount = (factionsDoc.factions || []).length;
                             if (sec.id === "key-npcs") secCount = (npcDoc.keyNpcs || []).length;
                             if (sec.id === "minor-npcs") secCount = (npcDoc.minorNpcs || []).length;
+                            if (sec.id === "general-items") secCount = (itemsDoc.items || []).length;
+                            if (sec.id === "armor-list") secCount = (itemsDoc.armor || []).length;
+                            if (sec.id === "weapon-list") secCount = (itemsDoc.weapons || []).length;
+                            if (sec.id === "spell-list") secCount = (itemsDoc.spells || []).length;
 
                             return `
                               <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
@@ -474,6 +482,16 @@ export function renderCampaignWorkspace(container, state) {
       activeSectionId: activeSectionMap["npc"],
       onSectionChange: (secId) => {
         activeSectionMap["npc"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "item-list") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderItemsChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["item-list"],
+      onSectionChange: (secId) => {
+        activeSectionMap["item-list"] = secId;
         renderCampaignWorkspace(container, state);
         if (window.lucide) window.lucide.createIcons();
       }
