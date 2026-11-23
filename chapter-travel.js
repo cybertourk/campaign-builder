@@ -1,0 +1,619 @@
+// chapter-travel.js
+// Dedicated interactive workbook for Chapter 12: Overland Travel Tables (Pages 292–300).
+// Includes Examples & Reference (p. 292), Weather & Time of Day (p. 293), Terrain & Travel Map (p. 294),
+// D12 Success/Failure Tables for Hunting (p. 295), Discovery (p. 296), Camping (p. 297),
+// Exploration (p. 298), NPC (p. 299), Bard Performance (p. 300), built-in dice rollers, and Misc Notes.
+
+import { createEntity, updateEntity } from "./firebase-manager.js";
+
+export const TRAVEL_TABS = [
+  { id: "examples", label: "Examples & Reference (p. 292)", icon: "book-open" },
+  { id: "weather", label: "Weather & Time (p. 293)", icon: "cloud-sun" },
+  { id: "terrain", label: "Terrain & Travel Map (p. 294)", icon: "mountain" },
+  { id: "hunting", label: "Hunting (p. 295)", icon: "crosshair" },
+  { id: "discovery", label: "Discovery (p. 296)", icon: "compass" },
+  { id: "camping", label: "Camping (p. 297)", icon: "flame" },
+  { id: "exploration", label: "Exploration (p. 298)", icon: "map-pin" },
+  { id: "travel-npc", label: "NPC Encounters (p. 299)", icon: "users" },
+  { id: "bard-performance", label: "Bard Performance (p. 300)", icon: "music" },
+  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+];
+
+let activeTravelTab = "examples";
+
+function createRows(count, schema = "weather") {
+  return Array.from({ length: count }, (_, i) => {
+    if (schema === "d12") {
+      return { roll: i + 1, check: "", event: "", result: "" };
+    }
+    return { roll: i + 1, condition: "", check: "", result: "" };
+  });
+}
+
+function getDefaultTravelData() {
+  return {
+    // Page 293: Weather & Time of Day
+    timeOfDay: [
+      { roll: 1, label: "Dawn" },
+      { roll: 2, label: "Morning" },
+      { roll: 3, label: "Midday" },
+      { roll: 4, label: "Noon" },
+      { roll: 5, label: "Mid-Afternoon" },
+      { roll: 6, label: "Dusk" },
+      { roll: 7, label: "Night" },
+      { roll: 8, label: "Midnight" }
+    ],
+    weatherSpringDay: createRows(6),
+    weatherSpringNight: createRows(6),
+    weatherWinterDay: createRows(6),
+    weatherWinterNight: createRows(6),
+
+    // Page 294: Terrain + Travel Map
+    terrainForestPlains: createRows(6),
+    terrainMountains: createRows(6),
+    terrainUnderground: createRows(6),
+    terrainTundraSnow: createRows(6),
+    travelMapUrl: "",
+
+    // Pages 295–300: D12 Success & Failure Tables
+    huntingSuccess: createRows(12, "d12"),
+    huntingFailure: createRows(12, "d12"),
+    discoverySuccess: createRows(12, "d12"),
+    discoveryFailure: createRows(12, "d12"),
+    campingSuccess: createRows(12, "d12"),
+    campingFailure: createRows(12, "d12"),
+    explorationSuccess: createRows(12, "d12"),
+    explorationFailure: createRows(12, "d12"),
+    npcSuccess: createRows(12, "d12"),
+    npcFailure: createRows(12, "d12"),
+    bardSuccess: createRows(12, "d12"),
+    bardFailure: createRows(12, "d12"),
+
+    miscNotes: ""
+  };
+}
+
+export function renderTravelChapter(paneContainer, state, options = {}) {
+  if (options.activeSectionId) {
+    activeTravelTab = options.activeSectionId;
+  }
+
+  const existingDoc = state.entities.find((e) => e.type === "overland-travel");
+  const defaults = getDefaultTravelData();
+  const data = {
+    ...defaults,
+    ...(existingDoc?.systemData || {})
+  };
+
+  // Ensure all table arrays exist
+  Object.keys(defaults).forEach((key) => {
+    if (Array.isArray(defaults[key]) && !Array.isArray(data[key])) {
+      data[key] = defaults[key];
+    }
+  });
+
+  const currentSection =
+    TRAVEL_TABS.find((t) => t.id === activeTravelTab) || TRAVEL_TABS[0];
+
+  paneContainer.innerHTML = `
+    <!-- Chapter & Active Section Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="${currentSection.icon}" class="w-5 h-5 text-indigo-400"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
+              Chapter 12: Overland Travel Tables
+            </span>
+          </div>
+          <p class="text-slate-400 text-xs sm:text-sm mt-1">
+            Customize and roll on your D8 Time, D6 Weather & Terrain, and D12 Hunting, Discovery, Camping, Exploration, NPC & Bard tables.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <span id="travel-save-status" class="text-xs text-slate-400">
+          ${existingDoc ? "All changes saved" : "Not saved yet"}
+        </span>
+        <button id="save-travel-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition shadow-lg shadow-indigo-600/20">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Tables
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Table Roll Result Banner -->
+    <div id="travel-roll-banner" class="hidden mb-5 p-3.5 rounded-xl bg-indigo-950/80 border border-indigo-500/50 text-xs text-indigo-100 flex items-center justify-between gap-3 shadow-lg">
+      <div id="travel-roll-result" class="leading-relaxed"></div>
+      <button type="button" id="close-travel-roll-btn" class="text-indigo-300 hover:text-white shrink-0">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Active Section Content -->
+    <div class="space-y-6 flex-1">
+      ${renderTravelTabContent(activeTravelTab, data)}
+    </div>
+  `;
+
+  // Preserve unsaved edits in memory when switching vertical sections in the sidebar
+  const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="overland-travel"]');
+  sidebarSectionBtns.forEach((btn) => {
+    btn.addEventListener(
+      "click",
+      () => {
+        collectTravelForm(paneContainer, data);
+        if (existingDoc) {
+          existingDoc.systemData = data;
+        }
+      },
+      { capture: true }
+    );
+  });
+
+  // Unsaved indicator
+  const statusEl = paneContainer.querySelector("#travel-save-status");
+  paneContainer.querySelectorAll("input, textarea").forEach((el) => {
+    el.addEventListener("input", () => {
+      statusEl.textContent = "Unsaved changes";
+      statusEl.className = "text-xs text-amber-400";
+    });
+  });
+
+  wireTravelControls(paneContainer, state, existingDoc, data);
+
+  // Save to Firestore
+  paneContainer.querySelector("#save-travel-btn").addEventListener("click", async () => {
+    collectTravelForm(paneContainer, data);
+    statusEl.textContent = "Saving...";
+    statusEl.className = "text-xs text-amber-400";
+
+    try {
+      if (existingDoc && existingDoc.id) {
+        await updateEntity(existingDoc.id, {
+          title: "Overland Travel Tables",
+          content: "Weather, Terrain, Hunting, Discovery, Camping, Exploration, NPC & Bard Tables",
+          systemData: data
+        });
+      } else {
+        await createEntity({
+          type: "overland-travel",
+          title: "Overland Travel Tables",
+          content: "Weather, Terrain, Hunting, Discovery, Camping, Exploration, NPC & Bard Tables",
+          systemData: data
+        });
+      }
+      statusEl.textContent = "Saved to cloud";
+      statusEl.className = "text-xs text-emerald-400";
+    } catch (err) {
+      statusEl.textContent = "Save failed";
+      statusEl.className = "text-xs text-rose-400";
+    }
+  });
+}
+
+function renderTravelTabContent(tabId, data) {
+  switch (tabId) {
+    case "examples":
+      return renderExamplesReferenceTab();
+
+    case "weather":
+      return `
+        <!-- D8 Time of Day Table -->
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">Time of Day (D8)</h3>
+              <p class="text-xs text-slate-400">Roll 1d8 to determine what time an overland travel event or weather shift occurs.</p>
+            </div>
+            <button type="button" data-roll-table="timeOfDay" data-die="8" data-table-title="D8 Time of Day"
+              class="roll-travel-table-btn inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+              <i data-lucide="dices" class="w-3.5 h-3.5"></i> Roll 1d8
+            </button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            ${data.timeOfDay
+              .map(
+                (t, idx) => `
+              <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                <span class="text-xs font-bold text-indigo-400 w-4">${idx + 1}</span>
+                <input type="text" data-time-idx="${idx}" value="${escapeHtml(t.label || "")}"
+                  class="w-full bg-transparent text-xs text-white focus:outline-none" />
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <!-- Spring/Summer/Fall Day & Night -->
+        ${renderD6TableCard("weatherSpringDay", "Spring / Summer / Fall — Day (D6)", "Day Weather", data.weatherSpringDay)}
+        ${renderD6TableCard("weatherSpringNight", "Spring / Summer / Fall — Night (D6)", "Night Weather", data.weatherSpringNight)}
+
+        <!-- Winter Day & Night -->
+        ${renderD6TableCard("weatherWinterDay", "Winter — Day (D6)", "Day Weather", data.weatherWinterDay)}
+        ${renderD6TableCard("weatherWinterNight", "Winter — Night (D6)", "Night Weather", data.weatherWinterNight)}
+      `;
+
+    case "terrain":
+      return `
+        <!-- Overland Travel / Hex Map Image URL & Preview -->
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+            Overland Travel / Hex Crawl Map Image URL (Optional)
+          </label>
+          <input type="url" data-travel-field="travelMapUrl" value="${escapeHtml(data.travelMapUrl || "")}"
+            placeholder="https://... (Paste a regional hex map or travel route map image link)"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <div id="travel-map-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+            ${
+              data.travelMapUrl
+                ? `<img src="${escapeHtml(data.travelMapUrl)}" alt="Overland Travel Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" />`
+                : `<p class="text-xs text-slate-500 py-4">Paste a regional or hex map URL above to preview your travel routes here.</p>`
+            }
+          </div>
+        </div>
+
+        ${renderD6TableCard("terrainForestPlains", "Forest / Plains (D6)", "Forest / Plains", data.terrainForestPlains)}
+        ${renderD6TableCard("terrainMountains", "Mountains (D6)", "Mountains", data.terrainMountains)}
+        ${renderD6TableCard("terrainUnderground", "Underground / Caves (D6)", "Underground / Caves", data.terrainUnderground)}
+        ${renderD6TableCard("terrainTundraSnow", "Icy Tundra / Snow (D6)", "Icy Tundra / Snow", data.terrainTundraSnow)}
+      `;
+
+    case "hunting":
+      return `
+        ${renderD12TableCard("huntingSuccess", "Hunting — Success (D12)", data.huntingSuccess, "emerald")}
+        ${renderD12TableCard("huntingFailure", "Hunting — Failure (D12)", data.huntingFailure, "rose")}
+      `;
+
+    case "discovery":
+      return `
+        ${renderD12TableCard("discoverySuccess", "Discovery — Success (D12)", data.discoverySuccess, "emerald")}
+        ${renderD12TableCard("discoveryFailure", "Discovery — Failure (D12)", data.discoveryFailure, "rose")}
+      `;
+
+    case "camping":
+      return `
+        ${renderD12TableCard("campingSuccess", "Camping — Success (D12)", data.campingSuccess, "emerald")}
+        ${renderD12TableCard("campingFailure", "Camping — Failure (D12)", data.campingFailure, "rose")}
+      `;
+
+    case "exploration":
+      return `
+        ${renderD12TableCard("explorationSuccess", "Exploration — Success (D12)", data.explorationSuccess, "emerald")}
+        ${renderD12TableCard("explorationFailure", "Exploration — Failure (D12)", data.explorationFailure, "rose")}
+      `;
+
+    case "travel-npc":
+      return `
+        ${renderD12TableCard("npcSuccess", "NPC Encounters — Success (D12)", data.npcSuccess, "emerald")}
+        ${renderD12TableCard("npcFailure", "NPC Encounters — Failure (D12)", data.npcFailure, "rose")}
+      `;
+
+    case "bard-performance":
+      return `
+        ${renderD12TableCard("bardSuccess", "Bard Performance — Success (D12)", data.bardSuccess, "emerald")}
+        ${renderD12TableCard("bardFailure", "Bard Performance — Failure (D12)", data.bardFailure, "rose")}
+      `;
+
+    case "misc-notes":
+      return `
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> Overland Travel — Misc Notes
+          </h3>
+          <p class="text-xs text-slate-400">Track travel pace rules (miles/hexes per day), ration consumption, mount rules, or exhaustion mechanics.</p>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Overland Travel & Hex Crawl Notes</label>
+            <textarea data-travel-misc="miscNotes" rows="12"
+              placeholder="Write travel pace rules, watch shifts, foraging DCs, or regional hazard modifiers here..."
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
+          </div>
+        </div>
+      `;
+
+    default:
+      return "";
+  }
+}
+
+/**
+ * Page 292: Examples Reference Sheet + One-Click Sample Populator
+ */
+function renderExamplesReferenceTab() {
+  return `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div>
+        <h3 class="text-sm font-bold text-white">Planner Examples & Quick Reference (Page 292)</h3>
+        <p class="text-xs text-slate-400">Use these book examples as inspiration or copy the sample Spring/Summer/Fall weather into your editable Weather table.</p>
+      </div>
+      <button type="button" id="populate-weather-examples-btn"
+        class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+        <i data-lucide="copy-plus" class="w-4 h-4"></i> Copy Sample Weather to My Tables
+      </button>
+    </div>
+
+    <!-- Example 1: Spring / Summer / Fall Weather -->
+    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3 overflow-x-auto">
+      <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Example: Spring / Summer / Fall Weather (D6)</h4>
+      <table class="w-full text-left text-xs border-collapse min-w-[600px]">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+            <th class="py-2 px-2.5 w-12">D6</th>
+            <th class="py-2 px-2.5">Day Weather</th>
+            <th class="py-2 px-2.5 w-36">Ability / Save Check</th>
+            <th class="py-2 px-2.5">Result</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/70 text-slate-200">
+          <tr>
+            <td class="py-2 px-2.5 font-bold text-indigo-400">1</td>
+            <td class="py-2 px-2.5">Scattered showers, intermittent sun</td>
+            <td class="py-2 px-2.5 text-amber-300">15 Dexterity</td>
+            <td class="py-2 px-2.5">1–5: Drop weapon in mud (-1d6 damage 1 day); 6–10: Drop and spend day chasing it; 10+: Nothing happens</td>
+          </tr>
+          <tr>
+            <td class="py-2 px-2.5 font-bold text-indigo-400">2</td>
+            <td class="py-2 px-2.5">Gusting winds, overcast</td>
+            <td class="py-2 px-2.5 text-amber-300">11 Strength</td>
+            <td class="py-2 px-2.5">1–5: Lose item; 6–10: Drop and spend day chasing it</td>
+          </tr>
+          <tr>
+            <td class="py-2 px-2.5 font-bold text-indigo-400">3</td>
+            <td class="py-2 px-2.5">Scorching heat, blistering sun</td>
+            <td class="py-2 px-2.5 text-amber-300">8 Constitution</td>
+            <td class="py-2 px-2.5">1–5: Heatstroke (1d4 damage); 6–10: Party overheated, has to rest and loses half a day</td>
+          </tr>
+          <tr>
+            <td class="py-2 px-2.5 font-bold text-indigo-400">4</td>
+            <td class="py-2 px-2.5">High humidity, cloudy sky</td>
+            <td class="py-2 px-2.5 text-amber-300">12 Constitution</td>
+            <td class="py-2 px-2.5">1–5: Chafing blistered feet (1d6 damage); 6–10: Party has to rest and loses half a day</td>
+          </tr>
+          <tr>
+            <td class="py-2 px-2.5 font-bold text-indigo-400">5</td>
+            <td class="py-2 px-2.5">Lightning, thunder and heavy rains</td>
+            <td class="py-2 px-2.5 text-amber-300">10 Agility / Dex</td>
+            <td class="py-2 px-2.5">1–5: Lightning strikes nearby (1d8 damage); 6–10: Party has to rest and loses half a day</td>
+          </tr>
+          <tr>
+            <td class="py-2 px-2.5 font-bold text-indigo-400">6</td>
+            <td class="py-2 px-2.5">Light breezes and clear skies</td>
+            <td class="py-2 px-2.5 text-amber-300">8 Constitution</td>
+            <td class="py-2 px-2.5">1–5: Party wastes half a day enjoying the pleasant surroundings; 6+: Nothing happens</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Example 2 & 3: Bard & Hunting -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Example: Bard Work (1d4 Work • 1d20 Check • 1d6 Reward/Fail)</h4>
+        <div class="text-xs text-slate-300 space-y-1.5">
+          <p><strong class="text-white">Work (1d4):</strong> 1. Song + Percep + Perf | 2. Fire-eating + Surv + Perf | 3. Tell Story + Persua + Perf | 4. Dance + Acrob + Perf</p>
+          <p><strong class="text-emerald-400">Success (1d6):</strong> 1. 1 Potion of Spell Renew | 2. 2d20 CP | 3. Standing ovation | 4. Gifted 2 days rations | 5. 1 Potion of Healing | 6. 1d20 SP</p>
+          <p><strong class="text-rose-400">Failure (1d6):</strong> 1. You have to pay | 2. Kicked out for night | 3. Get boo'd | 4. Get in bar fight | 5. People dislike you, perform again | 6. Fined 1d20 CP</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Example: Hunting (Roll for Success • Roll 1d4 Animal/Fail)</h4>
+        <div class="text-xs text-slate-300 space-y-1.5">
+          <p><strong class="text-emerald-400">Success (1d4):</strong> 1. Pheasant (2 rations) | 2. Deer (4 rations) | 3. Squirrel (1 ration) | 4. Rat (1/2 ration)</p>
+          <p><strong class="text-rose-400">Failure (1d4):</strong> 1. 1d4 damage | 2. Lost 2 days rations | 3. Animal attack (encounter) | 4. Nothing</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Renders a 6-row D6 Weather or Terrain table with a built-in 1d6 Roller button.
+ */
+function renderD6TableCard(tableKey, title, colLabel, rows) {
+  return `
+    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">${escapeHtml(title)}</h3>
+        <button type="button" data-roll-table="${tableKey}" data-die="6" data-table-title="${escapeHtml(title)}"
+          class="roll-travel-table-btn inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+          <i data-lucide="dices" class="w-3.5 h-3.5"></i> Roll 1d6
+        </button>
+      </div>
+
+      <div class="border border-slate-800 rounded-lg overflow-hidden">
+        <div class="hidden md:grid md:grid-cols-12 bg-slate-900 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div class="md:col-span-1 px-2 py-2 text-center">D6</div>
+          <div class="md:col-span-4 px-3 py-2">${escapeHtml(colLabel)}</div>
+          <div class="md:col-span-3 px-3 py-2">AB / SV / Skill Check</div>
+          <div class="md:col-span-4 px-3 py-2">Result</div>
+        </div>
+        <div class="divide-y divide-slate-800/80">
+          ${rows
+            .map(
+              (r, idx) => `
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center p-2 md:p-0 gap-2 md:gap-0">
+              <div class="md:col-span-1 text-center font-bold text-xs text-indigo-400 md:py-2">${idx + 1}</div>
+              <div class="md:col-span-4 md:p-1.5">
+                <input type="text" data-table-key="${tableKey}" data-row-idx="${idx}" data-row-field="condition"
+                  value="${escapeHtml(r.condition || "")}" placeholder="${escapeHtml(colLabel)}..."
+                  class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div class="md:col-span-3 md:p-1.5">
+                <input type="text" data-table-key="${tableKey}" data-row-idx="${idx}" data-row-field="check"
+                  value="${escapeHtml(r.check || "")}" placeholder="e.g., DC 12 Con"
+                  class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-amber-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div class="md:col-span-4 md:p-1.5">
+                <input type="text" data-table-key="${tableKey}" data-row-idx="${idx}" data-row-field="result"
+                  value="${escapeHtml(r.result || "")}" placeholder="Outcome / effect..."
+                  class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Renders a 12-row D12 Success or Failure table (Pages 295–300) with a built-in 1d12 Roller button.
+ */
+function renderD12TableCard(tableKey, title, rows, tone = "emerald") {
+  const badgeColor = tone === "rose" ? "text-rose-400" : "text-emerald-400";
+
+  return `
+    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold ${badgeColor}">${escapeHtml(title)}</h3>
+        <button type="button" data-roll-table="${tableKey}" data-die="12" data-table-title="${escapeHtml(title)}"
+          class="roll-travel-table-btn inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+          <i data-lucide="dices" class="w-3.5 h-3.5"></i> Roll 1d12
+        </button>
+      </div>
+
+      <div class="border border-slate-800 rounded-lg overflow-hidden">
+        <div class="hidden md:grid md:grid-cols-12 bg-slate-900 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div class="md:col-span-1 px-2 py-2 text-center">D12</div>
+          <div class="md:col-span-3 px-3 py-2">DC / SV / Check</div>
+          <div class="md:col-span-4 px-3 py-2">Event</div>
+          <div class="md:col-span-4 px-3 py-2">Result</div>
+        </div>
+        <div class="divide-y divide-slate-800/80">
+          ${rows
+            .map(
+              (r, idx) => `
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center p-2 md:p-0 gap-2 md:gap-0">
+              <div class="md:col-span-1 text-center font-bold text-xs text-indigo-400 md:py-1.5">${idx + 1}</div>
+              <div class="md:col-span-3 md:p-1.5">
+                <input type="text" data-table-key="${tableKey}" data-row-idx="${idx}" data-row-field="check"
+                  value="${escapeHtml(r.check || "")}" placeholder="DC / Check..."
+                  class="w-full px-2.5 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-amber-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div class="md:col-span-4 md:p-1.5">
+                <input type="text" data-table-key="${tableKey}" data-row-idx="${idx}" data-row-field="event"
+                  value="${escapeHtml(r.event || "")}" placeholder="Event..."
+                  class="w-full px-2.5 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div class="md:col-span-4 md:p-1.5">
+                <input type="text" data-table-key="${tableKey}" data-row-idx="${idx}" data-row-field="result"
+                  value="${escapeHtml(r.result || "")}" placeholder="Result..."
+                  class="w-full px-2.5 py-1 bg-slate-900 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function wireTravelControls(paneContainer, state, existingDoc, data) {
+  const banner = paneContainer.querySelector("#travel-roll-banner");
+  const resultEl = paneContainer.querySelector("#travel-roll-result");
+
+  paneContainer.querySelector("#close-travel-roll-btn")?.addEventListener("click", () => {
+    banner?.classList.add("hidden");
+  });
+
+  // Dice Roller buttons for any D6, D8, or D12 table
+  paneContainer.querySelectorAll(".roll-travel-table-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      collectTravelForm(paneContainer, data);
+      const tableKey = btn.getAttribute("data-roll-table");
+      const die = Number(btn.getAttribute("data-die")) || 6;
+      const title = btn.getAttribute("data-table-title") || tableKey;
+      const rollIdx = Math.floor(Math.random() * die);
+      const row = Array.isArray(data[tableKey]) ? data[tableKey][rollIdx] : null;
+
+      if (!row) return;
+      if (tableKey === "timeOfDay") {
+        resultEl.innerHTML = `<span class="font-bold text-amber-300">Rolled ${rollIdx + 1} on ${escapeHtml(title)}:</span> <span class="text-white font-semibold ml-1">${escapeHtml(row.label || "(Empty)")}</span>`;
+      } else {
+        const primaryText = row.condition || row.event || "(Empty entry)";
+        const checkText = row.check ? ` • <span class="text-amber-200">Check: ${escapeHtml(row.check)}</span>` : "";
+        const resText = row.result ? ` → <span class="text-emerald-200">${escapeHtml(row.result)}</span>` : "";
+        resultEl.innerHTML = `<span class="font-bold text-amber-300">Rolled ${rollIdx + 1} on ${escapeHtml(title)}:</span> <span class="text-white font-semibold ml-1">${escapeHtml(primaryText)}</span>${checkText}${resText}`;
+      }
+      banner?.classList.remove("hidden");
+    });
+  });
+
+  // Populate Sample Weather button on Examples tab
+  paneContainer.querySelector("#populate-weather-examples-btn")?.addEventListener("click", () => {
+    data.weatherSpringDay = [
+      { roll: 1, condition: "Scattered showers, intermittent sun", check: "15 Dexterity", result: "1-5: Drop weapon in mud (-1d6 dmg 1 day); 6-10: Drop & chase all day; 10+: Nothing" },
+      { roll: 2, condition: "Gusting winds, overcast", check: "11 Strength", result: "1-5: Lose item; 6-10: Drop and spend day chasing it" },
+      { roll: 3, condition: "Scorching heat, blistering sun", check: "8 Constitution", result: "1-5: Heatstroke 1d4 dmg; 6-10: Overheated, rest & lose half a day" },
+      { roll: 4, condition: "High humidity, cloudy sky", check: "12 Constitution", result: "1-5: Chafing blistered feet 1d6 dmg; 6-10: Rest & lose half a day" },
+      { roll: 5, condition: "Lightning, thunder and heavy rains", check: "10 Agility / Dex", result: "1-5: Lightning strikes nearby 1d8 dmg; 6-10: Rest & lose half a day" },
+      { roll: 6, condition: "Light breezes and clear skies", check: "8 Constitution", result: "1-5: Party wastes half a day enjoying scenery; 6+: Nothing happens" }
+    ];
+    activeTravelTab = "weather";
+    const tempEntity = existingDoc
+      ? { ...existingDoc, systemData: data }
+      : { type: "overland-travel", title: "Overland Travel Tables", systemData: data };
+    const otherEntities = state.entities.filter((e) => e.type !== "overland-travel");
+    renderTravelChapter(paneContainer, {
+      ...state,
+      entities: [tempEntity, ...otherEntities]
+    });
+    if (window.lucide) window.lucide.createIcons();
+  });
+
+  // Live Travel Map Image URL preview
+  const mapInput = paneContainer.querySelector('[data-travel-field="travelMapUrl"]');
+  const mapPreview = paneContainer.querySelector("#travel-map-preview");
+  mapInput?.addEventListener("input", () => {
+    const val = mapInput.value.trim();
+    if (val) {
+      mapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Overland Travel Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+    } else {
+      mapPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste a regional or hex map URL above to preview your travel routes here.</p>`;
+    }
+  });
+}
+
+function collectTravelForm(container, data) {
+  container.querySelectorAll("[data-travel-misc]").forEach((el) => {
+    data[el.getAttribute("data-travel-misc")] = el.value;
+  });
+
+  container.querySelectorAll("[data-travel-field]").forEach((el) => {
+    data[el.getAttribute("data-travel-field")] = el.value;
+  });
+
+  container.querySelectorAll("[data-time-idx]").forEach((el) => {
+    const idx = Number(el.getAttribute("data-time-idx"));
+    if (data.timeOfDay[idx]) {
+      data.timeOfDay[idx].label = el.value;
+    }
+  });
+
+  container.querySelectorAll("[data-table-key]").forEach((el) => {
+    const tableKey = el.getAttribute("data-table-key");
+    const idx = Number(el.getAttribute("data-row-idx"));
+    const field = el.getAttribute("data-row-field");
+    if (Array.isArray(data[tableKey]) && data[tableKey][idx]) {
+      data[tableKey][idx][field] = el.value;
+    }
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
