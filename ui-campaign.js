@@ -19,6 +19,8 @@ import { renderNpcChapter, NPC_TABS } from "./chapter-npc.js";
 import { renderItemsChapter, ITEMS_TABS } from "./chapter-items.js";
 import { renderCharactersChapter, CHARACTERS_TABS } from "./chapter-characters.js";
 import { renderSessionLogChapter, SESSION_LOG_TABS } from "./chapter-session-log.js";
+import { renderInitiativeChapter, INITIATIVE_TABS } from "./chapter-initiative.js";
+import { renderTravelChapter, TRAVEL_TABS } from "./chapter-travel.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -106,14 +108,16 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Initiative Tracker",
     icon: "swords",
     mode: "tool",
-    description: "Live combat turn order, HP/condition tracking, and round counter."
+    description: "Live combat turn order, HP/condition tracking, and round counter.",
+    sections: INITIATIVE_TABS
   },
   {
     id: "overland-travel",
     label: "Overland Travel Tables",
     icon: "map",
     mode: "tool",
-    description: "Travel pace, navigation checks, weather tables, and hex/region terrain hazards."
+    description: "Travel pace, navigation checks, weather tables, and hex/region terrain hazards.",
+    sections: TRAVEL_TABS
   }
 ];
 
@@ -128,7 +132,9 @@ let activeSectionMap = {
   "npc": "npc-overview",
   "item-list": "general-items",
   "character-sheets": "party-roster",
-  "session-log": "session-entries"
+  "session-log": "session-entries",
+  "initiative-tracker": "combat-tracker",
+  "overland-travel": "examples"
 };
 
 export function renderCampaignWorkspace(container, state) {
@@ -522,6 +528,26 @@ export function renderCampaignWorkspace(container, state) {
       activeSectionId: activeSectionMap["session-log"],
       onSectionChange: (secId) => {
         activeSectionMap["session-log"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "initiative-tracker") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderInitiativeChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["initiative-tracker"],
+      onSectionChange: (secId) => {
+        activeSectionMap["initiative-tracker"] = secId;
+        renderCampaignWorkspace(container, state);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  } else if (currentChapter.id === "overland-travel") {
+    const mainPane = container.querySelector("#chapter-main-pane");
+    renderTravelChapter(mainPane, state, {
+      activeSectionId: activeSectionMap["overland-travel"],
+      onSectionChange: (secId) => {
+        activeSectionMap["overland-travel"] = secId;
         renderCampaignWorkspace(container, state);
         if (window.lucide) window.lucide.createIcons();
       }
