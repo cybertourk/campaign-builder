@@ -1,7 +1,6 @@
 // ui-campaign.js
-// Level 3: Campaign Builder workspace organized into the 12 Campaign Planner chapters.
-// Each chapter currently renders a structured placeholder wired to Firestore, ready to be
-// upgraded with custom forms and interactive tools chapter by chapter.
+// Level 3: Campaign Builder workspace organized into the 12 Campaign Planner chapters,
+// styled with the carved stone frames, PNG chapter emblems, dividers, and RPG buttons.
 
 import {
   createEntity,
@@ -27,6 +26,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "campaign-setting",
     label: "Campaign Setting",
     icon: "globe",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/chest-icon.png",
     mode: "single",
     description: "World overview, tone, geography, major regions, and foundational truths.",
     sections: SETTING_TABS
@@ -35,6 +35,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "plot-adventures",
     label: "Plot and Adventures",
     icon: "compass",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/papyrus-icon.png",
     mode: "collection",
     description: "Main story arcs, adventure hooks, milestones, and branching plotlines.",
     sections: PLOT_TABS
@@ -43,6 +44,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "random-encounters",
     label: "Random Encounters",
     icon: "dices",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/bar-bottle.png",
     mode: "collection",
     description: "Environment-based encounter tables, twists, and quick-roll triggers.",
     sections: ENCOUNTERS_TABS
@@ -51,6 +53,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "enemies",
     label: "Enemies",
     icon: "skull",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/heart-icon.png",
     mode: "collection",
     description: "Monsters, villains, stat blocks, tactics, and threat profiles.",
     sections: ENEMIES_TABS
@@ -59,6 +62,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "deities",
     label: "Deities",
     icon: "sun",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/star-icon.png",
     mode: "collection",
     description: "Pantheons, domains, alignments, tenets, symbols, and divine boons.",
     sections: DEITIES_TABS
@@ -67,6 +71,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "faction",
     label: "Faction",
     icon: "flag",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/shield-icon.png",
     mode: "collection",
     description: "Guilds, kingdoms, cults, leadership, goals, and inter-faction standings.",
     sections: FACTIONS_TABS
@@ -75,6 +80,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "npc",
     label: "NPC",
     icon: "users",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/key-icon.png",
     mode: "collection",
     description: "Non-player characters, appearances, motivations, secrets, and relationships.",
     sections: NPC_TABS
@@ -83,6 +89,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "item-list",
     label: "Item List",
     icon: "sword",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/sack-icon.png",
     mode: "collection",
     description: "Magic items, relics, custom gear, economy items, and loot tables.",
     sections: ITEMS_TABS
@@ -91,6 +98,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "character-sheets",
     label: "Character Sheets",
     icon: "user-check",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/potion-icon.png",
     mode: "collection",
     description: "Party roster, player character stats, backstories, and personal quests.",
     sections: CHARACTERS_TABS
@@ -99,6 +107,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "session-log",
     label: "Session Log",
     icon: "scroll-text",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/papyrus-icon.png",
     mode: "collection",
     description: "Chronological session recaps, MVP moments, XP/milestones, and next-session prep.",
     sections: SESSION_LOG_TABS
@@ -107,6 +116,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "initiative-tracker",
     label: "Initiative Tracker",
     icon: "swords",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/sword-icon.png",
     mode: "tool",
     description: "Live combat turn order, HP/condition tracking, and round counter.",
     sections: INITIATIVE_TABS
@@ -115,6 +125,7 @@ export const CAMPAIGN_CHAPTERS = [
     id: "overland-travel",
     label: "Overland Travel Tables",
     icon: "map",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/coins-icon.png",
     mode: "tool",
     description: "Travel pace, navigation checks, weather tables, and hex/region terrain hazards.",
     sections: TRAVEL_TABS
@@ -154,33 +165,39 @@ export function renderCampaignWorkspace(container, state) {
 
   container.innerHTML = `
     <!-- Breadcrumb Hierarchy: Game Systems > Active System > Active Campaign -->
-    <nav class="flex items-center gap-2 text-sm text-slate-400 mb-5 flex-wrap">
-      <button id="ws-nav-systems" class="hover:text-white flex items-center gap-1.5 transition">
-        <i data-lucide="layers" class="w-4 h-4"></i> Game Systems
+    <nav class="flex items-center gap-2.5 text-sm text-slate-300 mb-5 flex-wrap">
+      <button id="ws-nav-systems" class="rpg-btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
+        <img src="./GUI_Fantasy_RPG_Kit/back-btn.png" alt="Systems" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+        <span>Game Systems</span>
       </button>
-      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <button id="ws-nav-campaigns" class="hover:text-white transition">
+      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+      <button id="ws-nav-campaigns" class="rpg-btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">
         ${escapeHtml(sys.name)}
       </button>
-      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <span class="text-indigo-400 font-medium">${escapeHtml(camp.title)}</span>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+      <span class="rpg-slot-long px-3 py-1 rounded-full text-amber-200 font-semibold text-xs flex items-center gap-1.5">
+        <img src="./GUI_Fantasy_RPG_Kit/star-icon.png" alt="" class="w-3.5 h-3.5 object-contain" onerror="this.style.display='none'" />
+        ${escapeHtml(camp.title)}
+      </span>
     </nav>
 
     <!-- Main 2-Column Layout: 12-Chapter Sidebar + Active Chapter Workspace -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
       <!-- Left Sidebar: Campaign Header & 12-Chapter Nested Vertical Navigation -->
-      <aside class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div class="p-4 border-b border-slate-800 bg-slate-950/50">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-0.5">
-            Campaign Planner
+      <aside class="lg:col-span-3 rpg-panel rounded-xl overflow-hidden">
+        <div class="p-3.5 border-b border-slate-800/80">
+          <div class="rpg-bar-stamina w-full mb-2.5 opacity-90"></div>
+          <div class="text-[10px] font-bold uppercase tracking-widest text-amber-300/90 mb-0.5">
+            Campaign Tome
           </div>
-          <h2 class="font-bold text-white text-base truncate" title="${escapeHtml(camp.title)}">
+          <h2 class="font-rpg-display font-bold text-amber-100 text-base truncate" title="${escapeHtml(camp.title)}">
             ${escapeHtml(camp.title)}
           </h2>
+          <div class="rpg-divider mt-2"></div>
         </div>
 
-        <nav class="p-2 space-y-1 max-h-[75vh] overflow-y-auto">
+        <nav class="p-2 space-y-1.5 max-h-[75vh] overflow-y-auto">
           ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
             const isSelected = chap.id === currentChapter.id;
             const sections = chap.sections || [];
@@ -202,16 +219,16 @@ export function renderCampaignWorkspace(container, state) {
             const sessionsDoc = state.entities.find((e) => e.type === "session-log")?.systemData || {};
 
             return `
-              <div class="rounded-lg ${isSelected ? "bg-slate-950/60 border border-slate-800/80 pb-1.5" : ""}">
-                <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs font-medium transition ${
+              <div class="rounded-lg ${isSelected ? "bg-slate-950/75 border border-amber-500/30 pb-1.5 shadow-inner" : ""}">
+                <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-xs font-medium transition ${
                   isSelected
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                    : "text-slate-300 hover:bg-slate-850 hover:text-white"
+                    ? "rpg-btn-primary text-amber-100 font-semibold"
+                    : "text-slate-300 hover:bg-slate-900/80 hover:text-amber-100"
                 }">
-                  <span class="flex items-center gap-2.5 min-w-0">
-                    <i data-lucide="${chap.icon}" class="w-4 h-4 shrink-0 ${
-                      isSelected ? "text-white" : "text-indigo-400"
-                    }"></i>
+                  <span class="flex items-center gap-2 min-w-0">
+                    <span class="rpg-slot-small w-6 h-6 p-0.5 shrink-0">
+                      <img src="${chap.rpgIcon}" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+                    </span>
                     <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
                   </span>
                   <span class="flex items-center gap-1.5 shrink-0">
@@ -219,14 +236,14 @@ export function renderCampaignWorkspace(container, state) {
                       count > 0 && sections.length === 0
                         ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
                             isSelected
-                              ? "bg-indigo-500 text-white"
+                              ? "bg-amber-500/20 text-amber-200 border border-amber-400/40"
                               : "bg-slate-800 text-slate-400"
                           }">${count}</span>`
                         : ""
                     }
                     ${
                       sections.length > 0
-                        ? `<i data-lucide="${isSelected ? "chevron-down" : "chevron-right"}" class="w-3.5 h-3.5 opacity-80"></i>`
+                        ? `<i data-lucide="${isSelected ? "chevron-down" : "chevron-right"}" class="w-3.5 h-3.5 opacity-85"></i>`
                         : ""
                     }
                   </span>
@@ -235,7 +252,7 @@ export function renderCampaignWorkspace(container, state) {
                 ${
                   isSelected && sections.length > 0
                     ? `
-                      <div class="mt-1.5 ml-3 pl-2.5 border-l border-slate-800 space-y-0.5">
+                      <div class="mt-1.5 ml-3 pl-2.5 border-l border-amber-500/30 space-y-0.5">
                         ${sections
                           .map((sec) => {
                             const isSecActive = sec.id === activeSecId;
@@ -261,18 +278,18 @@ export function renderCampaignWorkspace(container, state) {
                               <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
                                 class="chapter-section-btn w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-left text-[11px] transition ${
                                   isSecActive
-                                    ? "bg-slate-800 text-indigo-300 font-semibold"
-                                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                                    ? "rpg-slot-long text-amber-200 font-semibold"
+                                    : "text-slate-400 hover:text-amber-100 hover:bg-slate-900/70"
                                 }">
                                 <span class="flex items-center gap-2 min-w-0">
                                   <i data-lucide="${sec.icon}" class="w-3.5 h-3.5 shrink-0 ${
-                                    isSecActive ? "text-indigo-400" : "text-slate-500"
+                                    isSecActive ? "text-amber-300" : "text-slate-500"
                                   }"></i>
                                   <span class="truncate">${escapeHtml(sec.label)}</span>
                                 </span>
                                 ${
                                   secCount > 0
-                                    ? `<span class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-900 text-slate-400 border border-slate-700/80">${secCount}</span>`
+                                    ? `<span class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/90 text-amber-200/90 border border-amber-500/30">${secCount}</span>`
                                     : ""
                                 }
                               </button>
@@ -290,38 +307,27 @@ export function renderCampaignWorkspace(container, state) {
       </aside>
 
       <!-- Right Main Pane: Active Chapter View -->
-      <section id="chapter-main-pane" class="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
+      <section id="chapter-main-pane" class="rpg-workspace-pane lg:col-span-9 rpg-panel-ornate rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
+      </aside>
+
+      <!-- Right Main Pane: Carved Stone Active Chapter View -->
+      <section id="chapter-main-pane" class="lg:col-span-9 rpg-panel rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
         
-        <!-- Chapter Header -->
+        <!-- Fallback Chapter Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
           <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
-              <i data-lucide="${currentChapter.icon}" class="w-5 h-5 text-indigo-400"></i>
+            <div class="rpg-slot-medium w-11 h-11 p-1.5 shrink-0">
+              <img src="${currentChapter.pngIcon}" alt="" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
             </div>
             <div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <h1 class="text-xl font-bold text-white">${escapeHtml(currentChapter.label)}</h1>
-                <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-950/70 text-amber-300 border border-amber-800/50">
-                  Chapter Placeholder
-                </span>
-              </div>
-              <p class="text-slate-400 text-xs sm:text-sm mt-1">${escapeHtml(currentChapter.description)}</p>
+              <h1 class="text-xl font-bold text-amber-100">${escapeHtml(currentChapter.label)}</h1>
+              <p class="text-slate-300 text-xs sm:text-sm mt-1">${escapeHtml(currentChapter.description)}</p>
             </div>
           </div>
 
-          <button id="chapter-new-entry-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
-            <i data-lucide="plus" class="w-4 h-4"></i> Add ${escapeHtml(currentChapter.label)} Entry
+          <button id="chapter-new-entry-btn" class="rpg-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold shrink-0">
+            <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i> Add ${escapeHtml(currentChapter.label)} Entry
           </button>
-        </div>
-
-        <!-- Chapter Placeholder Notice -->
-        <div class="mb-5 p-3.5 rounded-xl bg-slate-950/80 border border-dashed border-slate-700 flex items-center justify-between gap-3 text-xs text-slate-300">
-          <div class="flex items-center gap-2.5">
-            <i data-lucide="layout-template" class="w-4 h-4 text-indigo-400 shrink-0"></i>
-            <span>
-              <strong>Placeholder Active:</strong> Custom fields and tables for <strong>${escapeHtml(currentChapter.label)}</strong> will be added here next. You can already save freeform notes below.
-            </span>
-          </div>
         </div>
 
         <!-- Chapter Entries & Quick Editor -->
@@ -331,44 +337,36 @@ export function renderCampaignWorkspace(container, state) {
               <div class="flex-1 flex flex-col items-center justify-center text-center py-12 border border-slate-800/60 rounded-xl bg-slate-950/40">
                 <i data-lucide="${currentChapter.icon}" class="w-8 h-8 text-slate-600 mb-2"></i>
                 <p class="text-sm font-medium text-slate-300">No entries in ${escapeHtml(currentChapter.label)} yet</p>
-                <p class="text-xs text-slate-500 max-w-sm mt-1 mb-4">
-                  Click the button above to create a placeholder entry, or share the book's fields for this chapter to build its custom form.
-                </p>
               </div>
             `
             : `
               <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1">
-                <!-- Entry Selector List -->
                 <div class="md:col-span-4 border border-slate-800 rounded-xl bg-slate-950/50 divide-y divide-slate-800/70 max-h-[50vh] overflow-y-auto">
                   ${chapterEntries
                     .map(
                       (ent) => `
                     <div data-entity-id="${ent.id}" class="entity-item p-3 cursor-pointer transition ${
                         activeEntry?.id === ent.id
-                          ? "bg-indigo-950/50 border-l-2 border-indigo-500"
+                          ? "bg-amber-950/40 border-l-2 border-amber-400"
                           : "hover:bg-slate-850"
                       }">
                       <div class="font-medium text-xs text-white truncate">${escapeHtml(ent.title)}</div>
-                      <div class="text-[11px] text-slate-500 truncate mt-0.5">
-                        ${escapeHtml((ent.content || "").replace(/\n/g, " ") || "Empty entry...")}
-                      </div>
                     </div>
                   `
                     )
                     .join("")}
                 </div>
 
-                <!-- Entry Editor -->
                 <div class="md:col-span-8 flex flex-col border border-slate-800 rounded-xl bg-slate-950/50 p-4">
                   ${
                     activeEntry
                       ? `
                         <div class="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
                           <input type="text" id="edit-entity-title" value="${escapeHtml(activeEntry.title)}"
-                            class="flex-1 bg-transparent text-base font-bold text-white focus:outline-none border-b border-transparent focus:border-indigo-500" />
+                            class="flex-1 bg-transparent text-base font-bold text-white focus:outline-none border-b border-transparent focus:border-amber-400" />
                           <div class="flex items-center gap-2">
-                            <span id="save-indicator" class="text-xs text-slate-500">Saved</span>
-                            <button id="save-entity-btn" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-md text-xs font-medium transition">
+                            <span id="save-indicator" class="text-xs text-slate-400">Saved</span>
+                            <button id="save-entity-btn" class="rpg-btn-primary inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold">
                               <i data-lucide="save" class="w-3.5 h-3.5"></i> Save
                             </button>
                             <button id="delete-entity-btn" title="Delete Entry" class="p-1 text-slate-400 hover:text-rose-400 rounded transition">
@@ -377,7 +375,7 @@ export function renderCampaignWorkspace(container, state) {
                           </div>
                         </div>
                         <textarea id="edit-entity-content" placeholder="Notes for ${escapeHtml(currentChapter.label)}..."
-                          class="flex-1 min-h-[260px] w-full bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-xs sm:text-sm text-slate-200 leading-relaxed focus:outline-none focus:border-indigo-500 resize-none font-mono">${escapeHtml(activeEntry.content || "")}</textarea>
+                          class="flex-1 min-h-[260px] w-full rounded-lg p-3 text-xs sm:text-sm leading-relaxed focus:outline-none resize-none font-mono">${escapeHtml(activeEntry.content || "")}</textarea>
                       `
                       : ""
                   }
@@ -386,7 +384,7 @@ export function renderCampaignWorkspace(container, state) {
             `
         }
 
-        <!-- Chapter Misc Notes (Available on every chapter) -->
+        <!-- Chapter Misc Notes -->
         <div class="mt-6 pt-5 border-t border-slate-800">
           <div class="flex items-center justify-between mb-2">
             <label class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
@@ -394,14 +392,14 @@ export function renderCampaignWorkspace(container, state) {
             </label>
             <div class="flex items-center gap-2">
               <span id="misc-notes-status" class="text-[11px] text-slate-500"></span>
-              <button type="button" id="save-misc-notes-btn" class="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1 rounded text-xs font-medium transition">
+              <button type="button" id="save-misc-notes-btn" class="rpg-btn-secondary inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium">
                 <i data-lucide="save" class="w-3 h-3"></i> Save Notes
               </button>
             </div>
           </div>
           <textarea id="chapter-misc-notes-input" rows="4"
             placeholder="Jot down general notes, ideas, or reminders for ${escapeHtml(currentChapter.label)}..."
-            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">${escapeHtml(
+            class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none">${escapeHtml(
               state.entities.find((e) => e.type === `${currentChapter.id}-misc`)?.content || ""
             )}</textarea>
         </div>
@@ -410,30 +408,33 @@ export function renderCampaignWorkspace(container, state) {
     </div>
 
     <!-- New Entry Modal -->
-    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">New ${escapeHtml(currentChapter.label)} Entry</h2>
-          <button id="close-entity-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-lg font-bold text-amber-100">New ${escapeHtml(currentChapter.label)} Entry</h2>
+          <button id="close-entity-modal" class="rpg-icon-btn w-7 h-7" title="Close">
+            <img src="./close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
+          </button>
         </div>
+        <div class="rpg-divider mb-4"></div>
         <form id="create-entity-form" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Entry Title *</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Entry Title *</label>
             <input type="text" id="new-ent-title" required placeholder="e.g. Session 1, Lord Vance, Tavern Rumors..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+              class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none" />
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" id="cancel-entity-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create Entry</button>
+            <button type="button" id="cancel-entity-modal" class="rpg-btn-secondary px-4 py-2 text-xs font-medium rounded-lg">Cancel</button>
+            <button type="submit" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">Create Entry</button>
           </div>
         </form>
       </div>
     </div>
   `;
 
-  // If Chapter 1–7 is active, render its dedicated workbook
+  // Render active chapter workbook inside #chapter-main-pane
+  const mainPane = container.querySelector("#chapter-main-pane");
   if (currentChapter.id === "campaign-setting") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderCampaignSettingChapter(mainPane, state, {
       activeSectionId: activeSectionMap["campaign-setting"],
       onSectionChange: (secId) => {
@@ -443,7 +444,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "plot-adventures") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderPlotChapter(mainPane, state, {
       activeSectionId: activeSectionMap["plot-adventures"],
       onSectionChange: (secId) => {
@@ -453,7 +453,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "random-encounters") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderEncountersChapter(mainPane, state, {
       activeSectionId: activeSectionMap["random-encounters"],
       onSectionChange: (secId) => {
@@ -463,7 +462,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "enemies") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderEnemiesChapter(mainPane, state, {
       activeSectionId: activeSectionMap["enemies"],
       onSectionChange: (secId) => {
@@ -473,7 +471,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "deities") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderDeitiesChapter(mainPane, state, {
       activeSectionId: activeSectionMap["deities"],
       onSectionChange: (secId) => {
@@ -483,7 +480,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "faction") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderFactionsChapter(mainPane, state, {
       activeSectionId: activeSectionMap["faction"],
       onSectionChange: (secId) => {
@@ -493,7 +489,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "npc") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderNpcChapter(mainPane, state, {
       activeSectionId: activeSectionMap["npc"],
       onSectionChange: (secId) => {
@@ -503,7 +498,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "item-list") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderItemsChapter(mainPane, state, {
       activeSectionId: activeSectionMap["item-list"],
       onSectionChange: (secId) => {
@@ -513,7 +507,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "character-sheets") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderCharactersChapter(mainPane, state, {
       activeSectionId: activeSectionMap["character-sheets"],
       onSectionChange: (secId) => {
@@ -523,7 +516,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "session-log") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderSessionLogChapter(mainPane, state, {
       activeSectionId: activeSectionMap["session-log"],
       onSectionChange: (secId) => {
@@ -533,7 +525,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "initiative-tracker") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderInitiativeChapter(mainPane, state, {
       activeSectionId: activeSectionMap["initiative-tracker"],
       onSectionChange: (secId) => {
@@ -543,7 +534,6 @@ export function renderCampaignWorkspace(container, state) {
       }
     });
   } else if (currentChapter.id === "overland-travel") {
-    const mainPane = container.querySelector("#chapter-main-pane");
     renderTravelChapter(mainPane, state, {
       activeSectionId: activeSectionMap["overland-travel"],
       onSectionChange: (secId) => {
@@ -554,7 +544,17 @@ export function renderCampaignWorkspace(container, state) {
     });
   }
 
-  // Wire Misc Notes on placeholder chapters
+  // Upgrade primary Save buttons inside chapter workbooks to use the carved stone button aesthetic + ornamental divider
+  mainPane.querySelectorAll('button[id^="save-"]').forEach((btn) => {
+    btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500", "shadow-indigo-600/20");
+    btn.classList.add("rpg-btn-primary");
+  });
+  mainPane.querySelectorAll("h1").forEach((h1) => {
+    h1.classList.remove("text-white");
+    h1.classList.add("text-amber-100");
+  });
+
+  // Wire Misc Notes on fallback chapters
   const miscBtn = container.querySelector("#save-misc-notes-btn");
   if (miscBtn) {
     const miscInput = container.querySelector("#chapter-misc-notes-input");
