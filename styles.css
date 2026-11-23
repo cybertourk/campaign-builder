@@ -1,93 +1,114 @@
 /* styles.css
-Carved Stone & Arcane Fantasy UI theme powered by ./GUI_Fantasy_RPG_Kit/*.png */
+Custom Fantasy RPG Stone & Arcane Theme powered by ./GUI_Fantasy_RPG_Kit/ assets.
+All borders use crisp 9-slice scaling and padding-box clipping so text never
+overlaps carved frames, pillars, or button endcaps. */
 
 :root {
 --rpg-gold: #f5d076;
---rpg-gold-dim: #c8a252;
---rpg-stone-dark: #11151f;
---rpg-stone-mid: #1a202e;
---rpg-stone-light: #2d3548;
---rpg-arcane: #8b5cf6;
---rpg-emerald: #10b981;
+--rpg-gold-dim: #c9a24b;
+--rpg-stone-dark: #0e121b;
+--rpg-stone-panel: #151b27;
+--rpg-stone-input: #0b0f17;
+--rpg-border-subtle: rgba(148, 163, 184, 0.22);
 }
 
-/* Typography */
-body {
+*,
+*::before,
+*::after {
+box-sizing: border-box;
+}
+
+/* Base Stone Background */
+body.rpg-stone-body {
+background-color: #0b0e14;
+background-image:
+radial-gradient(circle at 50% 0%, rgba(245, 208, 118, 0.07), transparent 55%),
+linear-gradient(to bottom, rgba(11, 14, 20, 0.84), rgba(8, 10, 15, 0.94)),
+url('./GUI_Fantasy_RPG_Kit/background.png');
+background-repeat: no-repeat, no-repeat, repeat;
+background-size: 100% 100%, 100% 100%, 420px auto;
+background-attachment: fixed;
 font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-h1, h2, h3, .font-rpg-display {
+/* Display Fantasy Headings */
+.font-rpg-display,
+header h1,
+header .font-bold,
+#chapter-main-pane h1,
+.rpg-panel h1,
+.rpg-panel h2,
+.rpg-panel-ornate h1,
+.rpg-panel-ornate h2 {
 font-family: 'Cinzel', Georgia, serif;
 letter-spacing: 0.02em;
 }
 
-/* Main Carved Slate Background */
-.rpg-stone-body {
-background-color: #0d1017;
-background-image:
-radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.14), transparent 55%),
-radial-gradient(circle at 15% 85%, rgba(245, 158, 11, 0.08), transparent 45%),
-linear-gradient(to bottom, rgba(11, 14, 22, 0.78), rgba(11, 14, 22, 0.90)),
-url('./GUI_Fantasy_RPG_Kit/background.png');
-background-size: auto, auto, auto, 380px auto;
-background-repeat: repeat;
-background-attachment: fixed;
-}
-
 /* Top Navigation Bar */
 .rpg-topbar {
-background:
-linear-gradient(to bottom, rgba(22, 27, 39, 0.95), rgba(13, 17, 26, 0.96)),
-url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
-background-size: cover;
+background-color: #11151f;
+background-image:
+linear-gradient(to bottom, rgba(23, 29, 43, 0.94), rgba(13, 16, 24, 0.98)),
+url('./GUI_Fantasy_RPG_Kit/background.png');
+background-size: auto, 320px auto;
 border-bottom: 2px solid #2b3344;
-box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65), inset 0 -1px 0 rgba(245, 208, 118, 0.15);
+box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
 }
 
-/* Standard Stone Panel (pop-up-window-01 + frame) */
+/* Standard Stone Panel (pop-up-window-01-frame with clean slate interior) */
 .rpg-panel {
 position: relative;
-background-color: #161b26;
+background-color: #131823;
 background-image:
-linear-gradient(to bottom, rgba(22, 27, 38, 0.88), rgba(14, 18, 27, 0.93)),
-url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
-background-size: 100% 100%;
-border: 12px solid transparent;
+linear-gradient(to bottom, rgba(21, 27, 39, 0.95), rgba(13, 17, 26, 0.98)),
+url('./GUI_Fantasy_RPG_Kit/background.png');
+background-size: auto, 320px auto;
+background-clip: padding-box;
+border-style: solid;
+border-width: 12px;
+border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-01-frame.png');
-border-image-slice: 24 fill;
-border-image-width: 14px;
+border-image-slice: 26;
+border-image-width: 12px;
 border-image-repeat: stretch;
 box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
 }
 
-/* Ornate Scrollwork Stone Panel (pop-up-window-02 + frame) */
+/* Ornate Stone Panel (uses clean pop-up-window-01-frame so wide headers never collide with arches) */
 .rpg-panel-ornate {
 position: relative;
-background-color: #161b26;
+background-color: #131823;
 background-image:
-linear-gradient(to bottom, rgba(23, 28, 40, 0.86), rgba(13, 17, 25, 0.93)),
-url('./GUI_Fantasy_RPG_Kit/pop-up-window-02.png');
-background-size: 100% 100%;
-border: 14px solid transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-02-frame.png');
-border-image-slice: 28 fill;
-border-image-width: 16px;
+radial-gradient(circle at 50% 0%, rgba(245, 208, 118, 0.06), transparent 45%),
+linear-gradient(to bottom, rgba(22, 28, 40, 0.95), rgba(12, 16, 25, 0.98)),
+url('./GUI_Fantasy_RPG_Kit/background.png');
+background-size: 100% 100%, auto, 320px auto;
+background-clip: padding-box;
+border-style: solid;
+border-width: 14px;
+border-color: transparent;
+border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-01-frame.png');
+border-image-slice: 26;
+border-image-width: 14px;
 border-image-repeat: stretch;
 box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
 }
 
-/* Interactive Inventory Card (inventory-slot-medium + frame) */
+/* Interactive Inventory Card (inventory-slot-medium-frame around clean slate interior) */
 .rpg-card {
 position: relative;
-background-color: #171c28;
+background-color: #151b27;
 background-image:
-linear-gradient(to bottom, rgba(26, 32, 46, 0.85), rgba(15, 19, 28, 0.92)),
-url('./GUI_Fantasy_RPG_Kit/inventory-slot-medium.png');
-background-size: 100% 100%;
-border: 10px solid transparent;
+linear-gradient(to bottom, rgba(25, 31, 45, 0.95), rgba(14, 18, 28, 0.98)),
+url('./GUI_Fantasy_RPG_Kit/background.png');
+background-size: auto, 260px auto;
+background-clip: padding-box;
+border-style: solid;
+border-width: 10px;
+border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-medium-frame.png');
-border-image-slice: 20 fill;
-border-image-width: 12px;
+border-image-slice: 24;
+border-image-width: 10px;
 border-image-repeat: stretch;
 box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
 transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
@@ -99,78 +120,101 @@ filter: brightness(1.07);
 box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 16px rgba(245, 208, 118, 0.16);
 }
 
-/* Big Framed Icon / Portrait Socket (inventory-slot-big + frame) */
+/* Big Framed Icon / Portrait Socket (inventory-slot-big-frame) */
 .rpg-slot-big {
 display: inline-flex;
 align-items: center;
 justify-content: center;
-background-color: #161b26;
-background-image: url('./GUI_Fantasy_RPG_Kit/inventory-slot-big.png');
-background-size: 100% 100%;
-border: 6px solid transparent;
+background-color: #131823;
+background-clip: padding-box;
+border-style: solid;
+border-width: 7px;
+border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-big-frame.png');
-border-image-slice: 22 fill;
-border-image-width: 8px;
+border-image-slice: 24;
+border-image-width: 7px;
 border-image-repeat: stretch;
 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
 }
 
-/* Small Framed Icon Socket (inventory-slot-small + frame) */
+/* Small Framed Icon Socket (inventory-slot-small-frame) */
 .rpg-slot-small {
 display: inline-flex;
 align-items: center;
 justify-content: center;
-background-color: #161b26;
-background-image: url('./GUI_Fantasy_RPG_Kit/inventory-slot-small.png');
-background-size: 100% 100%;
-border: 4px solid transparent;
+background-color: #131823;
+background-clip: padding-box;
+border-style: solid;
+border-width: 4px;
+border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-small-frame.png');
-border-image-slice: 16 fill;
-border-image-width: 5px;
+border-image-slice: 18;
+border-image-width: 4px;
 border-image-repeat: stretch;
 box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Long Recessed Stone Pill / Tag (slot-long.png) */
 .rpg-slot-long {
-background-color: rgba(15, 19, 28, 0.9);
-background-image: url('./GUI_Fantasy_RPG_Kit/slot-long.png');
-background-size: 100% 100%;
-background-repeat: no-repeat;
+display: inline-flex;
+align-items: center;
+min-height: 28px;
+line-height: 1.25;
+background-color: rgba(15, 19, 28, 0.94);
+border-style: solid;
+border-width: 4px 12px;
+border-color: transparent;
+border-image-source: url('./GUI_Fantasy_RPG_Kit/slot-long.png');
+border-image-slice: 8 18 fill;
+border-image-repeat: stretch;
 box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
-/* Primary Carved Stone Button (button-1.png) */
+/* Primary Carved Stone Button (9-sliced button-1.png) */
 .rpg-btn-primary {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-height: 34px;
+line-height: 1.25;
 background-color: #262e3f;
-background-image:
-linear-gradient(to bottom, rgba(245, 158, 11, 0.16), rgba(180, 83, 9, 0.14)),
-url('./GUI_Fantasy_RPG_Kit/button-1.png');
-background-size: 100% 100%;
-background-repeat: no-repeat;
+border-style: solid;
+border-width: 6px 14px;
+border-color: transparent;
+border-image-source: url('./GUI_Fantasy_RPG_Kit/button-1.png');
+border-image-slice: 12 24 fill;
+border-image-repeat: stretch;
 color: #fef3c7;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(245, 208, 118, 0.28);
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
 transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
 
 .rpg-btn-primary:hover:not(:disabled) {
 filter: brightness(1.14);
-box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65), 0 0 12px rgba(245, 208, 118, 0.28);
+box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65), 0 0 12px rgba(245, 208, 118, 0.25);
 }
 
 .rpg-btn-primary:active:not(:disabled) {
 transform: translateY(1px);
 }
 
-/* Secondary Carved Stone Button (button-3.png) */
+/* Secondary Carved Stone Button (9-sliced button-3.png) */
 .rpg-btn-secondary {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-height: 32px;
+line-height: 1.25;
 background-color: #1f2533;
-background-image: url('./GUI_Fantasy_RPG_Kit/button-3.png');
-background-size: 100% 100%;
-background-repeat: no-repeat;
+border-style: solid;
+border-width: 5px 12px;
+border-color: transparent;
+border-image-source: url('./GUI_Fantasy_RPG_Kit/button-3.png');
+border-image-slice: 10 22 fill;
+border-image-repeat: stretch;
 color: #e2e8f0;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
 transition: transform 0.12s ease, filter 0.15s ease;
 }
@@ -184,144 +228,163 @@ color: #fef3c7;
 transform: translateY(1px);
 }
 
-/* Tall Carved Stone Action Button (button-2.png) */
+/* Tall Carved Stone Action Button (9-sliced button-2.png) */
 .rpg-btn-tall {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-height: 38px;
+line-height: 1.25;
 background-color: #242b3b;
-background-image: url('./GUI_Fantasy_RPG_Kit/button-2.png');
-background-size: 100% 100%;
-background-repeat: no-repeat;
+border-style: solid;
+border-width: 7px 14px;
+border-color: transparent;
+border-image-source: url('./GUI_Fantasy_RPG_Kit/button-2.png');
+border-image-slice: 14 24 fill;
+border-image-repeat: stretch;
 color: #fde68a;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 transition: transform 0.12s ease, filter 0.15s ease;
 }
 
 .rpg-btn-tall:hover:not(:disabled) {
-filter: brightness(1.14);
+filter: brightness(1.15);
 }
 
-/* Square Stone Icon Buttons (back-btn.png, close-btn.png, settings-btn.png) */
+/* Sidebar Active Chapter Button layout inside 9-slice border */
+.chapter-nav-btn.rpg-btn-primary {
+display: flex;
+justify-content: space-between;
+border-width: 5px 10px;
+}
+
+/* Sidebar Active Section Pill layout */
+.chapter-section-btn.rpg-slot-long {
+display: flex;
+justify-content: space-between;
+border-width: 3px 10px;
+}
+
+/* Mossy Stone Divider (devider.png) */
+.rpg-divider {
+height: 14px;
+width: 100%;
+background-image: url('./GUI_Fantasy_RPG_Kit/devider.png');
+background-repeat: no-repeat;
+background-position: center;
+background-size: contain;
+opacity: 0.92;
+}
+
+/* Status / Progress Bars (hp-bar + fill) */
+.rpg-bar-track {
+height: 12px;
+padding: 2px 5px;
+background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar.png');
+background-size: 100% 100%;
+background-repeat: no-repeat;
+display: flex;
+align-items: center;
+}
+
+.rpg-bar-hp {
+height: 7px;
+border-radius: 3px;
+background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar-fill.png');
+background-size: 100% 100%;
+}
+
+.rpg-bar-mana {
+height: 7px;
+border-radius: 3px;
+background-image: url('./GUI_Fantasy_RPG_Kit/mana-bar-fill.png');
+background-size: 100% 100%;
+}
+
+.rpg-bar-stamina {
+height: 7px;
+border-radius: 3px;
+background-image: url('./GUI_Fantasy_RPG_Kit/stamina-bar-fill.png');
+background-size: 100% 100%;
+}
+
+/* Square Icon Buttons (close-btn, back-btn, settings-btn) */
 .rpg-icon-btn {
 display: inline-flex;
 align-items: center;
 justify-content: center;
-border-radius: 6px;
 transition: transform 0.12s ease, filter 0.15s ease;
 }
 
 .rpg-icon-btn:hover {
-filter: brightness(1.15);
-transform: scale(1.04);
+filter: brightness(1.18);
+transform: scale(1.05);
 }
 
 .rpg-icon-btn:active {
 transform: scale(0.97);
 }
 
-/* Mossy Stone Horizontal Divider (devider.png) */
-.rpg-divider {
-height: 16px;
-width: 100%;
-background-image: url('./GUI_Fantasy_RPG_Kit/devider.png');
-background-size: auto 100%;
-background-repeat: no-repeat;
-background-position: center;
-opacity: 0.92;
-}
-
-/* Glowing RPG Status Bars (hp-bar.png + hp-bar-fill / mana-bar-fill / stamina-bar-fill) */
-.rpg-bar-hp,
-.rpg-bar-mana,
-.rpg-bar-stamina {
-height: 10px;
-border-radius: 999px;
-padding: 2px;
-background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar.png');
-background-size: 100% 100%;
-position: relative;
-overflow: hidden;
-}
-
-.rpg-bar-hp::after,
-.rpg-bar-mana::after,
-.rpg-bar-stamina::after {
-content: "";
-display: block;
-height: 100%;
-width: 100%;
-border-radius: 999px;
-background-size: 100% 100%;
-}
-
-.rpg-bar-hp::after {
-background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar-fill.png');
-}
-
-.rpg-bar-mana::after {
-background-image: url('./GUI_Fantasy_RPG_Kit/mana-bar-fill.png');
-}
-
-.rpg-bar-stamina::after {
-background-image: url('./GUI_Fantasy_RPG_Kit/stamina-bar-fill.png');
-}
-
-/* Carved Stone Input Wells across all Chapters */
-.rpg-stone-body input[type="text"],
-.rpg-stone-body input[type="email"],
-.rpg-stone-body input[type="password"],
-.rpg-stone-body input[type="url"],
-.rpg-stone-body input[type="number"],
-.rpg-stone-body textarea,
-.rpg-stone-body select {
-background-color: rgba(10, 13, 20, 0.88);
-border-color: #2a3244;
-color: #f1f5f9;
-box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.55);
-transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.rpg-stone-body input[type="text"]:focus,
-.rpg-stone-body input[type="email"]:focus,
-.rpg-stone-body input[type="password"]:focus,
-.rpg-stone-body input[type="url"]:focus,
-.rpg-stone-body input[type="number"]:focus,
-.rpg-stone-body textarea:focus,
-.rpg-stone-body select:focus {
-border-color: #d4a84f;
-box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(212, 168, 79, 0.2);
-}
-
 /* Harmonize Chapter Primary Save/Add Buttons inside the RPG Workspace */
 .rpg-workspace-pane button.bg-indigo-600 {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-height: 34px;
+line-height: 1.25;
 background-color: #293245;
-background-image:
-linear-gradient(to bottom, rgba(245, 158, 11, 0.18), rgba(180, 83, 9, 0.16)),
-url('./GUI_Fantasy_RPG_Kit/button-1.png');
-background-size: 100% 100%;
+border-style: solid;
+border-width: 6px 14px;
+border-color: transparent;
+border-image-source: url('./GUI_Fantasy_RPG_Kit/button-1.png');
+border-image-slice: 12 24 fill;
+border-image-repeat: stretch;
 color: #fef3c7;
-border: 1px solid rgba(245, 208, 118, 0.35);
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.rpg-workspace-pane button.bg-indigo-600:hover {
+.rpg-workspace-pane button.bg-indigo-600:hover:not(:disabled) {
 filter: brightness(1.14);
 }
 
-/* Custom Dark Stone Scrollbars */
+/* Form Inputs & Textareas inside RPG Stone Panels */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="number"],
+textarea,
+select {
+background-color: #0b0f17 !important;
+border-color: #293245 !important;
+color: #f1f5f9 !important;
+box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.65);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+border-color: #d4af37 !important;
+box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.65), 0 0 0 2px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
 width: 8px;
 height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-background: #0d1017;
+background: #0b0e14;
 }
 
 ::-webkit-scrollbar-thumb {
-background: #283042;
+background: #2b3344;
 border-radius: 4px;
 border: 1px solid #161b26;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-background: #3b465e;
+background: #424e66;
 }
