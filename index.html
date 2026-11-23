@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RealmForge — System-Agnostic Campaign Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -21,18 +24,25 @@
       }
     }
   </script>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+<body class="rpg-stone-body text-slate-100 min-h-screen flex flex-col antialiased">
 
   <!-- Top Navigation -->
-  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <i data-lucide="compass" class="w-5 h-5 text-white"></i>
+  <header class="rpg-topbar backdrop-blur sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="rpg-slot-small w-10 h-10 p-1">
+          <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="RealmForge" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
         </div>
-        <span class="font-bold text-lg tracking-tight">RealmForge</span>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Campaign Builder</span>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-rpg-display font-bold text-lg tracking-wide text-amber-100">RealmForge</span>
+            <span class="rpg-slot-long text-[11px] font-medium px-2.5 py-0.5 rounded-full text-amber-200/90">
+              Campaign Planner
+            </span>
+          </div>
+        </div>
       </div>
 
       <div id="auth-status" class="flex items-center gap-3"></div>
@@ -40,7 +50,7 @@
   </header>
 
   <!-- Dynamic Application Mount Point -->
-  <main id="app-main" class="flex-1 max-w-6xl w-full mx-auto px-4 py-8"></main>
+  <main id="app-main" class="flex-1 max-w-7xl w-full mx-auto px-4 py-7"></main>
 
   <script type="module" src="./main.js"></script>
 </body>
