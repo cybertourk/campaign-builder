@@ -1,5 +1,6 @@
 // ui-systems.js
-// Handles Level 1 (Game Systems directory) and Level 2 (Campaigns inside a Game System).
+// Handles Level 1 (Game Systems directory) and Level 2 (Campaigns inside a Game System)
+// styled with the carved stone frames, buttons, dividers, and RPG icons.
 
 import {
   createGameSystem,
@@ -17,22 +18,31 @@ import { setState } from "./state.js";
 export function renderSystemsView(container, state) {
   container.innerHTML = `
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-slate-400 mb-6">
-      <span class="text-indigo-400 font-medium flex items-center gap-1.5">
-        <i data-lucide="layers" class="w-4 h-4"></i> Game Systems
+    <nav class="flex items-center gap-2 text-sm text-slate-300 mb-6">
+      <span class="rpg-slot-long px-3 py-1 rounded-full text-amber-200 font-medium flex items-center gap-2 text-xs">
+        <img src="./GUI_Fantasy_RPG_Kit/chest-icon.png" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+        Game Systems
       </span>
     </nav>
 
     <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-white">Your Game Systems</h1>
-        <p class="text-slate-400 text-sm mt-1">Select a ruleset folder to view or create campaigns inside it.</p>
+    <div class="rpg-panel rounded-2xl p-5 sm:p-6 mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="rpg-slot-big w-14 h-14 p-2 shrink-0">
+            <img src="./GUI_Fantasy_RPG_Kit/chest-icon.png" alt="Systems" class="w-9 h-9 object-contain" onerror="this.style.display='none'" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-amber-100">Your Game Systems</h1>
+            <p class="text-slate-300 text-xs sm:text-sm mt-1">Select a ruleset vault to view or create campaigns inside it.</p>
+          </div>
+        </div>
+        <button id="open-new-system-modal" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shrink-0">
+          <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i>
+          New Game System
+        </button>
       </div>
-      <button id="open-new-system-modal" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/20">
-        <i data-lucide="plus" class="w-4 h-4"></i>
-        New Game System
-      </button>
+      <div class="rpg-divider mt-4"></div>
     </div>
 
     <!-- Systems Grid -->
@@ -41,44 +51,50 @@ export function renderSystemsView(container, state) {
         ? `<div class="text-center py-16 text-slate-400 text-sm">Loading your game systems...</div>`
         : state.systems.length === 0
         ? `
-          <div class="bg-slate-900/60 border border-dashed border-slate-800 rounded-2xl p-12 text-center">
-            <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center mx-auto mb-3">
-              <i data-lucide="library" class="w-6 h-6 text-indigo-400"></i>
+          <div class="rpg-panel-ornate rounded-2xl p-12 text-center">
+            <div class="rpg-slot-big w-16 h-16 mx-auto mb-3 p-2">
+              <img src="./GUI_Fantasy_RPG_Kit/chest-icon.png" alt="" class="w-10 h-10 object-contain" onerror="this.style.display='none'" />
             </div>
-            <h3 class="text-lg font-semibold text-white">No Game Systems Yet</h3>
-            <p class="text-slate-400 text-sm max-w-md mx-auto mt-1 mb-5">
+            <h3 class="font-rpg-display text-lg font-bold text-amber-100">No Game Systems Yet</h3>
+            <p class="text-slate-300 text-sm max-w-md mx-auto mt-1 mb-5">
               Create your first Game System container (e.g., "D&D 5e", "Vampire: The Masquerade", "Daggerheart", or "Homebrew") to start organizing your campaigns.
             </p>
-            <button id="empty-new-system-btn" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              <i data-lucide="plus" class="w-4 h-4"></i> Create First Game System
+            <button id="empty-new-system-btn" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold">
+              <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i> Create First Game System
             </button>
           </div>
         `
         : `
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             ${state.systems
               .map(
                 (sys) => `
-              <div data-system-id="${sys.id}" class="system-card group bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-5 flex flex-col justify-between cursor-pointer transition">
+              <div data-system-id="${sys.id}" class="system-card rpg-card group rounded-xl p-5 flex flex-col justify-between cursor-pointer">
                 <div>
+                  <div class="rpg-bar-mana w-full mb-3.5 opacity-85"></div>
                   <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400 bg-indigo-950/70 border border-indigo-800/40 px-2.5 py-0.5 rounded">
+                    <span class="rpg-slot-long inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-amber-200 px-2.5 py-1 rounded">
+                      <img src="./GUI_Fantasy_RPG_Kit/settings-btn.png" alt="" class="w-3.5 h-3.5 object-contain" onerror="this.style.display='none'" />
                       ${escapeHtml(formatTemplateLabel(sys.templateType))}
                     </span>
-                    <button data-delete-system="${sys.id}" title="Delete Game System" class="delete-system-btn opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 p-1 rounded transition">
+                    <button data-delete-system="${sys.id}" title="Delete Game System" class="delete-system-btn opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1 rounded transition">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                   </div>
-                  <h3 class="font-bold text-lg text-white group-hover:text-indigo-300 transition">${escapeHtml(sys.name)}</h3>
-                  <p class="text-slate-400 text-sm mt-2 line-clamp-2">
+                  <h3 class="font-rpg-display font-bold text-lg text-amber-50 group-hover:text-amber-300 transition">${escapeHtml(sys.name)}</h3>
+                  <p class="text-slate-300 text-xs sm:text-sm mt-2 line-clamp-2">
                     ${escapeHtml(sys.description || "System-agnostic campaign collection.")}
                   </p>
                 </div>
-                <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                  <span class="flex items-center gap-1.5">
-                    <i data-lucide="folder-open" class="w-3.5 h-3.5 text-indigo-400"></i> Open Campaigns
-                  </span>
-                  <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                <div class="mt-5">
+                  <div class="rpg-divider mb-2.5"></div>
+                  <div class="flex items-center justify-between text-xs text-amber-200/90 font-medium">
+                    <span class="flex items-center gap-1.5">
+                      <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+                      Open Campaigns
+                    </span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 text-amber-300 group-hover:translate-x-1 transition-transform"></i>
+                  </div>
                 </div>
               </div>
             `
@@ -89,36 +105,39 @@ export function renderSystemsView(container, state) {
     }
 
     <!-- New Game System Modal -->
-    <div id="new-system-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">Create Game System</h2>
-          <button id="close-system-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <div id="new-system-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-lg font-bold text-amber-100">Create Game System</h2>
+          <button id="close-system-modal" class="rpg-icon-btn w-7 h-7" title="Close">
+            <img src="./GUI_Fantasy_RPG_Kit/close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
+          </button>
         </div>
+        <div class="rpg-divider mb-4"></div>
         <form id="create-system-form" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">System Name *</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">System Name *</label>
             <input type="text" id="sys-name" required placeholder="e.g. Daggerheart, Vampire 5e, D&D 5e, Sci-Fi Homebrew"
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+              class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Ruleset Module</label>
-            <select id="sys-template" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Ruleset Module</label>
+            <select id="sys-template" class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none">
               <option value="generic">System-Agnostic (Universal Core)</option>
               <option value="dnd5e" disabled>D&D 5e (Module Coming Soon)</option>
               <option value="vtm5e" disabled>Vampire: The Masquerade (Module Coming Soon)</option>
               <option value="daggerheart" disabled>Daggerheart (Module Coming Soon)</option>
             </select>
-            <p class="text-[11px] text-slate-500 mt-1">All systems currently use the universal campaign builder and will automatically unlock game-specific tools as modules are added.</p>
+            <p class="text-[11px] text-slate-400 mt-1">All systems use the universal campaign planner and will unlock game-specific sheets as modules are added.</p>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Description</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Description</label>
             <textarea id="sys-desc" rows="2" placeholder="Optional notes about house rules, edition, or setting style..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+              class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none"></textarea>
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" id="cancel-system-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create System</button>
+            <button type="button" id="cancel-system-modal" class="rpg-btn-secondary px-4 py-2 text-xs font-medium rounded-lg">Cancel</button>
+            <button type="submit" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">Create System</button>
           </div>
         </form>
       </div>
@@ -160,7 +179,7 @@ export function renderSystemsView(container, state) {
       const sysId = btn.getAttribute("data-delete-system");
       if (btn.dataset.armed !== "true") {
         btn.dataset.armed = "true";
-        btn.innerHTML = `<span class="text-[11px] font-semibold text-rose-400 px-1.5 py-0.5 bg-rose-950 rounded border border-rose-800">Confirm?</span>`;
+        btn.innerHTML = `<span class="text-[11px] font-semibold text-rose-300 px-1.5 py-0.5 bg-rose-950 rounded border border-rose-700">Confirm?</span>`;
         setTimeout(() => {
           if (btn) {
             btn.dataset.armed = "false";
@@ -184,29 +203,40 @@ export function renderCampaignsView(container, state) {
 
   container.innerHTML = `
     <!-- Breadcrumb Hierarchy: Game Systems > Active System -->
-    <nav class="flex items-center gap-2 text-sm text-slate-400 mb-6 flex-wrap">
-      <button id="back-to-systems" class="hover:text-white flex items-center gap-1.5 transition">
-        <i data-lucide="layers" class="w-4 h-4"></i> Game Systems
+    <nav class="flex items-center gap-2.5 text-sm text-slate-300 mb-6 flex-wrap">
+      <button id="back-to-systems" class="rpg-btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
+        <img src="./GUI_Fantasy_RPG_Kit/back-btn.png" alt="Back" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+        <span>Game Systems</span>
       </button>
-      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
-      <span class="text-indigo-400 font-medium">${escapeHtml(sys.name)}</span>
+      <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+      <span class="rpg-slot-long px-3 py-1 rounded-full text-amber-200 font-medium text-xs">
+        ${escapeHtml(sys.name)}
+      </span>
     </nav>
 
     <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div>
-        <div class="flex items-center gap-2.5">
-          <h1 class="text-2xl font-bold text-white">${escapeHtml(sys.name)} Campaigns</h1>
-          <span class="text-xs px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-            ${escapeHtml(formatTemplateLabel(sys.templateType))}
-          </span>
+    <div class="rpg-panel rounded-2xl p-5 sm:p-6 mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="rpg-slot-big w-14 h-14 p-2 shrink-0">
+            <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="Campaigns" class="w-9 h-9 object-contain" onerror="this.style.display='none'" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h1 class="text-2xl font-bold text-amber-100">${escapeHtml(sys.name)} Campaigns</h1>
+              <span class="rpg-slot-long text-xs px-2.5 py-0.5 rounded text-amber-200">
+                ${escapeHtml(formatTemplateLabel(sys.templateType))}
+              </span>
+            </div>
+            <p class="text-slate-300 text-xs sm:text-sm mt-1">${escapeHtml(sys.description || "Manage all campaigns, chronicles, and worlds built under this system.")}</p>
+          </div>
         </div>
-        <p class="text-slate-400 text-sm mt-1">${escapeHtml(sys.description || "Manage all campaigns, chronicles, and worlds built under this system.")}</p>
+        <button id="open-new-campaign-modal" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shrink-0">
+          <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i>
+          New Campaign
+        </button>
       </div>
-      <button id="open-new-campaign-modal" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/20">
-        <i data-lucide="plus" class="w-4 h-4"></i>
-        New Campaign
-      </button>
+      <div class="rpg-divider mt-4"></div>
     </div>
 
     <!-- Campaigns Grid -->
@@ -215,44 +245,49 @@ export function renderCampaignsView(container, state) {
         ? `<div class="text-center py-16 text-slate-400 text-sm">Loading campaigns...</div>`
         : state.campaigns.length === 0
         ? `
-          <div class="bg-slate-900/60 border border-dashed border-slate-800 rounded-2xl p-12 text-center">
-            <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center mx-auto mb-3">
-              <i data-lucide="map" class="w-6 h-6 text-indigo-400"></i>
+          <div class="rpg-panel-ornate rounded-2xl p-12 text-center">
+            <div class="rpg-slot-big w-16 h-16 mx-auto mb-3 p-2">
+              <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="" class="w-10 h-10 object-contain" onerror="this.style.display='none'" />
             </div>
-            <h3 class="text-lg font-semibold text-white">No Campaigns in ${escapeHtml(sys.name)}</h3>
-            <p class="text-slate-400 text-sm max-w-md mx-auto mt-1 mb-5">
-              Start a new campaign or chronicle to organize your session notes, NPCs, locations, and lore.
+            <h3 class="font-rpg-display text-lg font-bold text-amber-100">No Campaigns in ${escapeHtml(sys.name)}</h3>
+            <p class="text-slate-300 text-sm max-w-md mx-auto mt-1 mb-5">
+              Start a new campaign or chronicle to organize your world setting, plot, NPCs, encounters, and session logs.
             </p>
-            <button id="empty-new-campaign-btn" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              <i data-lucide="plus" class="w-4 h-4"></i> Create First Campaign
+            <button id="empty-new-campaign-btn" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold">
+              <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i> Create First Campaign
             </button>
           </div>
         `
         : `
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             ${state.campaigns
               .map(
                 (camp) => `
-              <div data-campaign-id="${camp.id}" class="campaign-card group bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-5 flex flex-col justify-between cursor-pointer transition">
+              <div data-campaign-id="${camp.id}" class="campaign-card rpg-card group rounded-xl p-5 flex flex-col justify-between cursor-pointer">
                 <div>
+                  <div class="${statusBarClass(camp.status)} w-full mb-3.5 opacity-90"></div>
                   <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full ${statusBadgeClass(camp.status)}">
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusBadgeClass(camp.status)}">
                       ${escapeHtml(camp.status || "Active")}
                     </span>
-                    <button data-delete-campaign="${camp.id}" title="Delete Campaign" class="delete-campaign-btn opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 p-1 rounded transition">
+                    <button data-delete-campaign="${camp.id}" title="Delete Campaign" class="delete-campaign-btn opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1 rounded transition">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                   </div>
-                  <h3 class="font-bold text-lg text-white group-hover:text-indigo-300 transition">${escapeHtml(camp.title)}</h3>
-                  <p class="text-slate-400 text-sm mt-2 line-clamp-3">
+                  <h3 class="font-rpg-display font-bold text-lg text-amber-50 group-hover:text-amber-300 transition">${escapeHtml(camp.title)}</h3>
+                  <p class="text-slate-300 text-xs sm:text-sm mt-2 line-clamp-3">
                     ${escapeHtml(camp.summary || "No campaign pitch or summary added yet.")}
                   </p>
                 </div>
-                <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                  <span class="flex items-center gap-1.5">
-                    <i data-lucide="scroll-text" class="w-3.5 h-3.5 text-indigo-400"></i> Enter Workspace
-                  </span>
-                  <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                <div class="mt-5">
+                  <div class="rpg-divider mb-2.5"></div>
+                  <div class="flex items-center justify-between text-xs text-amber-200/90 font-medium">
+                    <span class="flex items-center gap-1.5">
+                      <img src="./GUI_Fantasy_RPG_Kit/sword-icon.png" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+                      Enter Campaign Planner
+                    </span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 text-amber-300 group-hover:translate-x-1 transition-transform"></i>
+                  </div>
                 </div>
               </div>
             `
@@ -263,21 +298,24 @@ export function renderCampaignsView(container, state) {
     }
 
     <!-- New Campaign Modal -->
-    <div id="new-campaign-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-white">New Campaign in ${escapeHtml(sys.name)}</h2>
-          <button id="close-campaign-modal" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <div id="new-campaign-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-6">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-lg font-bold text-amber-100">New Campaign in ${escapeHtml(sys.name)}</h2>
+          <button id="close-campaign-modal" class="rpg-icon-btn w-7 h-7" title="Close">
+            <img src="./GUI_Fantasy_RPG_Kit/close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
+          </button>
         </div>
+        <div class="rpg-divider mb-4"></div>
         <form id="create-campaign-form" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Campaign Title *</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Campaign Title *</label>
             <input type="text" id="camp-title" required placeholder="e.g. Shadows of Oakhaven"
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+              class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Status</label>
-            <select id="camp-status" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Status</label>
+            <select id="camp-status" class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none">
               <option value="Active">Active</option>
               <option value="Planning">Planning / Prep</option>
               <option value="On Hold">On Hold</option>
@@ -285,13 +323,13 @@ export function renderCampaignsView(container, state) {
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Premise / Summary</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Premise / Summary</label>
             <textarea id="camp-summary" rows="3" placeholder="Core themes, starting location, or player hook..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+              class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none"></textarea>
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" id="cancel-campaign-modal" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg">Create Campaign</button>
+            <button type="button" id="cancel-campaign-modal" class="rpg-btn-secondary px-4 py-2 text-xs font-medium rounded-lg">Cancel</button>
+            <button type="submit" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">Create Campaign</button>
           </div>
         </form>
       </div>
@@ -335,7 +373,7 @@ export function renderCampaignsView(container, state) {
       const campId = btn.getAttribute("data-delete-campaign");
       if (btn.dataset.armed !== "true") {
         btn.dataset.armed = "true";
-        btn.innerHTML = `<span class="text-[11px] font-semibold text-rose-400 px-1.5 py-0.5 bg-rose-950 rounded border border-rose-800">Confirm?</span>`;
+        btn.innerHTML = `<span class="text-[11px] font-semibold text-rose-300 px-1.5 py-0.5 bg-rose-950 rounded border border-rose-700">Confirm?</span>`;
         setTimeout(() => {
           if (btn) {
             btn.dataset.armed = "false";
@@ -360,16 +398,29 @@ function formatTemplateLabel(type) {
   return labels[type] || "System-Agnostic";
 }
 
+function statusBarClass(status) {
+  switch (status) {
+    case "Active":
+      return "rpg-bar-hp";
+    case "Planning":
+      return "rpg-bar-stamina";
+    case "Completed":
+      return "rpg-bar-mana";
+    default:
+      return "rpg-bar-stamina";
+  }
+}
+
 function statusBadgeClass(status) {
   switch (status) {
     case "Active":
-      return "bg-emerald-950/70 text-emerald-400 border border-emerald-800/50";
+      return "bg-emerald-950/80 text-emerald-300 border border-emerald-700/60";
     case "Planning":
-      return "bg-amber-950/70 text-amber-400 border border-amber-800/50";
+      return "bg-amber-950/80 text-amber-300 border border-amber-700/60";
     case "Completed":
-      return "bg-indigo-950/70 text-indigo-400 border border-indigo-800/50";
+      return "bg-purple-950/80 text-purple-300 border border-purple-700/60";
     default:
-      return "bg-slate-800 text-slate-300 border border-slate-700";
+      return "bg-slate-850 text-slate-300 border border-slate-700";
   }
 }
 
