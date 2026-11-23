@@ -197,7 +197,7 @@ export function renderCampaignWorkspace(container, state) {
           <div class="rpg-divider mt-2"></div>
         </div>
 
-        <nav class="p-2 space-y-1.5 max-h-[75vh] overflow-y-auto">
+        <nav class="p-2.5 space-y-1.5 max-h-[75vh] overflow-y-auto">
           ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
             const isSelected = chap.id === currentChapter.id;
             const sections = chap.sections || [];
@@ -206,7 +206,7 @@ export function renderCampaignWorkspace(container, state) {
               (e) => e.type === chap.id || e.type === chap.label
             ).length;
 
-            // Compute item counts for nested sections (Kingdoms, Towns, Markets, Adventures, etc.)
+            // Compute item counts for nested sections
             const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
             const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
             const encountersDoc = state.entities.find((e) => e.type === "random-encounters")?.systemData || {};
@@ -220,7 +220,7 @@ export function renderCampaignWorkspace(container, state) {
 
             return `
               <div class="rounded-lg ${isSelected ? "bg-slate-950/75 border border-amber-500/30 pb-1.5 shadow-inner" : ""}">
-                <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left text-xs font-medium transition ${
+                <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-lg text-left text-xs font-medium transition ${
                   isSelected
                     ? "rpg-btn-primary text-amber-100 font-semibold"
                     : "text-slate-300 hover:bg-slate-900/80 hover:text-amber-100"
@@ -231,7 +231,7 @@ export function renderCampaignWorkspace(container, state) {
                     </span>
                     <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
                   </span>
-                  <span class="flex items-center gap-1.5 shrink-0">
+                  <span class="flex items-center gap-1 shrink-0">
                     ${
                       count > 0 && sections.length === 0
                         ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
@@ -252,7 +252,7 @@ export function renderCampaignWorkspace(container, state) {
                 ${
                   isSelected && sections.length > 0
                     ? `
-                      <div class="mt-1.5 ml-3 pl-2.5 border-l border-amber-500/30 space-y-0.5">
+                      <div class="mt-1.5 mx-1.5 pl-2 border-l border-amber-500/30 space-y-1">
                         ${sections
                           .map((sec) => {
                             const isSecActive = sec.id === activeSecId;
@@ -276,12 +276,12 @@ export function renderCampaignWorkspace(container, state) {
 
                             return `
                               <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
-                                class="chapter-section-btn w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-left text-[11px] transition ${
+                                class="chapter-section-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md text-left text-[11px] transition ${
                                   isSecActive
                                     ? "rpg-slot-long text-amber-200 font-semibold"
                                     : "text-slate-400 hover:text-amber-100 hover:bg-slate-900/70"
                                 }">
-                                <span class="flex items-center gap-2 min-w-0">
+                                <span class="flex items-center gap-1.5 min-w-0">
                                   <i data-lucide="${sec.icon}" class="w-3.5 h-3.5 shrink-0 ${
                                     isSecActive ? "text-amber-300" : "text-slate-500"
                                   }"></i>
@@ -289,7 +289,7 @@ export function renderCampaignWorkspace(container, state) {
                                 </span>
                                 ${
                                   secCount > 0
-                                    ? `<span class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950/90 text-amber-200/90 border border-amber-500/30">${secCount}</span>`
+                                    ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-950/90 text-amber-200/90 border border-amber-500/30 shrink-0">${secCount}</span>`
                                     : ""
                                 }
                               </button>
@@ -308,16 +308,12 @@ export function renderCampaignWorkspace(container, state) {
 
       <!-- Right Main Pane: Active Chapter View -->
       <section id="chapter-main-pane" class="rpg-workspace-pane lg:col-span-9 rpg-panel-ornate rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
-      </aside>
-
-      <!-- Right Main Pane: Carved Stone Active Chapter View -->
-      <section id="chapter-main-pane" class="lg:col-span-9 rpg-panel rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
         
         <!-- Fallback Chapter Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
           <div class="flex items-start gap-3">
             <div class="rpg-slot-medium w-11 h-11 p-1.5 shrink-0">
-              <img src="${currentChapter.pngIcon}" alt="" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
+              <img src="${currentChapter.rpgIcon}" alt="" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
             </div>
             <div>
               <h1 class="text-xl font-bold text-amber-100">${escapeHtml(currentChapter.label)}</h1>
@@ -413,7 +409,7 @@ export function renderCampaignWorkspace(container, state) {
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-lg font-bold text-amber-100">New ${escapeHtml(currentChapter.label)} Entry</h2>
           <button id="close-entity-modal" class="rpg-icon-btn w-7 h-7" title="Close">
-            <img src="./close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
+            <img src="./GUI_Fantasy_RPG_Kit/close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
           </button>
         </div>
         <div class="rpg-divider mb-4"></div>
@@ -544,7 +540,7 @@ export function renderCampaignWorkspace(container, state) {
     });
   }
 
-  // Upgrade primary Save buttons inside chapter workbooks to use the carved stone button aesthetic + ornamental divider
+  // Upgrade primary Save buttons inside chapter workbooks to use the carved stone button aesthetic
   mainPane.querySelectorAll('button[id^="save-"]').forEach((btn) => {
     btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500", "shadow-indigo-600/20");
     btn.classList.add("rpg-btn-primary");
