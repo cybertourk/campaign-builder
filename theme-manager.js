@@ -1,9 +1,11 @@
 // theme-manager.js
 // Manages switching between "stone" (Dark) and "parchment" (Light) UI themes,
 // persists preference in localStorage, renders the header toggle button,
+// injects late-cascade Parchment light-mode surface overrides after Tailwind CDN,
 // and swaps GUI_Fantasy_RPG_Kit icons to Parchwood_UI_Kit icons automatically.
 
 const THEME_STORAGE_KEY = "realmforge_ui_theme";
+const DYNAMIC_STYLE_ID = "realmforge-parchment-cascade-guard";
 
 // Default mapping from Stone kit filenames to Parchwood_UI_Kit filenames
 const STONE_TO_PARCHMENT_MAP = {
@@ -27,8 +29,80 @@ let currentTheme = "stone";
 let observerStarted = false;
 
 /**
+ * Appends a high-priority <style> block at the very end of <head> so that
+ * Tailwind Play CDN's dynamically injected utility classes never override
+ * warm parchment surfaces with dark slate backgrounds.
+ */
+function ensureParchmentCascadeGuard() {
+  if (typeof document === "undefined" || !document.head) return;
+
+  let styleEl = document.getElementById(DYNAMIC_STYLE_ID);
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = DYNAMIC_STYLE_ID;
+    styleEl.textContent = `
+      html[data-theme="parchment"] .rpg-panel [class*="bg-slate-9"],
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-slate-9"],
+      html[data-theme="parchment"] .rpg-workspace-pane [class*="bg-slate-9"] {
+        background-color: #f3e4c6 !important;
+        border-color: rgba(133, 88, 46, 0.36) !important;
+      }
+
+      html[data-theme="parchment"] .rpg-panel [class*="bg-slate-8"],
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-slate-8"],
+      html[data-theme="parchment"] .rpg-workspace-pane [class*="bg-slate-8"] {
+        background-color: #ead5ae !important;
+        border-color: rgba(133, 88, 46, 0.42) !important;
+        color: #231409 !important;
+      }
+
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-slate-9"] [class*="bg-slate-9"] {
+        background-color: #faf0dc !important;
+      }
+
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-indigo-9"],
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-amber-9"],
+      html[data-theme="parchment"] .rpg-panel-ornate .bg-indigo-600\\/20,
+      html[data-theme="parchment"] .rpg-panel-ornate .bg-amber-500\\/20 {
+        background-color: #f6e2b6 !important;
+        border-color: rgba(139, 38, 29, 0.38) !important;
+        color: #231409 !important;
+      }
+
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-emerald-9"] {
+        background-color: #d7f2e3 !important;
+        border-color: rgba(22, 101, 52, 0.38) !important;
+        color: #14532d !important;
+      }
+
+      html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-rose-9"] {
+        background-color: #fadbd8 !important;
+        border-color: rgba(153, 27, 27, 0.38) !important;
+        color: #7f1d1d !important;
+      }
+
+      html[data-theme="parchment"] .rpg-panel input,
+      html[data-theme="parchment"] .rpg-panel textarea,
+      html[data-theme="parchment"] .rpg-panel select,
+      html[data-theme="parchment"] .rpg-panel-ornate input:not([type="checkbox"]),
+      html[data-theme="parchment"] .rpg-panel-ornate textarea,
+      html[data-theme="parchment"] .rpg-panel-ornate select {
+        background-color: #fffdf8 !important;
+        border-color: rgba(133, 88, 46, 0.45) !important;
+        color: #231409 !important;
+      }
+    `;
+  }
+
+  // Keep it as the last child of <head> so it always wins after Tailwind CDN updates
+  if (document.head.lastElementChild !== styleEl) {
+    document.head.appendChild(styleEl);
+  }
+}
+
+/**
  * Loads the saved theme from localStorage (defaults to "stone") and starts
- * a DOM observer so dynamically rendered icons always match the active theme.
+ * a DOM observer so dynamically rendered icons and styles always match.
  */
 export function initTheme() {
   try {
@@ -41,14 +115,16 @@ export function initTheme() {
   }
 
   document.documentElement.setAttribute("data-theme", currentTheme);
+  ensureParchmentCascadeGuard();
   applyThemeToImages(document.body);
 
   if (!observerStarted && typeof MutationObserver !== "undefined") {
     observerStarted = true;
     const observer = new MutationObserver(() => {
+      ensureParchmentCascadeGuard();
       applyThemeToImages(document.body);
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 }
 
@@ -69,6 +145,7 @@ export function setTheme(theme) {
     // Ignore storage errors in restricted contexts
   }
 
+  ensureParchmentCascadeGuard();
   applyThemeToImages(document.body);
 
   const toggleContainer = document.getElementById("theme-toggle-slot");
