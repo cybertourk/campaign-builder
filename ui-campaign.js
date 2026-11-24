@@ -1,6 +1,6 @@
 // ui-campaign.js
 // Level 3: Campaign Builder workspace organized into the 12 Campaign Planner chapters,
-// styled with the carved stone frames, PNG chapter emblems, dividers, and RPG buttons.
+// styled with the carved stone & parchment frames, chapter emblems, dividers, and RPG buttons.
 
 import {
   createEntity,
@@ -578,7 +578,7 @@ export function renderCampaignWorkspace(container, state) {
     });
   }
 
-  // Upgrade primary Save buttons inside chapter workbooks to use the carved stone button aesthetic
+  // Upgrade primary Save buttons inside chapter workbooks to use the carved stone / parchment button aesthetic
   mainPane.querySelectorAll('button[id^="save-"]').forEach((btn) => {
     btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500", "shadow-indigo-600/20");
     btn.classList.add("rpg-btn-primary");
@@ -626,6 +626,30 @@ export function renderCampaignWorkspace(container, state) {
             content: miscInput.value
           });
         } else {
+          await createEntity({
+            type: miscType,
+            title: `${currentChapter.label} Misc Notes`,
+            content: miscInput.value
+          });
+        }
+        miscStatus.textContent = "Saved";
+        miscStatus.className = "text-[11px] text-emerald-400";
+      } catch (err) {
+        miscStatus.textContent = "Save failed";
+        miscStatus.className = "text-[11px] text-rose-400";
+      }
+    });
+  }
+
+  // Breadcrumb Navigation
+  container.querySelector("#ws-nav-systems")?.addEventListener("click", () => {
+    setState({ activeSystem: null, activeCampaign: null, currentView: "systems" });
+  });
+
+  container.querySelector("#ws-nav-campaigns")?.addEventListener("click", () => {
+    setState({ activeCampaign: null, currentView: "campaigns" });
+  });
+
   // Mobile Chapter Tome Drawer Toggle
   container.querySelector("#mobile-tome-toggle-btn")?.addEventListener("click", () => {
     isMobileNavOpen = !isMobileNavOpen;
