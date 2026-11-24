@@ -26,18 +26,18 @@ export function renderSystemsView(container, state) {
     </nav>
 
     <!-- Page Header -->
-    <div class="rpg-panel rounded-2xl p-5 sm:p-6 mb-8">
+    <div class="rpg-panel rounded-2xl p-4 sm:p-5 mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3.5">
-          <div class="rpg-slot-big w-14 h-14 p-2 shrink-0">
-            <img src="./GUI_Fantasy_RPG_Kit/chest-icon.png" alt="Systems" class="w-9 h-9 object-contain" onerror="this.style.display='none'" />
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="rpg-slot-big w-14 h-14 p-1.5 shrink-0">
+            <img src="./GUI_Fantasy_RPG_Kit/chest-icon.png" alt="Systems" class="w-8 h-8 object-contain" onerror="this.style.display='none'" />
           </div>
-          <div>
-            <h1 class="text-2xl font-bold text-amber-100">Your Game Systems</h1>
+          <div class="min-w-0">
+            <h1 class="text-xl sm:text-2xl font-bold text-amber-100">Your Game Systems</h1>
             <p class="text-slate-300 text-xs sm:text-sm mt-1">Select a ruleset vault to view or create campaigns inside it.</p>
           </div>
         </div>
-        <button id="open-new-system-modal" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shrink-0">
+        <button id="open-new-system-modal" class="rpg-btn-primary inline-flex items-center gap-2 text-xs sm:text-sm font-semibold shrink-0">
           <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i>
           New Game System
         </button>
@@ -77,7 +77,7 @@ export function renderSystemsView(container, state) {
                       <img src="./GUI_Fantasy_RPG_Kit/settings-btn.png" alt="" class="w-3.5 h-3.5 object-contain" onerror="this.style.display='none'" />
                       ${escapeHtml(formatTemplateLabel(sys.templateType))}
                     </span>
-                    <button data-delete-system="${sys.id}" title="Delete Game System" class="delete-system-btn opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1 rounded transition">
+                    <button data-delete-system="${sys.id}" title="Delete Game System" class="delete-system-btn opacity-80 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1.5 rounded transition">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                   </div>
@@ -105,8 +105,8 @@ export function renderSystemsView(container, state) {
     }
 
     <!-- New Game System Modal -->
-    <div id="new-system-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-6">
+    <div id="new-system-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-lg font-bold text-amber-100">Create Game System</h2>
           <button id="close-system-modal" class="rpg-icon-btn w-7 h-7" title="Close">
@@ -215,23 +215,23 @@ export function renderCampaignsView(container, state) {
     </nav>
 
     <!-- Page Header -->
-    <div class="rpg-panel rounded-2xl p-5 sm:p-6 mb-8">
+    <div class="rpg-panel rounded-2xl p-4 sm:p-5 mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3.5">
-          <div class="rpg-slot-big w-14 h-14 p-2 shrink-0">
-            <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="Campaigns" class="w-9 h-9 object-contain" onerror="this.style.display='none'" />
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="rpg-slot-big w-14 h-14 p-1.5 shrink-0">
+            <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="Campaigns" class="w-8 h-8 object-contain" onerror="this.style.display='none'" />
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="flex items-center gap-2.5 flex-wrap">
-              <h1 class="text-2xl font-bold text-amber-100">${escapeHtml(sys.name)} Campaigns</h1>
-              <span class="rpg-slot-long text-xs px-2.5 py-0.5 rounded text-amber-200">
+              <h1 class="text-xl sm:text-2xl font-bold text-amber-100">${escapeHtml(sys.name)} Campaigns</h1>
+              <span class="rpg-slot-long text-xs text-amber-200">
                 ${escapeHtml(formatTemplateLabel(sys.templateType))}
               </span>
             </div>
             <p class="text-slate-300 text-xs sm:text-sm mt-1">${escapeHtml(sys.description || "Manage all campaigns, chronicles, and worlds built under this system.")}</p>
           </div>
         </div>
-        <button id="open-new-campaign-modal" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shrink-0">
+        <button id="open-new-campaign-modal" class="rpg-btn-primary inline-flex items-center gap-2 text-xs sm:text-sm font-semibold shrink-0">
           <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i>
           New Campaign
         </button>
@@ -270,7 +270,7 @@ export function renderCampaignsView(container, state) {
                     <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusBadgeClass(camp.status)}">
                       ${escapeHtml(camp.status || "Active")}
                     </span>
-                    <button data-delete-campaign="${camp.id}" title="Delete Campaign" class="delete-campaign-btn opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1 rounded transition">
+                    <button data-delete-campaign="${camp.id}" title="Delete Campaign" class="delete-campaign-btn opacity-80 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1.5 rounded transition">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                   </div>
@@ -298,8 +298,8 @@ export function renderCampaignsView(container, state) {
     }
 
     <!-- New Campaign Modal -->
-    <div id="new-campaign-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-6">
+    <div id="new-campaign-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-lg font-bold text-amber-100">New Campaign in ${escapeHtml(sys.name)}</h2>
           <button id="close-campaign-modal" class="rpg-icon-btn w-7 h-7" title="Close">
