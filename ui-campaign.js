@@ -549,6 +549,21 @@ export function renderCampaignWorkspace(container, state) {
     h1.classList.remove("text-white");
     h1.classList.add("text-amber-100");
   });
+  mainPane.querySelectorAll(".w-10.h-10.rounded-xl").forEach((iconBox) => {
+    iconBox.classList.remove("rounded-xl", "bg-indigo-600/20", "border", "border-indigo-500/30");
+    iconBox.classList.add("rpg-slot-small");
+    const svg = iconBox.querySelector("svg, i");
+    if (svg) {
+      svg.classList.remove("text-indigo-400");
+      svg.classList.add("text-amber-300");
+    }
+  });
+  mainPane.querySelectorAll("span.rounded-full").forEach((pill) => {
+    if (pill.textContent.includes("Chapter ")) {
+      pill.classList.remove("bg-indigo-950/80", "text-indigo-300", "border", "border-indigo-800/50");
+      pill.classList.add("rpg-slot-long", "text-amber-200");
+    }
+  });
 
   // Wire Misc Notes on fallback chapters
   const miscBtn = container.querySelector("#save-misc-notes-btn");
