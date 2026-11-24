@@ -39,7 +39,7 @@ color: #f1f5f9;
 transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Smooth, seamless sunlit honey-oak backdrop (no grid or plank lines) */
+/* Smooth, seamless sunlit honey-oak backdrop */
 html[data-theme="parchment"] body.rpg-stone-body {
 background-color: #c89a64;
 background-image:
@@ -798,30 +798,45 @@ text-shadow: 0 1px 1px rgba(45, 10, 8, 0.7);
 
 /* Sidebar active chapter group & hover states in Parchment mode */
 html[data-theme="parchment"] .rpg-sidebar-group {
-background-color: rgba(232, 210, 172, 0.45) !important;
-border-color: rgba(139, 38, 29, 0.28) !important;
+background-color: rgba(240, 222, 188, 0.72) !important;
+border-color: rgba(139, 38, 29, 0.32) !important;
 }
 
 html[data-theme="parchment"] .chapter-nav-btn:not(.rpg-btn-primary):hover,
 html[data-theme="parchment"] .chapter-section-btn:not(.rpg-slot-long):hover {
-background-color: rgba(226, 200, 156, 0.65) !important;
+background-color: rgba(232, 210, 170, 0.8) !important;
 color: var(--parchment-ink-dark) !important;
 }
 
-/* Convert EVERY dark slate/indigo/emerald/amber/rose sub-box to warm luminous parchment /
+/* Convert EVERY dark slate sub-box and utility button to bright warm parchment /
 html[data-theme="parchment"] .rpg-panel [class="border-slate-"],
 html[data-theme="parchment"] .rpg-panel-ornate [class*="border-slate-"] {
-border-color: rgba(133, 88, 46, 0.34) !important;
+border-color: rgba(133, 88, 46, 0.36) !important;
 }
 
 html[data-theme="parchment"] .rpg-panel [class*="bg-slate-9"],
-html[data-theme="parchment"] .rpg-panel [class*="bg-slate-8"],
 html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-slate-9"],
+html[data-theme="parchment"] .rpg-workspace-pane [class*="bg-slate-9"] {
+background-color: #f3e4c6 !important;
+border-color: rgba(133, 88, 46, 0.36) !important;
+box-shadow: inset 0 1px 0 rgba(255, 253, 247, 0.7);
+}
+
+html[data-theme="parchment"] .rpg-panel [class*="bg-slate-8"],
 html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-slate-8"],
-html[data-theme="parchment"] .rpg-workspace-pane [class*="bg-slate-9"],
 html[data-theme="parchment"] .rpg-workspace-pane [class*="bg-slate-8"] {
-background-color: rgba(236, 216, 180, 0.56) !important;
-border-color: rgba(133, 88, 46, 0.32) !important;
+background-color: #ead5ae !important;
+border-color: rgba(133, 88, 46, 0.42) !important;
+color: var(--parchment-ink-dark) !important;
+}
+
+html[data-theme="parchment"] .rpg-panel-ornate button[class*="bg-slate-8"]:hover {
+background-color: #e1c695 !important;
+}
+
+/* Nested cards inside sub-boxes render slightly brighter ivory so layers stand out /
+html[data-theme="parchment"] .rpg-panel-ornate [class="bg-slate-9"] [class*="bg-slate-9"] {
+background-color: #faf0dc !important;
 }
 
 /* Roll result banners & tinted callout badges in Parchment mode /
@@ -829,19 +844,19 @@ html[data-theme="parchment"] .rpg-panel-ornate [class="bg-indigo-9"],
 html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-amber-9"],
 html[data-theme="parchment"] .rpg-panel-ornate .bg-indigo-600/20,
 html[data-theme="parchment"] .rpg-panel-ornate .bg-amber-500/20 {
-background-color: rgba(246, 224, 178, 0.85) !important;
+background-color: #f6e2b6 !important;
 border-color: rgba(139, 38, 29, 0.38) !important;
 color: var(--parchment-ink-dark) !important;
 }
 
 html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-emerald-9"] {
-background-color: rgba(209, 245, 226, 0.78) !important;
+background-color: #d7f2e3 !important;
 border-color: rgba(22, 101, 52, 0.38) !important;
 color: #14532d !important;
 }
 
 html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-rose-9"] {
-background-color: rgba(254, 226, 226, 0.8) !important;
+background-color: #fadbd8 !important;
 border-color: rgba(153, 27, 27, 0.38) !important;
 color: #7f1d1d !important;
 }
@@ -849,7 +864,7 @@ color: #7f1d1d !important;
 /* Pinned torn sticky-note accent (024) on empty-state & image preview boxes */
 html[data-theme="parchment"] .rpg-workspace-pane .border-dashed.rounded-xl,
 html[data-theme="parchment"] .rpg-workspace-pane .border-dashed.rounded-lg {
-background-color: rgba(255, 251, 242, 0.65) !important;
+background-color: #fbf3e2 !important;
 background-image: url('./Parchwood_UI_Kit/024-small-torn-parchment-sticky-note.png') !important;
 background-size: 36px 36px !important;
 background-repeat: no-repeat !important;
@@ -872,8 +887,8 @@ html[data-theme="parchment"] .rpg-panel-ornate input[type="url"],
 html[data-theme="parchment"] .rpg-panel-ornate input[type="number"],
 html[data-theme="parchment"] .rpg-panel-ornate textarea,
 html[data-theme="parchment"] .rpg-panel-ornate select {
-background-color: rgba(255, 253, 247, 0.85) !important;
-border: 1px solid rgba(133, 88, 46, 0.42) !important;
+background-color: #fffdf8 !important;
+border: 1px solid rgba(133, 88, 46, 0.45) !important;
 color: var(--parchment-ink-dark) !important;
 box-shadow: inset 0 1px 4px rgba(68, 40, 16, 0.12);
 }
@@ -891,7 +906,7 @@ html[data-theme="parchment"] .rpg-panel select:focus,
 html[data-theme="parchment"] .rpg-panel-ornate input:focus,
 html[data-theme="parchment"] .rpg-panel-ornate textarea:focus,
 html[data-theme="parchment"] .rpg-panel-ornate select:focus {
-background-color: rgba(255, 254, 250, 0.96) !important;
+background-color: #ffffff !important;
 border-color: var(--parchment-crimson) !important;
 box-shadow: inset 0 1px 4px rgba(68, 40, 16, 0.1), 0 0 0 2px rgba(139, 38, 29, 0.18);
 }
