@@ -39,14 +39,29 @@ color: #f1f5f9;
 transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Option 2: Sunlit Honey-Oak Tabletop Backdrop using 009 wood plank texture */
+/* Sunlit Honey-Oak Tabletop Backdrop (Smooth, non-tiling wood planks) */
 html[data-theme="parchment"] body.rpg-stone-body {
-background-color: #c2915b;
+background-color: #c69660;
 background-image:
-radial-gradient(circle at 50% 12%, rgba(245, 214, 168, 0.72) 0%, rgba(196, 146, 88, 0.76) 58%, rgba(146, 98, 50, 0.84) 100%),
-url('./Parchwood_UI_Kit/009-square-dark-wood-inset-panel.png');
-background-size: cover, 260px 260px;
-background-repeat: no-repeat, repeat;
+radial-gradient(ellipse at 50% 0%, rgba(255, 241, 212, 0.64) 0%, rgba(214, 166, 108, 0.36) 52%, rgba(138, 90, 44, 0.7) 100%),
+repeating-linear-gradient(
+180deg,
+rgba(120, 74, 34, 0.07) 0px,
+rgba(120, 74, 34, 0.07) 2px,
+transparent 2px,
+transparent 84px,
+rgba(92, 54, 22, 0.16) 84px,
+rgba(92, 54, 22, 0.16) 86px
+),
+repeating-linear-gradient(
+90deg,
+rgba(255, 238, 204, 0.07) 0px,
+rgba(145, 94, 46, 0.06) 160px,
+rgba(255, 238, 204, 0.05) 320px
+),
+linear-gradient(180deg, #d7ab76 0%, #c18d54 50%, #a9733e 100%);
+background-size: 100% 100%, 100% 86px, 320px 100%, 100% 100%;
+background-repeat: no-repeat, repeat, repeat, no-repeat;
 background-attachment: fixed;
 color: var(--parchment-ink-body);
 }
@@ -64,7 +79,7 @@ html[data-theme="parchment"] nav .text-slate-500 {
 color: #3c2615 !important;
 }
 
-/* 2. Top Navigation Bar
+/* 2. Top Navigation Bar (9-sliced carved wood caps so middle never stretches)
 ---------------------------------------------------------------------------- */
 .rpg-topbar {
 background-color: rgba(15, 20, 30, 0.92);
@@ -77,14 +92,20 @@ box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
 }
 
 html[data-theme="parchment"] .rpg-topbar {
-background-color: #6e4526;
-background-image:
-linear-gradient(to bottom, rgba(168, 114, 62, 0.38), rgba(102, 62, 30, 0.48)),
-url('./Parchwood_UI_Kit/004-horizontal-dark-wood-toolbar.png');
-background-size: 100% 100%, 100% 100%;
-background-repeat: no-repeat;
-border-bottom: 2px solid rgba(112, 68, 32, 0.65);
-box-shadow: 0 4px 18px rgba(68, 40, 16, 0.35);
+background: transparent;
+background-image: none;
+border-style: solid;
+border-width: 8px 44px;
+border-color: transparent;
+border-image-source: url('./Parchwood_UI_Kit/004-horizontal-dark-wood-toolbar.png');
+border-image-slice: 14 48 fill;
+border-image-width: 8px 44px;
+border-image-repeat: round;
+filter: drop-shadow(0 4px 12px rgba(68, 40, 16, 0.35));
+}
+
+html[data-theme="parchment"] .rpg-topbar > div {
+height: 3rem;
 }
 
 html[data-theme="parchment"] .rpg-topbar .text-amber-100 {
@@ -739,11 +760,13 @@ html[data-theme="parchment"] .rpg-panel-ornate .text-emerald-300 {
 color: var(--parchment-teal) !important;
 }
 
-/* Keep ivory text on active crimson sidebar buttons & primary buttons */
+/* Keep bright ivory text and icons on crimson primary buttons */
 html[data-theme="parchment"] .rpg-btn-primary,
 html[data-theme="parchment"] .rpg-btn-primary span,
-html[data-theme="parchment"] .rpg-btn-primary i {
+html[data-theme="parchment"] .rpg-btn-primary i,
+html[data-theme="parchment"] .rpg-btn-primary svg {
 color: #fffbeb !important;
+stroke: #fffbeb !important;
 }
 
 /* Sidebar active chapter group & hover states in Parchment mode */
