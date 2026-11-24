@@ -145,6 +145,7 @@ export const CAMPAIGN_CHAPTERS = [
 ];
 
 let activeChapterId = "campaign-setting";
+let isMobileNavOpen = false;
 let activeSectionMap = {
   "campaign-setting": "overview",
   "plot-adventures": "central-tension",
@@ -168,6 +169,11 @@ export function renderCampaignWorkspace(container, state) {
   const currentChapter =
     CAMPAIGN_CHAPTERS.find((c) => c.id === activeChapterId) || CAMPAIGN_CHAPTERS[0];
 
+  const currentChapterIndex = CAMPAIGN_CHAPTERS.findIndex((c) => c.id === currentChapter.id);
+  const currentSecList = currentChapter.sections || [];
+  const currentSecId = activeSectionMap[currentChapter.id] || currentSecList[0]?.id;
+  const currentSecObj = currentSecList.find((s) => s.id === currentSecId) || currentSecList[0] || null;
+
   const chapterEntries = state.entities.filter(
     (e) => e.type === currentChapter.id || e.type === currentChapter.label
   );
@@ -177,39 +183,59 @@ export function renderCampaignWorkspace(container, state) {
 
   container.innerHTML = `
     <!-- Breadcrumb Hierarchy: Game Systems > Active System > Active Campaign -->
-    <nav class="flex items-center gap-2.5 text-sm text-slate-300 mb-5 flex-wrap">
-      <button id="ws-nav-systems" class="rpg-btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
+    <nav class="flex items-center gap-1.5 sm:gap-2.5 text-sm text-slate-300 mb-4 sm:mb-5 flex-wrap">
+      <button id="ws-nav-systems" class="rpg-btn-secondary px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
         <img src="./GUI_Fantasy_RPG_Kit/back-btn.png" alt="Systems" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
         <span>Game Systems</span>
       </button>
       <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
-      <button id="ws-nav-campaigns" class="rpg-btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">
+      <button id="ws-nav-campaigns" class="rpg-btn-secondary px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium max-w-[140px] sm:max-w-none truncate">
         ${escapeHtml(sys.name)}
       </button>
       <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
-      <span class="rpg-slot-long px-3 py-1 rounded-full text-amber-200 font-semibold text-xs flex items-center gap-1.5">
-        <img src="./GUI_Fantasy_RPG_Kit/star-icon.png" alt="" class="w-3.5 h-3.5 object-contain" onerror="this.style.display='none'" />
-        ${escapeHtml(camp.title)}
+      <span class="rpg-slot-long px-2.5 sm:px-3 py-1 rounded-full text-amber-200 font-semibold text-xs flex items-center gap-1.5 max-w-[180px] sm:max-w-none truncate">
+        <img src="./GUI_Fantasy_RPG_Kit/star-icon.png" alt="" class="w-3.5 h-3.5 object-contain shrink-0" onerror="this.style.display='none'" />
+        <span class="truncate">${escapeHtml(camp.title)}</span>
       </span>
     </nav>
 
     <!-- Main 2-Column Layout: 12-Chapter Sidebar + Active Chapter Workspace -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
 
-      <!-- Left Sidebar: Campaign Header & 12-Chapter Nested Vertical Navigation -->
+      <!-- Left Sidebar: Campaign Header & 12-Chapter Nested Vertical Navigation (Collapsible on Mobile) -->
       <aside class="lg:col-span-3 rpg-panel rounded-xl overflow-hidden">
-        <div class="p-3.5 border-b border-slate-800/80">
-          <div class="rpg-bar-stamina w-full mb-2.5 opacity-90"></div>
-          <div class="text-[10px] font-bold uppercase tracking-widest text-amber-300/90 mb-0.5">
-            Campaign Tome
+        <div class="p-3 sm:p-3.5 border-b border-slate-800/80">
+          <div class="rpg-bar-stamina w-full mb-2 sm:mb-2.5 opacity-90"></div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-widest text-amber-300/90 mb-0.5">
+                Campaign Tome
+              </div>
+              <h2 class="font-rpg-display font-bold text-amber-100 text-sm sm:text-base truncate" title="${escapeHtml(camp.title)}">
+                ${escapeHtml(camp.title)}
+              </h2>
+            </div>
+
+            <!-- Mobile-Only Chapter Drawer Toggle -->
+            <button type="button" id="mobile-tome-toggle-btn"
+              class="lg:hidden rpg-btn-secondary text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shrink-0">
+              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+              <span>${isMobileNavOpen ? "Hide Chapters" : "Chapters"}</span>
+              <i data-lucide="${isMobileNavOpen ? "chevron-up" : "chevron-down"}" class="w-3.5 h-3.5"></i>
+            </button>
           </div>
-          <h2 class="font-rpg-display font-bold text-amber-100 text-base truncate" title="${escapeHtml(camp.title)}">
-            ${escapeHtml(camp.title)}
-          </h2>
-          <div class="rpg-divider mt-2"></div>
+
+          <!-- Mobile Active Chapter/Section Summary Pill when Drawer is Collapsed -->
+          <div class="lg:hidden mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2 text-xs">
+            <span class="font-semibold text-amber-200 truncate">
+              ${currentChapterIndex + 1}. ${escapeHtml(currentChapter.label)}${currentSecObj ? ` › ${escapeHtml(currentSecObj.label)}` : ""}
+            </span>
+          </div>
+
+          <div class="rpg-divider mt-2 hidden lg:block"></div>
         </div>
 
-        <nav class="p-2.5 space-y-1.5 max-h-[75vh] overflow-y-auto">
+        <nav id="campaign-tome-nav" class="${isMobileNavOpen ? "block" : "hidden"} lg:block p-2.5 space-y-1.5 max-h-[65vh] lg:max-h-[75vh] overflow-y-auto">
           ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
             const isSelected = chap.id === currentChapter.id;
             const sections = chap.sections || [];
@@ -319,7 +345,7 @@ export function renderCampaignWorkspace(container, state) {
       </aside>
 
       <!-- Right Main Pane: Active Chapter View -->
-      <section id="chapter-main-pane" class="rpg-workspace-pane lg:col-span-9 rpg-panel-ornate rounded-xl p-5 sm:p-6 min-h-[70vh] flex flex-col">
+      <section id="chapter-main-pane" class="rpg-workspace-pane lg:col-span-9 rpg-panel-ornate rounded-xl p-3.5 sm:p-6 min-h-[65vh] sm:min-h-[70vh] flex flex-col">
         
         <!-- Fallback Chapter Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
@@ -416,8 +442,8 @@ export function renderCampaignWorkspace(container, state) {
     </div>
 
     <!-- New Entry Modal -->
-    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-6">
+    <div id="new-entity-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-lg font-bold text-amber-100">New ${escapeHtml(currentChapter.label)} Entry</h2>
           <button id="close-entity-modal" class="rpg-icon-btn w-7 h-7" title="Close">
@@ -600,37 +626,31 @@ export function renderCampaignWorkspace(container, state) {
             content: miscInput.value
           });
         } else {
-          await createEntity({
-            type: miscType,
-            title: `${currentChapter.label} Misc Notes`,
-            content: miscInput.value
-          });
-        }
-        miscStatus.textContent = "Saved";
-        miscStatus.className = "text-[11px] text-emerald-400";
-      } catch (err) {
-        miscStatus.textContent = "Error";
-        miscStatus.className = "text-[11px] text-rose-400";
-      }
-    });
-  }
-
-  // Breadcrumb Navigation
-  container.querySelector("#ws-nav-systems").addEventListener("click", () => {
-    setState({ activeSystem: null, activeCampaign: null, currentView: "systems" });
-  });
-  container.querySelector("#ws-nav-campaigns").addEventListener("click", () => {
-    setState({ activeCampaign: null, currentView: "campaigns" });
+  // Mobile Chapter Tome Drawer Toggle
+  container.querySelector("#mobile-tome-toggle-btn")?.addEventListener("click", () => {
+    isMobileNavOpen = !isMobileNavOpen;
+    renderCampaignWorkspace(container, state);
+    if (window.lucide) window.lucide.createIcons();
   });
 
   // Switch between the 12 Chapters
   container.querySelectorAll(".chapter-nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      activeChapterId = btn.getAttribute("data-chapter-id");
+      const nextChapId = btn.getAttribute("data-chapter-id");
+      const nextChapObj = CAMPAIGN_CHAPTERS.find((c) => c.id === nextChapId);
+      activeChapterId = nextChapId;
+      if (window.innerWidth < 1024 && (!nextChapObj?.sections || nextChapObj.sections.length === 0)) {
+        isMobileNavOpen = false;
+      } else if (window.innerWidth < 1024) {
+        isMobileNavOpen = true;
+      }
       const firstMatch = state.entities.find(
         (e) => e.type === activeChapterId || e.type === btn.textContent.trim()
       );
       setState({ activeEntity: firstMatch || null });
+      if (!isMobileNavOpen && window.innerWidth < 1024) {
+        document.getElementById("chapter-main-pane")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 
@@ -641,8 +661,14 @@ export function renderCampaignWorkspace(container, state) {
       const secId = btn.getAttribute("data-section-id");
       activeChapterId = chapId;
       activeSectionMap[chapId] = secId;
+      if (window.innerWidth < 1024) {
+        isMobileNavOpen = false;
+      }
       renderCampaignWorkspace(container, state);
       if (window.lucide) window.lucide.createIcons();
+      if (window.innerWidth < 1024) {
+        document.getElementById("chapter-main-pane")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 
