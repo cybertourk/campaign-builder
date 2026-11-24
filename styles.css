@@ -1,17 +1,29 @@
 /* ============================================================================
-RealmForge — Fantasy RPG Stone & Arcane UI Theme
-Powered by GUI_Fantasy_RPG_Kit assets
+RealmForge — Dual Fantasy RPG UI Theme
+
+Stone Theme (Dark)     -> GUI_Fantasy_RPG_Kit
+
+Parchment Theme (Light) -> Parchwood_UI_Kit
 ============================================================================ */
 
-/* 1. Typography & Base Canvas
+/* 1. Typography & Theme Variables
 ---------------------------------------------------------------------------- */
-:root {
+:root,
+html[data-theme="stone"] {
 --rpg-gold-light: #fef3c7;
 --rpg-gold: #f59e0b;
 --rpg-gold-dim: rgba(245, 158, 11, 0.35);
 --rpg-stone-dark: #0b0e15;
 --rpg-stone-mid: #141925;
---rpg-stone-border: rgba(148, 163, 184, 0.22);
+}
+
+html[data-theme="parchment"] {
+--parchment-ink-dark: #231409;
+--parchment-ink-body: #3c2615;
+--parchment-ink-muted: #6b4b30;
+--parchment-crimson: #8b261d;
+--parchment-teal: #1d5c57;
+--parchment-cream: #efe1c4;
 }
 
 body.rpg-stone-body {
@@ -24,6 +36,16 @@ background-size: cover, 320px 320px;
 background-repeat: no-repeat, repeat;
 background-attachment: fixed;
 color: #f1f5f9;
+transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+html[data-theme="parchment"] body.rpg-stone-body {
+background-color: #261810;
+background-image:
+radial-gradient(circle at 50% 0%, rgba(84, 54, 34, 0.52) 0%, rgba(28, 17, 11, 0.94) 80%);
+background-size: cover;
+background-repeat: no-repeat;
+color: var(--parchment-ink-body);
 }
 
 .font-rpg-display,
@@ -46,9 +68,26 @@ border-bottom: 2px solid rgba(148, 163, 184, 0.25);
 box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
 }
 
-/* 3. Standard Carved Stone Panel
-Alpha-masked stone fill (::before) tucked cleanly behind the full carved
-stone frame (::after) so inner corner bevels are never clipped.
+html[data-theme="parchment"] .rpg-topbar {
+background-color: #362216;
+background-image:
+linear-gradient(to bottom, rgba(44, 27, 17, 0.45), rgba(32, 19, 12, 0.65)),
+url('./Parchwood_UI_Kit/004-horizontal-dark-wood-toolbar.png');
+background-size: 100% 100%, 100% 100%;
+background-repeat: no-repeat;
+border-bottom: 2px solid rgba(180, 134, 78, 0.45);
+box-shadow: 0 6px 24px rgba(15, 8, 4, 0.75);
+}
+
+html[data-theme="parchment"] .rpg-topbar .text-amber-100 {
+color: #fef3c7 !important;
+}
+
+html[data-theme="parchment"] .rpg-topbar .rpg-slot-long {
+color: #2b1a0e !important;
+}
+
+/* 3. Standard Panels (Stone vs. Stitched Parchment)
 ---------------------------------------------------------------------------- */
 .rpg-panel {
 position: relative;
@@ -87,7 +126,25 @@ border-image-width: 26px;
 border-image-repeat: stretch;
 }
 
-/* 4. Ornate Carved Stone Panel (Main Workspace & Modals)
+html[data-theme="parchment"] .rpg-panel {
+border: 12px solid transparent;
+filter: drop-shadow(0 10px 24px rgba(15, 8, 4, 0.55));
+}
+
+html[data-theme="parchment"] .rpg-panel::before {
+display: none;
+}
+
+html[data-theme="parchment"] .rpg-panel::after {
+inset: -12px;
+border-width: 22px;
+border-image-source: url('./Parchwood_UI_Kit/018-tall-stitched-parchment-journal-panel.png');
+border-image-slice: 36 fill;
+border-image-width: 22px;
+border-image-repeat: stretch;
+}
+
+/* 4. Ornate Panels (Main Workspace & Modals)
 ---------------------------------------------------------------------------- */
 .rpg-panel-ornate {
 position: relative;
@@ -126,7 +183,25 @@ border-image-width: 30px;
 border-image-repeat: stretch;
 }
 
-/* 5. Interactive Inventory Card (Game Systems & Campaigns)
+html[data-theme="parchment"] .rpg-panel-ornate {
+border: 14px solid transparent;
+filter: drop-shadow(0 14px 32px rgba(15, 8, 4, 0.6));
+}
+
+html[data-theme="parchment"] .rpg-panel-ornate::before {
+display: none;
+}
+
+html[data-theme="parchment"] .rpg-panel-ornate::after {
+inset: -14px;
+border-width: 24px;
+border-image-source: url('./Parchwood_UI_Kit/018-tall-stitched-parchment-journal-panel.png');
+border-image-slice: 36 fill;
+border-image-width: 24px;
+border-image-repeat: stretch;
+}
+
+/* 5. Interactive Cards (Game Systems & Campaigns)
 ---------------------------------------------------------------------------- */
 .rpg-card {
 position: relative;
@@ -170,6 +245,28 @@ transform: translateY(-2px);
 filter: brightness(1.08) drop-shadow(0 12px 26px rgba(0, 0, 0, 0.72));
 }
 
+html[data-theme="parchment"] .rpg-card {
+border: 10px solid transparent;
+filter: drop-shadow(0 8px 18px rgba(15, 8, 4, 0.45));
+}
+
+html[data-theme="parchment"] .rpg-card::before {
+display: none;
+}
+
+html[data-theme="parchment"] .rpg-card::after {
+inset: -10px;
+border-width: 20px;
+border-image-source: url('./Parchwood_UI_Kit/017-square-stitched-parchment-panel.png');
+border-image-slice: 34 fill;
+border-image-width: 20px;
+border-image-repeat: stretch;
+}
+
+html[data-theme="parchment"] .rpg-card:hover {
+filter: brightness(1.03) drop-shadow(0 12px 24px rgba(15, 8, 4, 0.6));
+}
+
 /* 6. Framed Icon Sockets (Big & Small)
 ---------------------------------------------------------------------------- */
 .rpg-slot-big {
@@ -208,6 +305,18 @@ border-image-width: 14px;
 border-image-repeat: stretch;
 }
 
+html[data-theme="parchment"] .rpg-slot-big {
+border: none;
+background-image: url('./Parchwood_UI_Kit/079-square-ochre-outlined-empty-item-slot.png') !important;
+background-size: 100% 100% !important;
+filter: drop-shadow(0 3px 8px rgba(35, 20, 9, 0.35));
+}
+
+html[data-theme="parchment"] .rpg-slot-big::before,
+html[data-theme="parchment"] .rpg-slot-big::after {
+display: none;
+}
+
 .rpg-slot-small {
 position: relative;
 display: inline-flex;
@@ -244,6 +353,18 @@ border-image-width: 10px;
 border-image-repeat: stretch;
 }
 
+html[data-theme="parchment"] .rpg-slot-small {
+border: none;
+background-image: url('./Parchwood_UI_Kit/076-square-parchment-empty-item-slot.png') !important;
+background-size: 100% 100% !important;
+filter: drop-shadow(0 2px 5px rgba(35, 20, 9, 0.35));
+}
+
+html[data-theme="parchment"] .rpg-slot-small::before,
+html[data-theme="parchment"] .rpg-slot-small::after {
+display: none;
+}
+
 /* Ensure all inner content layers sit cleanly above ::before and ::after */
 .rpg-panel > *,
 .rpg-panel-ornate > *,
@@ -254,7 +375,7 @@ position: relative;
 z-index: 2;
 }
 
-/* 7. Long Stone Slot (Pills, Breadcrumbs & Active Nested Sidebar Items)
+/* 7. Long Slot (Pills, Breadcrumbs & Active Nested Sidebar Items)
 ---------------------------------------------------------------------------- */
 .rpg-slot-long {
 background: transparent;
@@ -268,7 +389,15 @@ border-image-repeat: stretch;
 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
-/* 8. Carved Stone Buttons & Icon Controls
+html[data-theme="parchment"] .rpg-slot-long {
+border-image-source: url('./Parchwood_UI_Kit/094-wide-parchment-counter-capsule.png');
+border-image-slice: 14 fill;
+border-image-width: 8px 12px;
+color: var(--parchment-ink-dark) !important;
+box-shadow: 0 2px 6px rgba(20, 10, 4, 0.35);
+}
+
+/* 8. Buttons & Icon Controls
 ---------------------------------------------------------------------------- */
 .rpg-btn-primary {
 display: inline-flex;
@@ -299,6 +428,19 @@ filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.35)) sepia(0.28) saturate(1.
 .rpg-btn-primary:active:not(:disabled) {
 transform: translateY(1px);
 filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)) brightness(0.95);
+}
+
+html[data-theme="parchment"] .rpg-btn-primary {
+color: #fffbeb !important;
+text-shadow: 0 1px 2px rgba(45, 10, 8, 0.85);
+border-image-source: url('./Parchwood_UI_Kit/026-wide-crimson-primary-button.png');
+border-image-slice: 16 fill;
+border-image-width: 10px 14px;
+filter: drop-shadow(0 4px 8px rgba(35, 15, 8, 0.45));
+}
+
+html[data-theme="parchment"] .rpg-btn-primary:hover:not(:disabled) {
+filter: drop-shadow(0 6px 12px rgba(139, 38, 29, 0.4)) brightness(1.08);
 }
 
 .rpg-btn-secondary {
@@ -332,6 +474,20 @@ filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.65)) brightness(1.15);
 transform: translateY(1px);
 }
 
+html[data-theme="parchment"] .rpg-btn-secondary {
+color: var(--parchment-ink-dark) !important;
+text-shadow: none;
+border-image-source: url('./Parchwood_UI_Kit/030-wide-parchment-secondary-button.png');
+border-image-slice: 16 fill;
+border-image-width: 9px 12px;
+filter: drop-shadow(0 3px 6px rgba(25, 14, 7, 0.35));
+}
+
+html[data-theme="parchment"] .rpg-btn-secondary:hover:not(:disabled) {
+color: var(--parchment-crimson) !important;
+filter: drop-shadow(0 4px 10px rgba(25, 14, 7, 0.45)) brightness(1.04);
+}
+
 .rpg-icon-btn {
 display: inline-flex;
 align-items: center;
@@ -348,7 +504,7 @@ transform: scale(1.07);
 filter: brightness(1.15);
 }
 
-/* 9. Mossy Stone Divider
+/* 9. Dividers
 ---------------------------------------------------------------------------- */
 .rpg-divider {
 width: 100%;
@@ -360,7 +516,15 @@ background-position: center;
 opacity: 0.9;
 }
 
-/* 10. RPG Status Bars (HP, Mana, Stamina)
+html[data-theme="parchment"] .rpg-divider {
+height: 6px;
+background-image: none;
+border-top: 1px dashed rgba(122, 82, 48, 0.55);
+border-bottom: 1px solid rgba(255, 248, 232, 0.5);
+opacity: 1;
+}
+
+/* 10. Status Bars (HP, Mana, Stamina)
 ---------------------------------------------------------------------------- */
 .rpg-bar-hp,
 .rpg-bar-mana,
@@ -399,8 +563,25 @@ background-image: url('./GUI_Fantasy_RPG_Kit/mana-bar-fill.png');
 background-image: url('./GUI_Fantasy_RPG_Kit/stamina-bar-fill.png');
 }
 
-/* 11. Translucent Inputs, Textareas, Selects & Sub-Panels
-Allows the carved stone background texture to show through forms cleanly.
+html[data-theme="parchment"] .rpg-bar-hp,
+html[data-theme="parchment"] .rpg-bar-mana,
+html[data-theme="parchment"] .rpg-bar-stamina {
+background-image: url('./Parchwood_UI_Kit/051-empty-dark-wood-horizontal-progress-track.png');
+}
+
+html[data-theme="parchment"] .rpg-bar-hp::after {
+background-image: url('./Parchwood_UI_Kit/055-separate-olive-horizontal-progress-fill.png');
+}
+
+html[data-theme="parchment"] .rpg-bar-mana::after {
+background-image: url('./Parchwood_UI_Kit/053-separate-teal-horizontal-progress-fill.png');
+}
+
+html[data-theme="parchment"] .rpg-bar-stamina::after {
+background-image: url('./Parchwood_UI_Kit/054-separate-ochre-horizontal-progress-fill.png');
+}
+
+/* 11. Stone Mode Translucent Inputs & Sub-Panels
 ---------------------------------------------------------------------------- */
 .rpg-panel input[type="text"],
 .rpg-panel input[type="email"],
@@ -441,7 +622,6 @@ background-color: #0f172a;
 color: #f8fafc;
 }
 
-/* Soften inner sub-cards inside the ornate stone workspace so stone grain shows through */
 .rpg-workspace-pane .bg-slate-950/60,
 .rpg-workspace-pane .bg-slate-950/50,
 .rpg-workspace-pane .bg-slate-950/70,
@@ -452,7 +632,155 @@ background-color: rgba(11, 15, 24, 0.52) !important;
 border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-/* 12. Custom Stone Scrollbars
+/* 12. Parchment Mode High-Contrast Sepia Ink & Translucent Cream Inputs
+---------------------------------------------------------------------------- */
+html[data-theme="parchment"] .rpg-panel h1,
+html[data-theme="parchment"] .rpg-panel h2,
+html[data-theme="parchment"] .rpg-panel h3,
+html[data-theme="parchment"] .rpg-panel .text-white,
+html[data-theme="parchment"] .rpg-panel .text-amber-100,
+html[data-theme="parchment"] .rpg-panel .text-amber-50,
+html[data-theme="parchment"] .rpg-panel-ornate h1,
+html[data-theme="parchment"] .rpg-panel-ornate h2,
+html[data-theme="parchment"] .rpg-panel-ornate h3,
+html[data-theme="parchment"] .rpg-panel-ornate h4,
+html[data-theme="parchment"] .rpg-panel-ornate .text-white,
+html[data-theme="parchment"] .rpg-panel-ornate .text-amber-100,
+html[data-theme="parchment"] .rpg-panel-ornate .text-amber-50,
+html[data-theme="parchment"] .rpg-card h1,
+html[data-theme="parchment"] .rpg-card h2,
+html[data-theme="parchment"] .rpg-card h3,
+html[data-theme="parchment"] .rpg-card .text-white,
+html[data-theme="parchment"] .rpg-card .text-amber-100,
+html[data-theme="parchment"] .rpg-card .text-amber-50 {
+color: var(--parchment-ink-dark) !important;
+}
+
+html[data-theme="parchment"] .rpg-panel .text-slate-100,
+html[data-theme="parchment"] .rpg-panel .text-slate-200,
+html[data-theme="parchment"] .rpg-panel .text-slate-300,
+html[data-theme="parchment"] .rpg-panel-ornate .text-slate-100,
+html[data-theme="parchment"] .rpg-panel-ornate .text-slate-200,
+html[data-theme="parchment"] .rpg-panel-ornate .text-slate-300,
+html[data-theme="parchment"] .rpg-card .text-slate-100,
+html[data-theme="parchment"] .rpg-card .text-slate-200,
+html[data-theme="parchment"] .rpg-card .text-slate-300 {
+color: var(--parchment-ink-body) !important;
+}
+
+html[data-theme="parchment"] .rpg-panel .text-slate-400,
+html[data-theme="parchment"] .rpg-panel .text-slate-500,
+html[data-theme="parchment"] .rpg-panel-ornate .text-slate-400,
+html[data-theme="parchment"] .rpg-panel-ornate .text-slate-500,
+html[data-theme="parchment"] .rpg-card .text-slate-400,
+html[data-theme="parchment"] .rpg-card .text-slate-500 {
+color: var(--parchment-ink-muted) !important;
+}
+
+html[data-theme="parchment"] .rpg-panel .text-amber-300,
+html[data-theme="parchment"] .rpg-panel .text-amber-200,
+html[data-theme="parchment"] .rpg-panel .text-amber-300/90,
+html[data-theme="parchment"] .rpg-panel-ornate .text-indigo-400,
+html[data-theme="parchment"] .rpg-panel-ornate .text-indigo-300,
+html[data-theme="parchment"] .rpg-panel-ornate .text-amber-300,
+html[data-theme="parchment"] .rpg-panel-ornate .text-amber-200,
+html[data-theme="parchment"] .rpg-card .text-amber-300,
+html[data-theme="parchment"] .rpg-card .text-amber-200/90 {
+color: var(--parchment-crimson) !important;
+}
+
+html[data-theme="parchment"] .rpg-panel-ornate .text-emerald-400,
+html[data-theme="parchment"] .rpg-panel-ornate .text-emerald-300 {
+color: var(--parchment-teal) !important;
+}
+
+/* Keep ivory text on active crimson sidebar buttons & primary buttons */
+html[data-theme="parchment"] .rpg-btn-primary,
+html[data-theme="parchment"] .rpg-btn-primary span,
+html[data-theme="parchment"] .rpg-btn-primary i {
+color: #fffbeb !important;
+}
+
+/* Sidebar active chapter group & hover states in Parchment mode */
+html[data-theme="parchment"] .rpg-sidebar-group {
+background-color: rgba(212, 189, 150, 0.35) !important;
+border-color: rgba(139, 38, 29, 0.3) !important;
+}
+
+html[data-theme="parchment"] .chapter-nav-btn:not(.rpg-btn-primary):hover,
+html[data-theme="parchment"] .chapter-section-btn:not(.rpg-slot-long):hover {
+background-color: rgba(212, 189, 150, 0.55) !important;
+color: var(--parchment-ink-dark) !important;
+}
+
+/* Sub-panels, dividers, and tables inside Parchment workspace */
+html[data-theme="parchment"] .rpg-panel .border-slate-800,
+html[data-theme="parchment"] .rpg-panel-ornate .border-slate-800,
+html[data-theme="parchment"] .rpg-panel-ornate .border-slate-800/80,
+html[data-theme="parchment"] .rpg-panel-ornate .border-slate-700 {
+border-color: rgba(122, 82, 48, 0.32) !important;
+}
+
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-950/60,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-950/50,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-950/70,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-950/40,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-950/30,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-900/70,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-900/60,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-900/50,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-900,
+html[data-theme="parchment"] .rpg-workspace-pane .bg-slate-950 {
+background-color: rgba(219, 197, 160, 0.42) !important;
+border-color: rgba(122, 82, 48, 0.3) !important;
+}
+
+/* Translucent warm cream inputs & textareas in Parchment mode */
+html[data-theme="parchment"] .rpg-panel input[type="text"],
+html[data-theme="parchment"] .rpg-panel input[type="email"],
+html[data-theme="parchment"] .rpg-panel input[type="password"],
+html[data-theme="parchment"] .rpg-panel input[type="url"],
+html[data-theme="parchment"] .rpg-panel input[type="number"],
+html[data-theme="parchment"] .rpg-panel textarea,
+html[data-theme="parchment"] .rpg-panel select,
+html[data-theme="parchment"] .rpg-panel-ornate input[type="text"],
+html[data-theme="parchment"] .rpg-panel-ornate input[type="email"],
+html[data-theme="parchment"] .rpg-panel-ornate input[type="password"],
+html[data-theme="parchment"] .rpg-panel-ornate input[type="url"],
+html[data-theme="parchment"] .rpg-panel-ornate input[type="number"],
+html[data-theme="parchment"] .rpg-panel-ornate textarea,
+html[data-theme="parchment"] .rpg-panel-ornate select {
+background-color: rgba(255, 250, 240, 0.65) !important;
+border: 1px solid rgba(122, 82, 48, 0.42) !important;
+color: var(--parchment-ink-dark) !important;
+box-shadow: inset 0 1px 4px rgba(60, 38, 21, 0.16);
+}
+
+html[data-theme="parchment"] .rpg-panel input::placeholder,
+html[data-theme="parchment"] .rpg-panel textarea::placeholder,
+html[data-theme="parchment"] .rpg-panel-ornate input::placeholder,
+html[data-theme="parchment"] .rpg-panel-ornate textarea::placeholder {
+color: rgba(107, 75, 48, 0.65) !important;
+}
+
+html[data-theme="parchment"] .rpg-panel input:focus,
+html[data-theme="parchment"] .rpg-panel textarea:focus,
+html[data-theme="parchment"] .rpg-panel select:focus,
+html[data-theme="parchment"] .rpg-panel-ornate input:focus,
+html[data-theme="parchment"] .rpg-panel-ornate textarea:focus,
+html[data-theme="parchment"] .rpg-panel-ornate select:focus {
+background-color: rgba(255, 252, 245, 0.88) !important;
+border-color: var(--parchment-crimson) !important;
+box-shadow: inset 0 1px 4px rgba(60, 38, 21, 0.15), 0 0 0 2px rgba(139, 38, 29, 0.18);
+}
+
+html[data-theme="parchment"] .rpg-panel select option,
+html[data-theme="parchment"] .rpg-panel-ornate select option {
+background-color: #f4e8d1;
+color: #231409;
+}
+
+/* 13. Custom Scrollbars (Stone & Parchment)
 ---------------------------------------------------------------------------- */
 ::-webkit-scrollbar {
 width: 8px;
@@ -472,3 +800,17 @@ border: 1px solid rgba(15, 23, 42, 0.8);
 ::-webkit-scrollbar-thumb:hover {
 background: rgba(245, 158, 11, 0.55);
 }
+
+html[data-theme="parchment"] ::-webkit-scrollbar-track {
+background: rgba(44, 27, 17, 0.85);
+}
+
+html[data-theme="parchment"] ::-webkit-scrollbar-thumb {
+background: rgba(166, 124, 82, 0.75);
+border: 1px solid rgba(60, 38, 21, 0.6);
+}
+
+html[data-theme="parchment"] ::-webkit-scrollbar-thumb:hover {
+background: rgba(139, 38, 29, 0.75);
+}
+
