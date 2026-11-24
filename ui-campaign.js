@@ -27,6 +27,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Campaign Setting",
     icon: "globe",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/chest-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/102-rolled-treasure-map-with-a-dotted-route-and-small-crimson-X-blank-margins.png",
     mode: "single",
     description: "World overview, tone, geography, major regions, and foundational truths.",
     sections: SETTING_TABS
@@ -36,6 +37,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Plot and Adventures",
     icon: "compass",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/papyrus-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/101-circular-compass-rose-with-eight-ivory-points-and-teal-north-tip.png",
     mode: "collection",
     description: "Main story arcs, adventure hooks, milestones, and branching plotlines.",
     sections: PLOT_TABS
@@ -45,6 +47,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Random Encounters",
     icon: "dices",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/bar-bottle.png",
+    parchmentIcon: "./Parchwood_UI_Kit/351-trail-sense.png",
     mode: "collection",
     description: "Environment-based encounter tables, twists, and quick-roll triggers.",
     sections: ENCOUNTERS_TABS
@@ -54,6 +57,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Enemies",
     icon: "skull",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/heart-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/115-crimson-boss-encounter-crest-with-a-horned-skull.png",
     mode: "collection",
     description: "Monsters, villains, stat blocks, tactics, and threat profiles.",
     sections: ENEMIES_TABS
@@ -63,6 +67,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Deities",
     icon: "sun",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/star-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/341-sun-ray.png",
     mode: "collection",
     description: "Pantheons, domains, alignments, tenets, symbols, and divine boons.",
     sections: DEITIES_TABS
@@ -72,6 +77,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Faction",
     icon: "flag",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/shield-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/338-protective-ward.png",
     mode: "collection",
     description: "Guilds, kingdoms, cults, leadership, goals, and inter-faction standings.",
     sections: FACTIONS_TABS
@@ -81,6 +87,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "NPC",
     icon: "users",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/key-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/171-parchment-experience-medallion-with-ochre-open-book-silhouette.png",
     mode: "collection",
     description: "Non-player characters, appearances, motivations, secrets, and relationships.",
     sections: NPC_TABS
@@ -90,6 +97,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Item List",
     icon: "sword",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/sack-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/112-parchment-reward-pouch-card-with-a-drawstring-pouch-illustration-and-blank-lower-field.png",
     mode: "collection",
     description: "Magic items, relics, custom gear, economy items, and loot tables.",
     sections: ITEMS_TABS
@@ -99,6 +107,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Character Sheets",
     icon: "user-check",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/potion-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/332-healing-bloom.png",
     mode: "collection",
     description: "Party roster, player character stats, backstories, and personal quests.",
     sections: CHARACTERS_TABS
@@ -108,6 +117,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Session Log",
     icon: "scroll-text",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/papyrus-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/396-scribing.png",
     mode: "collection",
     description: "Chronological session recaps, MVP moments, XP/milestones, and next-session prep.",
     sections: SESSION_LOG_TABS
@@ -117,6 +127,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Initiative Tracker",
     icon: "swords",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/sword-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/301-power-slash.png",
     mode: "tool",
     description: "Live combat turn order, HP/condition tracking, and round counter.",
     sections: INITIATIVE_TABS
@@ -126,6 +137,7 @@ export const CAMPAIGN_CHAPTERS = [
     label: "Overland Travel Tables",
     icon: "map",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/coins-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/129-ochre-coin-stack-emblem-with-dark-engraved-diamond-symbols.png",
     mode: "tool",
     description: "Travel pace, navigation checks, weather tables, and hex/region terrain hazards.",
     sections: TRAVEL_TABS
@@ -219,7 +231,7 @@ export function renderCampaignWorkspace(container, state) {
             const sessionsDoc = state.entities.find((e) => e.type === "session-log")?.systemData || {};
 
             return `
-              <div class="rounded-lg ${isSelected ? "bg-slate-950/75 border border-amber-500/30 pb-1.5 shadow-inner" : ""}">
+              <div class="rpg-sidebar-group rounded-lg ${isSelected ? "bg-slate-950/75 border border-amber-500/30 pb-1.5 shadow-inner" : ""}">
                 <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-lg text-left text-xs font-medium transition ${
                   isSelected
                     ? "rpg-btn-primary text-amber-100 font-semibold"
@@ -227,7 +239,7 @@ export function renderCampaignWorkspace(container, state) {
                 }">
                   <span class="flex items-center gap-2 min-w-0">
                     <span class="rpg-slot-small w-6 h-6 p-0.5 shrink-0">
-                      <img src="${chap.rpgIcon}" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+                      <img src="${chap.rpgIcon}" data-parchment-src="${chap.parchmentIcon}" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
                     </span>
                     <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
                   </span>
@@ -313,7 +325,7 @@ export function renderCampaignWorkspace(container, state) {
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
           <div class="flex items-start gap-3">
             <div class="rpg-slot-medium w-11 h-11 p-1.5 shrink-0">
-              <img src="${currentChapter.rpgIcon}" alt="" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
+              <img src="${currentChapter.rpgIcon}" data-parchment-src="${currentChapter.parchmentIcon}" alt="" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
             </div>
             <div>
               <h1 class="text-xl font-bold text-amber-100">${escapeHtml(currentChapter.label)}</h1>
