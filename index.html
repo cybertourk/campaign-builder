@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-theme="stone">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -33,7 +33,9 @@
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="rpg-slot-small w-10 h-10 p-1">
-          <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png" alt="RealmForge" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
+          <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png"
+               data-parchment-src="./Parchwood_UI_Kit/102-rolled-treasure-map-with-a-dotted-route-and-small-crimson-X-blank-margins.png"
+               alt="RealmForge" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
         </div>
         <div>
           <div class="flex items-center gap-2">
@@ -45,7 +47,10 @@
         </div>
       </div>
 
-      <div id="auth-status" class="flex items-center gap-3"></div>
+      <div class="flex items-center gap-2.5">
+        <div id="theme-toggle-slot"></div>
+        <div id="auth-status" class="flex items-center gap-3"></div>
+      </div>
     </div>
   </header>
 
