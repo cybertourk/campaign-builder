@@ -30,32 +30,32 @@
 
   <!-- Top Navigation -->
   <header class="rpg-topbar backdrop-blur sticky top-0 z-20">
-    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="rpg-slot-small w-10 h-10 p-1">
+    <div class="max-w-7xl mx-auto px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div class="rpg-slot-small w-9 h-9 sm:w-10 sm:h-10 p-1 shrink-0">
           <img src="./GUI_Fantasy_RPG_Kit/papyrus-icon.png"
                data-parchment-src="./Parchwood_UI_Kit/102-rolled-treasure-map-with-a-dotted-route-and-small-crimson-X-blank-margins.png"
-               alt="RealmForge" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
+               alt="RealmForge" class="w-6 h-6 sm:w-7 sm:h-7 object-contain" onerror="this.style.display='none'" />
         </div>
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <span class="font-rpg-display font-bold text-lg tracking-wide text-amber-100">RealmForge</span>
-            <span class="rpg-slot-long text-[11px] font-medium px-2.5 py-0.5 rounded-full text-amber-200/90">
+            <span class="font-rpg-display font-bold text-base sm:text-lg tracking-wide text-amber-100 truncate">RealmForge</span>
+            <span class="rpg-slot-long hidden md:inline-flex text-[11px] font-medium px-2.5 py-0.5 rounded-full text-amber-200/90">
               Campaign Planner
             </span>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         <div id="theme-toggle-slot"></div>
-        <div id="auth-status" class="flex items-center gap-3"></div>
+        <div id="auth-status" class="flex items-center gap-2 sm:gap-3"></div>
       </div>
     </div>
   </header>
 
   <!-- Dynamic Application Mount Point -->
-  <main id="app-main" class="flex-1 max-w-7xl w-full mx-auto px-4 py-7"></main>
+  <main id="app-main" class="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-4 py-4 sm:py-7"></main>
 
   <script type="module" src="./main.js"></script>
 </body>
