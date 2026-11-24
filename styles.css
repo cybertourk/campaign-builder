@@ -39,29 +39,14 @@ color: #f1f5f9;
 transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Sunlit Honey-Oak Tabletop Backdrop (Smooth, non-tiling wood planks) */
+/* Smooth, seamless sunlit honey-oak backdrop (no grid or plank lines) */
 html[data-theme="parchment"] body.rpg-stone-body {
-background-color: #c69660;
+background-color: #c89a64;
 background-image:
-radial-gradient(ellipse at 50% 0%, rgba(255, 241, 212, 0.64) 0%, rgba(214, 166, 108, 0.36) 52%, rgba(138, 90, 44, 0.7) 100%),
-repeating-linear-gradient(
-180deg,
-rgba(120, 74, 34, 0.07) 0px,
-rgba(120, 74, 34, 0.07) 2px,
-transparent 2px,
-transparent 84px,
-rgba(92, 54, 22, 0.16) 84px,
-rgba(92, 54, 22, 0.16) 86px
-),
-repeating-linear-gradient(
-90deg,
-rgba(255, 238, 204, 0.07) 0px,
-rgba(145, 94, 46, 0.06) 160px,
-rgba(255, 238, 204, 0.05) 320px
-),
-linear-gradient(180deg, #d7ab76 0%, #c18d54 50%, #a9733e 100%);
-background-size: 100% 100%, 100% 86px, 320px 100%, 100% 100%;
-background-repeat: no-repeat, repeat, repeat, no-repeat;
+radial-gradient(ellipse at 50% 0%, rgba(255, 245, 224, 0.65) 0%, rgba(218, 173, 118, 0.28) 55%, rgba(146, 98, 50, 0.55) 100%),
+linear-gradient(180deg, #deb582 0%, #c8985e 52%, #b27e46 100%);
+background-size: 100% 100%, 100% 100%;
+background-repeat: no-repeat, no-repeat;
 background-attachment: fixed;
 color: var(--parchment-ink-body);
 }
@@ -79,7 +64,7 @@ html[data-theme="parchment"] nav .text-slate-500 {
 color: #3c2615 !important;
 }
 
-/* 2. Top Navigation Bar (9-sliced carved wood caps so middle never stretches)
+/* 2. Top Navigation Bar (Full height wooden frame with unstretched caps)
 ---------------------------------------------------------------------------- */
 .rpg-topbar {
 background-color: rgba(15, 20, 30, 0.92);
@@ -95,17 +80,20 @@ html[data-theme="parchment"] .rpg-topbar {
 background: transparent;
 background-image: none;
 border-style: solid;
-border-width: 8px 44px;
+border-width: 12px 48px;
 border-color: transparent;
 border-image-source: url('./Parchwood_UI_Kit/004-horizontal-dark-wood-toolbar.png');
 border-image-slice: 14 48 fill;
-border-image-width: 8px 44px;
+border-image-width: 12px 48px;
 border-image-repeat: round;
 filter: drop-shadow(0 4px 12px rgba(68, 40, 16, 0.35));
 }
 
 html[data-theme="parchment"] .rpg-topbar > div {
-height: 3rem;
+min-height: 3.75rem;
+height: auto;
+padding-top: 0.25rem;
+padding-bottom: 0.25rem;
 }
 
 html[data-theme="parchment"] .rpg-topbar .text-amber-100 {
@@ -496,10 +484,12 @@ transform: translateY(1px);
 filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)) brightness(0.95);
 }
 
-html[data-theme="parchment"] .rpg-btn-primary {
+html[data-theme="parchment"] .rpg-btn-primary,
+html[data-theme="parchment"] .rpg-panel .rpg-btn-primary,
+html[data-theme="parchment"] .rpg-panel-ornate .rpg-btn-primary {
 padding: 0.35rem 1.15rem;
-color: #fffbeb !important;
-text-shadow: 0 1px 2px rgba(45, 10, 8, 0.85);
+color: #ffffff !important;
+text-shadow: 0 1px 2px rgba(45, 10, 8, 0.9);
 border-width: 8px 18px;
 border-image-source: url('./Parchwood_UI_Kit/026-wide-crimson-primary-button.png');
 border-image-slice: 24 44 fill;
@@ -507,7 +497,9 @@ border-image-width: 8px 18px;
 filter: drop-shadow(0 3px 6px rgba(68, 40, 16, 0.32));
 }
 
-html[data-theme="parchment"] .rpg-btn-primary:hover:not(:disabled) {
+html[data-theme="parchment"] .rpg-btn-primary:hover:not(:disabled),
+html[data-theme="parchment"] .rpg-panel .rpg-btn-primary:hover:not(:disabled),
+html[data-theme="parchment"] .rpg-panel-ornate .rpg-btn-primary:hover:not(:disabled) {
 filter: drop-shadow(0 5px 10px rgba(139, 38, 29, 0.35)) brightness(1.08);
 }
 
@@ -707,22 +699,22 @@ border-color: rgba(148, 163, 184, 0.18) !important;
 html[data-theme="parchment"] .rpg-panel h1,
 html[data-theme="parchment"] .rpg-panel h2,
 html[data-theme="parchment"] .rpg-panel h3,
-html[data-theme="parchment"] .rpg-panel .text-white,
-html[data-theme="parchment"] .rpg-panel .text-amber-100,
-html[data-theme="parchment"] .rpg-panel .text-amber-50,
+html[data-theme="parchment"] .rpg-panel .text-white:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-panel .text-amber-100:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-panel .text-amber-50:not(.rpg-btn-primary),
 html[data-theme="parchment"] .rpg-panel-ornate h1,
 html[data-theme="parchment"] .rpg-panel-ornate h2,
 html[data-theme="parchment"] .rpg-panel-ornate h3,
 html[data-theme="parchment"] .rpg-panel-ornate h4,
-html[data-theme="parchment"] .rpg-panel-ornate .text-white,
-html[data-theme="parchment"] .rpg-panel-ornate .text-amber-100,
-html[data-theme="parchment"] .rpg-panel-ornate .text-amber-50,
+html[data-theme="parchment"] .rpg-panel-ornate .text-white:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-panel-ornate .text-amber-100:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-panel-ornate .text-amber-50:not(.rpg-btn-primary),
 html[data-theme="parchment"] .rpg-card h1,
 html[data-theme="parchment"] .rpg-card h2,
 html[data-theme="parchment"] .rpg-card h3,
-html[data-theme="parchment"] .rpg-card .text-white,
-html[data-theme="parchment"] .rpg-card .text-amber-100,
-html[data-theme="parchment"] .rpg-card .text-amber-50 {
+html[data-theme="parchment"] .rpg-card .text-white:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-card .text-amber-100:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-card .text-amber-50:not(.rpg-btn-primary) {
 color: var(--parchment-ink-dark) !important;
 }
 
@@ -747,11 +739,11 @@ html[data-theme="parchment"] .rpg-card .text-slate-500 {
 color: var(--parchment-ink-muted) !important;
 }
 
-html[data-theme="parchment"] .rpg-panel [class*="text-amber-"],
-html[data-theme="parchment"] .rpg-panel-ornate [class*="text-amber-"],
+html[data-theme="parchment"] .rpg-panel [class*="text-amber-"]:not(.rpg-btn-primary),
+html[data-theme="parchment"] .rpg-panel-ornate [class*="text-amber-"]:not(.rpg-btn-primary),
 html[data-theme="parchment"] .rpg-panel-ornate .text-indigo-400,
 html[data-theme="parchment"] .rpg-panel-ornate .text-indigo-300,
-html[data-theme="parchment"] .rpg-card [class*="text-amber-"] {
+html[data-theme="parchment"] .rpg-card [class*="text-amber-"]:not(.rpg-btn-primary) {
 color: var(--parchment-crimson) !important;
 }
 
@@ -760,13 +752,21 @@ html[data-theme="parchment"] .rpg-panel-ornate .text-emerald-300 {
 color: var(--parchment-teal) !important;
 }
 
-/* Keep bright ivory text and icons on crimson primary buttons */
+/* Keep bright white/ivory text and icons on all crimson primary buttons */
 html[data-theme="parchment"] .rpg-btn-primary,
 html[data-theme="parchment"] .rpg-btn-primary span,
 html[data-theme="parchment"] .rpg-btn-primary i,
-html[data-theme="parchment"] .rpg-btn-primary svg {
-color: #fffbeb !important;
-stroke: #fffbeb !important;
+html[data-theme="parchment"] .rpg-btn-primary svg,
+html[data-theme="parchment"] .rpg-panel .rpg-btn-primary,
+html[data-theme="parchment"] .rpg-panel .rpg-btn-primary span,
+html[data-theme="parchment"] .rpg-panel .rpg-btn-primary i,
+html[data-theme="parchment"] .rpg-panel .rpg-btn-primary svg,
+html[data-theme="parchment"] .rpg-panel-ornate .rpg-btn-primary,
+html[data-theme="parchment"] .rpg-panel-ornate .rpg-btn-primary span,
+html[data-theme="parchment"] .rpg-panel-ornate .rpg-btn-primary i,
+html[data-theme="parchment"] .rpg-panel-ornate .rpg-btn-primary svg {
+color: #ffffff !important;
+stroke: #ffffff !important;
 }
 
 /* Sidebar active chapter group & hover states in Parchment mode */
