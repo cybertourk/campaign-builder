@@ -1,61 +1,55 @@
-/* styles.css
-Custom Fantasy RPG Stone & Arcane Theme powered by ./GUI_Fantasy_RPG_Kit/ assets.
-Uses alpha-transparent 9-slice stone fills (::before) and carved stone frames (::after)
-with translucent inner text areas so the full stone graphics show through cleanly. */
+/* ============================================================================
+RealmForge — Fantasy RPG Stone & Arcane UI Theme
+Powered by GUI_Fantasy_RPG_Kit assets
+============================================================================ */
 
+/* 1. Typography & Base Canvas
+---------------------------------------------------------------------------- */
 :root {
---rpg-gold: #f5d076;
---rpg-gold-dim: #c9a24b;
---rpg-stone-dark: #0e121b;
---rpg-stone-panel: #151b27;
---rpg-stone-input: #0b0f17;
---rpg-border-subtle: rgba(148, 163, 184, 0.22);
+--rpg-gold-light: #fef3c7;
+--rpg-gold: #f59e0b;
+--rpg-gold-dim: rgba(245, 158, 11, 0.35);
+--rpg-stone-dark: #0b0e15;
+--rpg-stone-mid: #141925;
+--rpg-stone-border: rgba(148, 163, 184, 0.22);
 }
 
-*,
-*::before,
-*::after {
-box-sizing: border-box;
-}
-
-/* Base Stone Background */
 body.rpg-stone-body {
-background-color: #0b0e14;
+font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+background-color: var(--rpg-stone-dark);
 background-image:
-radial-gradient(circle at 50% 0%, rgba(245, 208, 118, 0.07), transparent 55%),
-linear-gradient(to bottom, rgba(11, 14, 20, 0.8), rgba(8, 10, 15, 0.92)),
+radial-gradient(circle at 50% 0%, rgba(30, 41, 59, 0.55) 0%, rgba(11, 14, 21, 0.92) 75%),
 url('./GUI_Fantasy_RPG_Kit/background.png');
-background-repeat: no-repeat, no-repeat, repeat;
-background-size: 100% 100%, 100% 100%, 420px auto;
+background-size: cover, 320px 320px;
+background-repeat: no-repeat, repeat;
 background-attachment: fixed;
-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+color: #f1f5f9;
 }
 
-/* Display Fantasy Headings */
 .font-rpg-display,
-header h1,
-header .font-bold,
-#chapter-main-pane h1,
-.rpg-panel h1,
-.rpg-panel h2,
-.rpg-panel-ornate h1,
-.rpg-panel-ornate h2 {
+h1,
+h2,
+h3 {
 font-family: 'Cinzel', Georgia, serif;
 letter-spacing: 0.02em;
 }
 
-/* Top Navigation Bar */
+/* 2. Top Navigation Bar
+---------------------------------------------------------------------------- */
 .rpg-topbar {
-background-color: rgba(17, 21, 31, 0.88);
+background-color: rgba(15, 20, 30, 0.92);
 background-image:
-linear-gradient(to bottom, rgba(23, 29, 43, 0.86), rgba(13, 16, 24, 0.92)),
-url('./GUI_Fantasy_RPG_Kit/background.png');
-background-size: auto, 320px auto;
-border-bottom: 2px solid #2b3344;
+linear-gradient(to bottom, rgba(24, 31, 46, 0.85), rgba(11, 15, 23, 0.95)),
+url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
+background-size: 100% 100%, 260px 260px;
+border-bottom: 2px solid rgba(148, 163, 184, 0.25);
 box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
 }
 
-/* Standard Stone Panel (Alpha-masked stone fill + carved frame so corners never overlap) */
+/* 3. Standard Carved Stone Panel
+Alpha-masked stone fill (::before) tucked cleanly behind the full carved
+stone frame (::after) so inner corner bevels are never clipped.
+---------------------------------------------------------------------------- */
 .rpg-panel {
 position: relative;
 background: transparent !important;
@@ -66,17 +60,16 @@ filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.65));
 .rpg-panel::before {
 content: "";
 position: absolute;
-inset: -14px;
+inset: -4px;
 z-index: 0;
 pointer-events: none;
-border-style: solid;
-border-width: 14px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
-border-image-slice: 26 fill;
-border-image-width: 14px;
-border-image-repeat: stretch;
-filter: brightness(0.74);
+border-radius: 10px;
+background-color: #131823;
+background-image:
+linear-gradient(to bottom, rgba(20, 26, 38, 0.72), rgba(11, 14, 21, 0.85)),
+url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
+background-size: 100% 100%, 240px 240px;
+background-repeat: no-repeat, repeat;
 }
 
 .rpg-panel::after {
@@ -86,15 +79,16 @@ inset: -14px;
 z-index: 1;
 pointer-events: none;
 border-style: solid;
-border-width: 14px;
+border-width: 26px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-01-frame.png');
-border-image-slice: 26;
-border-image-width: 14px;
+border-image-slice: 48;
+border-image-width: 26px;
 border-image-repeat: stretch;
 }
 
-/* Ornate Stone Panel (Transparent outer corners + full carved frame visibility) */
+/* 4. Ornate Carved Stone Panel (Main Workspace & Modals)
+---------------------------------------------------------------------------- */
 .rpg-panel-ornate {
 position: relative;
 background: transparent !important;
@@ -105,17 +99,16 @@ filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.75));
 .rpg-panel-ornate::before {
 content: "";
 position: absolute;
-inset: -16px;
+inset: -5px;
 z-index: 0;
 pointer-events: none;
-border-style: solid;
-border-width: 16px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
-border-image-slice: 26 fill;
-border-image-width: 16px;
-border-image-repeat: stretch;
-filter: brightness(0.72);
+border-radius: 12px;
+background-color: #121722;
+background-image:
+linear-gradient(to bottom, rgba(19, 24, 36, 0.7), rgba(10, 13, 20, 0.84)),
+url('./GUI_Fantasy_RPG_Kit/pop-up-window-01.png');
+background-size: 100% 100%, 260px 260px;
+background-repeat: no-repeat, repeat;
 }
 
 .rpg-panel-ornate::after {
@@ -125,15 +118,16 @@ inset: -16px;
 z-index: 1;
 pointer-events: none;
 border-style: solid;
-border-width: 16px;
+border-width: 30px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/pop-up-window-01-frame.png');
-border-image-slice: 26;
-border-image-width: 16px;
+border-image-slice: 52;
+border-image-width: 30px;
 border-image-repeat: stretch;
 }
 
-/* Interactive Inventory Card (inventory-slot-medium fill + frame with transparent notched corners) */
+/* 5. Interactive Inventory Card (Game Systems & Campaigns)
+---------------------------------------------------------------------------- */
 .rpg-card {
 position: relative;
 background: transparent !important;
@@ -145,17 +139,15 @@ transition: transform 0.18s ease, filter 0.18s ease;
 .rpg-card::before {
 content: "";
 position: absolute;
-inset: -11px;
+inset: -3px;
 z-index: 0;
 pointer-events: none;
-border-style: solid;
-border-width: 11px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-medium.png');
-border-image-slice: 24 fill;
-border-image-width: 11px;
-border-image-repeat: stretch;
-filter: brightness(0.78);
+border-radius: 8px;
+background-color: #141925;
+background-image:
+linear-gradient(to bottom, rgba(22, 28, 40, 0.72), rgba(12, 15, 22, 0.86)),
+url('./GUI_Fantasy_RPG_Kit/inventory-slot-medium.png');
+background-size: 100% 100%, 100% 100%;
 }
 
 .rpg-card::after {
@@ -165,11 +157,11 @@ inset: -11px;
 z-index: 1;
 pointer-events: none;
 border-style: solid;
-border-width: 11px;
+border-width: 22px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-medium-frame.png');
-border-image-slice: 24;
-border-image-width: 11px;
+border-image-slice: 42;
+border-image-width: 22px;
 border-image-repeat: stretch;
 }
 
@@ -178,7 +170,8 @@ transform: translateY(-2px);
 filter: brightness(1.08) drop-shadow(0 12px 26px rgba(0, 0, 0, 0.72));
 }
 
-/* Big Framed Icon / Portrait Socket (inventory-slot-big fill + frame) */
+/* 6. Framed Icon Sockets (Big & Small)
+---------------------------------------------------------------------------- */
 .rpg-slot-big {
 position: relative;
 display: inline-flex;
@@ -192,16 +185,12 @@ filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
 .rpg-slot-big::before {
 content: "";
 position: absolute;
-inset: -7px;
+inset: -2px;
 z-index: 0;
 pointer-events: none;
-border-style: solid;
-border-width: 7px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-big.png');
-border-image-slice: 24 fill;
-border-image-width: 7px;
-border-image-repeat: stretch;
+border-radius: 6px;
+background-image: url('./GUI_Fantasy_RPG_Kit/inventory-slot-big.png');
+background-size: 100% 100%;
 }
 
 .rpg-slot-big::after {
@@ -211,15 +200,14 @@ inset: -7px;
 z-index: 1;
 pointer-events: none;
 border-style: solid;
-border-width: 7px;
+border-width: 14px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-big-frame.png');
-border-image-slice: 24;
-border-image-width: 7px;
+border-image-slice: 36;
+border-image-width: 14px;
 border-image-repeat: stretch;
 }
 
-/* Small Framed Icon Socket (inventory-slot-small fill + frame) */
 .rpg-slot-small {
 position: relative;
 display: inline-flex;
@@ -233,16 +221,12 @@ filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
 .rpg-slot-small::before {
 content: "";
 position: absolute;
-inset: -4px;
+inset: -1px;
 z-index: 0;
 pointer-events: none;
-border-style: solid;
-border-width: 4px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-small.png');
-border-image-slice: 18 fill;
-border-image-width: 4px;
-border-image-repeat: stretch;
+border-radius: 4px;
+background-image: url('./GUI_Fantasy_RPG_Kit/inventory-slot-small.png');
+background-size: 100% 100%;
 }
 
 .rpg-slot-small::after {
@@ -252,15 +236,15 @@ inset: -4px;
 z-index: 1;
 pointer-events: none;
 border-style: solid;
-border-width: 4px;
+border-width: 10px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/inventory-slot-small-frame.png');
-border-image-slice: 18;
-border-image-width: 4px;
+border-image-slice: 28;
+border-image-width: 10px;
 border-image-repeat: stretch;
 }
 
-/* Keep all content layered cleanly above the stone fill & frame pseudo-elements */
+/* Ensure all inner content layers sit cleanly above ::before and ::after */
 .rpg-panel > *,
 .rpg-panel-ornate > *,
 .rpg-card > *,
@@ -270,255 +254,221 @@ position: relative;
 z-index: 2;
 }
 
-/* Long Recessed Stone Pill / Tag (slot-long.png) */
+/* 7. Long Stone Slot (Pills, Breadcrumbs & Active Nested Sidebar Items)
+---------------------------------------------------------------------------- */
 .rpg-slot-long {
-display: inline-flex;
-align-items: center;
-min-height: 28px;
-line-height: 1.25;
-background: transparent !important;
+background: transparent;
 border-style: solid;
-border-width: 4px 12px;
+border-width: 8px 12px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/slot-long.png');
-border-image-slice: 8 18 fill;
+border-image-slice: 10 fill;
+border-image-width: 8px 12px;
 border-image-repeat: stretch;
-filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
-/* Primary Carved Stone Button (9-sliced button-1.png) */
+/* 8. Carved Stone Buttons & Icon Controls
+---------------------------------------------------------------------------- */
 .rpg-btn-primary {
 display: inline-flex;
 align-items: center;
 justify-content: center;
-min-height: 34px;
+min-height: 36px;
+padding: 0.4rem 0.95rem;
 line-height: 1.25;
-background: transparent !important;
+color: var(--rpg-gold-light);
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+background: transparent;
 border-style: solid;
-border-width: 6px 14px;
+border-width: 10px 14px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/button-1.png');
-border-image-slice: 12 24 fill;
+border-image-slice: 14 fill;
+border-image-width: 10px 14px;
 border-image-repeat: stretch;
-color: #fef3c7;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
-transition: transform 0.12s ease, filter 0.15s ease;
+filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55)) sepia(0.22) saturate(1.35);
+transition: filter 0.15s ease, transform 0.1s ease;
+cursor: pointer;
 }
 
 .rpg-btn-primary:hover:not(:disabled) {
-filter: brightness(1.14) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.65));
+filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.35)) sepia(0.28) saturate(1.5) brightness(1.14);
 }
 
 .rpg-btn-primary:active:not(:disabled) {
 transform: translateY(1px);
+filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)) brightness(0.95);
 }
 
-/* Secondary Carved Stone Button (9-sliced button-3.png) */
 .rpg-btn-secondary {
 display: inline-flex;
 align-items: center;
 justify-content: center;
-min-height: 32px;
+min-height: 34px;
+padding: 0.35rem 0.85rem;
 line-height: 1.25;
-background: transparent !important;
+color: #e2e8f0;
+text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+background: transparent;
 border-style: solid;
-border-width: 5px 12px;
+border-width: 9px 12px;
 border-color: transparent;
 border-image-source: url('./GUI_Fantasy_RPG_Kit/button-3.png');
-border-image-slice: 10 22 fill;
+border-image-slice: 14 fill;
+border-image-width: 9px 12px;
 border-image-repeat: stretch;
-color: #e2e8f0;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
-transition: transform 0.12s ease, filter 0.15s ease;
+filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+transition: filter 0.15s ease, transform 0.1s ease, color 0.15s ease;
+cursor: pointer;
 }
 
 .rpg-btn-secondary:hover:not(:disabled) {
-filter: brightness(1.15) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
-color: #fef3c7;
+color: var(--rpg-gold-light);
+filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.65)) brightness(1.15);
 }
 
 .rpg-btn-secondary:active:not(:disabled) {
 transform: translateY(1px);
 }
 
-/* Tall Carved Stone Action Button (9-sliced button-2.png) */
-.rpg-btn-tall {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-min-height: 38px;
-line-height: 1.25;
-background: transparent !important;
-border-style: solid;
-border-width: 7px 14px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/button-2.png');
-border-image-slice: 14 24 fill;
-border-image-repeat: stretch;
-color: #fde68a;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-transition: transform 0.12s ease, filter 0.15s ease;
-}
-
-.rpg-btn-tall:hover:not(:disabled) {
-filter: brightness(1.15);
-}
-
-/* Sidebar Active Chapter Button layout inside 9-slice border */
-.chapter-nav-btn.rpg-btn-primary {
-display: flex;
-justify-content: space-between;
-border-width: 5px 10px;
-}
-
-/* Sidebar Active Section Pill layout */
-.chapter-section-btn.rpg-slot-long {
-display: flex;
-justify-content: space-between;
-border-width: 3px 10px;
-}
-
-/* Mossy Stone Divider (devider.png) */
-.rpg-divider {
-height: 14px;
-width: 100%;
-background-image: url('./GUI_Fantasy_RPG_Kit/devider.png');
-background-repeat: no-repeat;
-background-position: center;
-background-size: contain;
-opacity: 0.92;
-}
-
-/* Status / Progress Bars (hp-bar + fill) */
-.rpg-bar-track {
-height: 12px;
-padding: 2px 5px;
-background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar.png');
-background-size: 100% 100%;
-background-repeat: no-repeat;
-display: flex;
-align-items: center;
-}
-
-.rpg-bar-hp {
-height: 7px;
-border-radius: 3px;
-background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar-fill.png');
-background-size: 100% 100%;
-}
-
-.rpg-bar-mana {
-height: 7px;
-border-radius: 3px;
-background-image: url('./GUI_Fantasy_RPG_Kit/mana-bar-fill.png');
-background-size: 100% 100%;
-}
-
-.rpg-bar-stamina {
-height: 7px;
-border-radius: 3px;
-background-image: url('./GUI_Fantasy_RPG_Kit/stamina-bar-fill.png');
-background-size: 100% 100%;
-}
-
-/* Square Icon Buttons (close-btn, back-btn, settings-btn) */
 .rpg-icon-btn {
 display: inline-flex;
 align-items: center;
 justify-content: center;
-transition: transform 0.12s ease, filter 0.15s ease;
+background: transparent;
+border: none;
+padding: 0;
+cursor: pointer;
+transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .rpg-icon-btn:hover {
-filter: brightness(1.18);
-transform: scale(1.05);
+transform: scale(1.07);
+filter: brightness(1.15);
 }
 
-.rpg-icon-btn:active {
-transform: scale(0.97);
+/* 9. Mossy Stone Divider
+---------------------------------------------------------------------------- */
+.rpg-divider {
+width: 100%;
+height: 16px;
+background-image: url('./GUI_Fantasy_RPG_Kit/devider.png');
+background-size: contain;
+background-repeat: no-repeat;
+background-position: center;
+opacity: 0.9;
 }
 
-/* Harmonize Chapter Primary Save/Add Buttons inside the RPG Workspace */
-.rpg-workspace-pane button.bg-indigo-600 {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-min-height: 34px;
-line-height: 1.25;
-background: transparent !important;
-border-style: solid;
-border-width: 6px 14px;
-border-color: transparent;
-border-image-source: url('./GUI_Fantasy_RPG_Kit/button-1.png');
-border-image-slice: 12 24 fill;
-border-image-repeat: stretch;
-color: #fef3c7;
-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+/* 10. RPG Status Bars (HP, Mana, Stamina)
+---------------------------------------------------------------------------- */
+.rpg-bar-hp,
+.rpg-bar-mana,
+.rpg-bar-stamina {
+position: relative;
+height: 10px;
+border-radius: 999px;
+background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar.png');
+background-size: 100% 100%;
+background-repeat: no-repeat;
+overflow: hidden;
+padding: 2px 4px;
 }
 
-.rpg-workspace-pane button.bg-indigo-600:hover:not(:disabled) {
-filter: brightness(1.14);
+.rpg-bar-hp::after,
+.rpg-bar-mana::after,
+.rpg-bar-stamina::after {
+content: "";
+display: block;
+width: 100%;
+height: 100%;
+border-radius: 999px;
+background-size: 100% 100%;
+background-repeat: no-repeat;
 }
 
-/* Translucent Inner Sub-Panels & Text Areas so the Carved Stone Texture Shows Through */
-.rpg-workspace-pane .bg-slate-950/70,
+.rpg-bar-hp::after {
+background-image: url('./GUI_Fantasy_RPG_Kit/hp-bar-fill.png');
+}
+
+.rpg-bar-mana::after {
+background-image: url('./GUI_Fantasy_RPG_Kit/mana-bar-fill.png');
+}
+
+.rpg-bar-stamina::after {
+background-image: url('./GUI_Fantasy_RPG_Kit/stamina-bar-fill.png');
+}
+
+/* 11. Translucent Inputs, Textareas, Selects & Sub-Panels
+Allows the carved stone background texture to show through forms cleanly.
+---------------------------------------------------------------------------- */
+.rpg-panel input[type="text"],
+.rpg-panel input[type="email"],
+.rpg-panel input[type="password"],
+.rpg-panel input[type="url"],
+.rpg-panel input[type="number"],
+.rpg-panel textarea,
+.rpg-panel select,
+.rpg-panel-ornate input[type="text"],
+.rpg-panel-ornate input[type="email"],
+.rpg-panel-ornate input[type="password"],
+.rpg-panel-ornate input[type="url"],
+.rpg-panel-ornate input[type="number"],
+.rpg-panel-ornate textarea,
+.rpg-panel-ornate select {
+background-color: rgba(10, 14, 23, 0.62) !important;
+border: 1px solid rgba(148, 163, 184, 0.22) !important;
+color: #f8fafc !important;
+box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.rpg-panel input:focus,
+.rpg-panel textarea:focus,
+.rpg-panel select:focus,
+.rpg-panel-ornate input:focus,
+.rpg-panel-ornate textarea:focus,
+.rpg-panel-ornate select:focus {
+background-color: rgba(13, 18, 30, 0.82) !important;
+border-color: rgba(245, 158, 11, 0.6) !important;
+box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(245, 158, 11, 0.18);
+outline: none;
+}
+
+.rpg-panel select option,
+.rpg-panel-ornate select option {
+background-color: #0f172a;
+color: #f8fafc;
+}
+
+/* Soften inner sub-cards inside the ornate stone workspace so stone grain shows through */
 .rpg-workspace-pane .bg-slate-950/60,
 .rpg-workspace-pane .bg-slate-950/50,
-.rpg-workspace-pane .bg-slate-950/40,
-.rpg-workspace-pane .bg-slate-950/30,
+.rpg-workspace-pane .bg-slate-950/70,
 .rpg-workspace-pane .bg-slate-900/70,
 .rpg-workspace-pane .bg-slate-900/60,
 .rpg-workspace-pane .bg-slate-900/50 {
-background-color: rgba(11, 15, 23, 0.42) !important;
-backdrop-filter: blur(2px);
+background-color: rgba(11, 15, 24, 0.52) !important;
+border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="url"],
-input[type="number"],
-textarea,
-select {
-background-color: rgba(9, 12, 19, 0.52) !important;
-border-color: rgba(148, 163, 184, 0.22) !important;
-color: #f8fafc !important;
-box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
-backdrop-filter: blur(2px);
-}
-
-input::placeholder,
-textarea::placeholder {
-color: rgba(148, 163, 184, 0.65) !important;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-background-color: rgba(9, 12, 19, 0.68) !important;
-border-color: #d4af37 !important;
-box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(212, 175, 55, 0.22) !important;
-}
-
-/* Custom Scrollbar */
+/* 12. Custom Stone Scrollbars
+---------------------------------------------------------------------------- */
 ::-webkit-scrollbar {
 width: 8px;
 height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-background: rgba(11, 14, 20, 0.6);
+background: rgba(11, 14, 21, 0.85);
 }
 
 ::-webkit-scrollbar-thumb {
-background: #2b3344;
+background: rgba(71, 85, 105, 0.65);
 border-radius: 4px;
-border: 1px solid #161b26;
+border: 1px solid rgba(15, 23, 42, 0.8);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-background: #424e66;
+background: rgba(245, 158, 11, 0.55);
 }
