@@ -1,10 +1,10 @@
 // chapter-setting.js
 // Dedicated interactive workbook for Chapter 1: Campaign Setting (Pages 1–16 of the Campaign Planner).
-// Renders the active section selected from the vertical nested sidebar in ui-campaign.js.
+// Renders the active section selected from the vertical nested sidebar in ui-campaign.js,
+// and includes a Daggerheart Campaign Frame builder when the Daggerheart ruleset is active.
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
-
-// Sub-sections displayed vertically under "1. Campaign Setting" in the sidebar
+import { isDaggerheart } from "./system-rulesets.js";
 export const SETTING_TABS = [
   { id: "overview", label: "Core Concept & Prompts", icon: "compass" },
   { id: "world-profile", label: "World Profile", icon: "globe" },
@@ -32,6 +32,16 @@ function getDefaultSettingData() {
     languageAndNaming: "",
     generalCulture: "",
     worldbuildingPrompts: "",
+
+    // Daggerheart Chapter 5: Campaign Frame Structure
+    dhFramePitch: "",
+    dhFrameToneFeel: "",
+    dhFrameThemes: "",
+    dhFrameTouchstones: "",
+    dhFrameDistinctions: "",
+    dhFrameIncitingIncident: "",
+    dhFrameMechanics: "",
+    dhFrameSessionZero: "",
 
     // Page 2: World Overview
     worldName: "",
@@ -93,7 +103,7 @@ export function renderCampaignSettingChapter(paneContainer, state, options = {})
     activeSettingTab = options.activeSectionId;
   }
 
-  // Find existing 'campaign-setting' document or prepare defaults
+  const dhMode = isDaggerheart(state);
   const existingDoc = state.entities.find((e) => e.type === "campaign-setting");
   const data = {
     ...getDefaultSettingData(),
@@ -124,11 +134,15 @@ export function renderCampaignSettingChapter(paneContainer, state, options = {})
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 1: Campaign Setting
+              Chapter 1: Campaign Setting${dhMode ? " • Daggerheart" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Flesh out your world's era, geography, cultures, magic, map, kingdoms, towns, and markets.
+            ${
+              dhMode
+                ? "Craft your Daggerheart Campaign Frame (Pitch, Tone, Touchstones, Distinctions & Inciting Incident), realms, settlements, and markets."
+                : "Flesh out your world's era, geography, cultures, magic, map, kingdoms, towns, and markets."
+            }
           </p>
         </div>
       </div>
@@ -145,7 +159,7 @@ export function renderCampaignSettingChapter(paneContainer, state, options = {})
 
     <!-- Active Section Form Content -->
     <div id="setting-tab-body" class="space-y-6 flex-1">
-      ${renderActiveTabContent(activeSettingTab, data)}
+      ${renderActiveTabContent(activeSettingTab, data, dhMode)}
     </div>
   `;
 
@@ -238,10 +252,93 @@ export function renderCampaignSettingChapter(paneContainer, state, options = {})
 /**
  * Generates the HTML for whichever sub-tab of Chapter 1 is currently active.
  */
-function renderActiveTabContent(tabId, data) {
+function renderActiveTabContent(tabId, data, dhMode = false) {
   switch (tabId) {
     case "overview":
       return `
+        ${
+          dhMode
+            ? `
+              <!-- Daggerheart Core Rulebook Chapter 5: Campaign Frame Builder -->
+              <div class="bg-slate-950/70 border border-amber-500/35 rounded-xl p-4 sm:p-5 space-y-4">
+                <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                    <h3 class="text-sm font-bold text-white">Daggerheart Campaign Frame</h3>
+                  </div>
+                  <span class="text-[11px] text-slate-400">Pitch • Tone &amp; Feel • Touchstones • Distinctions • Inciting Incident</span>
+                </div>
+
+                ${renderField(
+                  "dhFramePitch",
+                  "Campaign Pitch (Player Hook)",
+                  "A punchy 2–3 sentence pitch that tells your players what the campaign is about and why their heroes are drawn into it...",
+                  data.dhFramePitch,
+                  3
+                )}
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  ${renderField(
+                    "dhFrameToneFeel",
+                    "Tone & Feel",
+                    "e.g., Hopeful, Swashbuckling, Mythic, Grim, Cozy, Whimsical...",
+                    data.dhFrameToneFeel,
+                    2
+                  )}
+                  ${renderField(
+                    "dhFrameThemes",
+                    "Core Themes",
+                    "e.g., Found family, restoring forgotten magic, survival against the wilds...",
+                    data.dhFrameThemes,
+                    2
+                  )}
+                  ${renderField(
+                    "dhFrameTouchstones",
+                    "Touchstones (Media Inspiration)",
+                    "e.g., Princess Mononoke, The Witcher, Critical Role, Shadow of the Colossus...",
+                    data.dhFrameTouchstones,
+                    2
+                  )}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${renderField(
+                    "dhFrameDistinctions",
+                    "World Distinctions (Communities, Ancestries & Truths)",
+                    "What makes this realm unique? How do Daggerheart Communities, Ancestries, and the Forgotten/New Gods fit in?",
+                    data.dhFrameDistinctions,
+                    3
+                  )}
+                  ${renderField(
+                    "dhFrameIncitingIncident",
+                    "The Inciting Incident",
+                    "What dramatic event launches Session 1 and binds the party together right out of the gate?",
+                    data.dhFrameIncitingIncident,
+                    3
+                  )}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${renderField(
+                    "dhFrameMechanics",
+                    "Campaign Frame Mechanics (Optional Custom Rules)",
+                    "Any special frame mechanics—such as Corruption tracks, Blight clocks, Colossus weak points, or crafting rules...",
+                    data.dhFrameMechanics,
+                    3
+                  )}
+                  ${renderField(
+                    "dhFrameSessionZero",
+                    "Session Zero Questions & Safety Tools",
+                    "Questions to ask players during character creation to weave their backstories and connections into the world...",
+                    data.dhFrameSessionZero,
+                    3
+                  )}
+                </div>
+              </div>
+            `
+            : ""
+        }
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           ${renderField(
             "timePeriod",
