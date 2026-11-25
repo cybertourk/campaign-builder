@@ -1,9 +1,10 @@
 // ui-systems.js
 // Handles Level 1 (Game Systems directory) and Level 2 (Campaigns inside a Game System)
-// styled with the carved stone frames, buttons, dividers, and RPG icons.
+// with ruleset selection & retroactive ruleset switching (System-Agnostic, D&D 5e, etc.).
 
 import {
   createGameSystem,
+  updateGameSystem,
   selectGameSystem,
   deleteGameSystem,
   createCampaign,
@@ -11,6 +12,8 @@ import {
   deleteCampaign
 } from "./firebase-manager.js";
 import { setState } from "./state.js";
+import { RULESET_DEFINITIONS, getRulesetLabel } from "./system-rulesets.js";
+import { applyThemeToImages } from "./theme-manager.js";
 
 /**
  * LEVEL 1: Renders all Game Systems belonging to the logged-in user.
@@ -57,7 +60,7 @@ export function renderSystemsView(container, state) {
             </div>
             <h3 class="font-rpg-display text-lg font-bold text-amber-100">No Game Systems Yet</h3>
             <p class="text-slate-300 text-sm max-w-md mx-auto mt-1 mb-5">
-              Create your first Game System container (e.g., "D&D 5e", "Vampire: The Masquerade", "Daggerheart", or "Homebrew") to start organizing your campaigns.
+              Create your first Game System container (e.g., "D&D 5e", "Daggerheart", or "Homebrew") to start organizing your campaigns.
             </p>
             <button id="empty-new-system-btn" class="rpg-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold">
               <i data-lucide="plus" class="w-4 h-4 text-amber-300"></i> Create First Game System
@@ -71,19 +74,26 @@ export function renderSystemsView(container, state) {
                 (sys) => `
               <div data-system-id="${sys.id}" class="system-card rpg-card group rounded-xl p-5 flex flex-col justify-between cursor-pointer">
                 <div>
-                  <div class="rpg-bar-mana w-full mb-3.5 opacity-85"></div>
-                  <div class="flex items-center justify-between mb-3">
+                  <div class="${sys.templateType === "dnd5e" ? "rpg-bar-hp" : "rpg-bar-mana"} w-full mb-3.5 opacity-85"></div>
+                  <div class="flex items-center justify-between gap-2 mb-3">
                     <span class="rpg-slot-long inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-amber-200 px-2.5 py-1 rounded">
                       <img src="./GUI_Fantasy_RPG_Kit/settings-btn.png" alt="" class="w-3.5 h-3.5 object-contain" onerror="this.style.display='none'" />
-                      ${escapeHtml(formatTemplateLabel(sys.templateType))}
+                      ${escapeHtml(getRulesetLabel(sys.templateType))}
                     </span>
-                    <button data-delete-system="${sys.id}" title="Delete Game System" class="delete-system-btn opacity-80 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1.5 rounded transition">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                    <div class="flex items-center gap-1">
+                      <button data-edit-system="${sys.id}" title="Edit System & Ruleset"
+                        class="edit-system-btn opacity-85 sm:opacity-0 sm:group-hover:opacity-100 text-slate-300 hover:text-amber-300 p-1.5 rounded transition">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                      </button>
+                      <button data-delete-system="${sys.id}" title="Delete Game System"
+                        class="delete-system-btn opacity-85 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1.5 rounded transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
                   </div>
                   <h3 class="font-rpg-display font-bold text-lg text-amber-50 group-hover:text-amber-300 transition">${escapeHtml(sys.name)}</h3>
                   <p class="text-slate-300 text-xs sm:text-sm mt-2 line-clamp-2">
-                    ${escapeHtml(sys.description || "System-agnostic campaign collection.")}
+                    ${escapeHtml(sys.description || RULESET_DEFINITIONS[sys.templateType]?.description || "System-agnostic campaign collection.")}
                   </p>
                 </div>
                 <div class="mt-5">
@@ -104,31 +114,37 @@ export function renderSystemsView(container, state) {
         `
     }
 
-    <!-- New Game System Modal -->
-    <div id="new-system-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="text-lg font-bold text-amber-100">Create Game System</h2>
-          <button id="close-system-modal" class="rpg-icon-btn w-7 h-7" title="Close">
-            <img src="./GUI_Fantasy_RPG_Kit/close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
-          </button>
+    <!-- New / Edit Game System Modal -->
+    <div id="system-form-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[88vh] flex flex-col">
+        <div class="shrink-0">
+          <div class="flex items-center justify-between mb-2">
+            <h2 id="system-modal-title" class="text-lg font-bold text-amber-100">Create Game System</h2>
+            <button id="close-system-modal" class="rpg-icon-btn w-7 h-7" title="Close">
+              <img src="./GUI_Fantasy_RPG_Kit/close-btn.png" alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
+            </button>
+          </div>
+          <div class="rpg-divider mb-4"></div>
         </div>
-        <div class="rpg-divider mb-4"></div>
-        <form id="create-system-form" class="space-y-4">
+
+        <form id="system-editor-form" class="rpg-modal-body overflow-y-auto flex-1 min-h-0 space-y-4 pr-1">
+          <input type="hidden" id="edit-sys-id" value="" />
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">System Name *</label>
-            <input type="text" id="sys-name" required placeholder="e.g. Daggerheart, Vampire 5e, D&D 5e, Sci-Fi Homebrew"
+            <input type="text" id="sys-name" required placeholder="e.g. Dungeons & Dragons 5e, Daggerheart, Homebrew"
               class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none" />
           </div>
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Ruleset Module</label>
             <select id="sys-template" class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none">
+              <option value="dnd5e">D&amp;D 5e (5th Edition Ruleset)</option>
               <option value="generic">System-Agnostic (Universal Core)</option>
-              <option value="dnd5e" disabled>D&D 5e (Module Coming Soon)</option>
-              <option value="vtm5e" disabled>Vampire: The Masquerade (Module Coming Soon)</option>
               <option value="daggerheart" disabled>Daggerheart (Module Coming Soon)</option>
+              <option value="vtm5e" disabled>Vampire: The Masquerade 5e (Module Coming Soon)</option>
             </select>
-            <p class="text-[11px] text-slate-400 mt-1">All systems use the universal campaign planner and will unlock game-specific sheets as modules are added.</p>
+            <p id="sys-template-hint" class="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
+              ${escapeHtml(RULESET_DEFINITIONS.dnd5e.description)}
+            </p>
           </div>
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Description</label>
@@ -137,42 +153,95 @@ export function renderSystemsView(container, state) {
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" id="cancel-system-modal" class="rpg-btn-secondary px-4 py-2 text-xs font-medium rounded-lg">Cancel</button>
-            <button type="submit" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">Create System</button>
+            <button type="submit" id="submit-system-modal-btn" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">Create System</button>
           </div>
         </form>
       </div>
     </div>
   `;
 
-  const modal = container.querySelector("#new-system-modal");
-  const openModal = () => modal.classList.remove("hidden");
+  const modal = container.querySelector("#system-form-modal");
+  const modalTitle = container.querySelector("#system-modal-title");
+  const submitBtn = container.querySelector("#submit-system-modal-btn");
+  const editIdInput = container.querySelector("#edit-sys-id");
+  const nameInput = container.querySelector("#sys-name");
+  const templateSelect = container.querySelector("#sys-template");
+  const templateHint = container.querySelector("#sys-template-hint");
+  const descInput = container.querySelector("#sys-desc");
+
+  const updateTemplateHint = () => {
+    const def = RULESET_DEFINITIONS[templateSelect.value] || RULESET_DEFINITIONS.generic;
+    templateHint.textContent = def.description;
+  };
+  templateSelect?.addEventListener("change", updateTemplateHint);
+
+  const openCreateModal = () => {
+    editIdInput.value = "";
+    modalTitle.textContent = "Create Game System";
+    submitBtn.textContent = "Create System";
+    nameInput.value = "";
+    templateSelect.value = "dnd5e";
+    descInput.value = "";
+    updateTemplateHint();
+    modal.classList.remove("hidden");
+    applyThemeToImages(modal);
+  };
+
+  const openEditModal = (sys) => {
+    editIdInput.value = sys.id;
+    modalTitle.textContent = `Edit System: ${sys.name}`;
+    submitBtn.textContent = "Save Changes";
+    nameInput.value = sys.name || "";
+    templateSelect.value = sys.templateType || "generic";
+    descInput.value = sys.description || "";
+    updateTemplateHint();
+    modal.classList.remove("hidden");
+    applyThemeToImages(modal);
+  };
+
   const closeModal = () => modal.classList.add("hidden");
 
-  container.querySelector("#open-new-system-modal")?.addEventListener("click", openModal);
-  container.querySelector("#empty-new-system-btn")?.addEventListener("click", openModal);
+  container.querySelector("#open-new-system-modal")?.addEventListener("click", openCreateModal);
+  container.querySelector("#empty-new-system-btn")?.addEventListener("click", openCreateModal);
   container.querySelector("#close-system-modal")?.addEventListener("click", closeModal);
   container.querySelector("#cancel-system-modal")?.addEventListener("click", closeModal);
 
-  container.querySelector("#create-system-form").addEventListener("submit", async (e) => {
+  container.querySelector("#system-editor-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = container.querySelector("#sys-name").value;
-    const description = container.querySelector("#sys-desc").value;
-    const templateType = container.querySelector("#sys-template").value;
+    const editId = editIdInput.value;
+    const name = nameInput.value;
+    const description = descInput.value;
+    const templateType = templateSelect.value;
     closeModal();
-    await createGameSystem({ name, description, templateType });
+
+    if (editId) {
+      await updateGameSystem(editId, { name, description, templateType });
+    } else {
+      await createGameSystem({ name, description, templateType });
+    }
   });
 
   // Card click -> open System's Campaigns
   container.querySelectorAll(".system-card").forEach((card) => {
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".delete-system-btn")) return;
+      if (e.target.closest(".delete-system-btn") || e.target.closest(".edit-system-btn")) return;
       const sysId = card.getAttribute("data-system-id");
       const system = state.systems.find((s) => s.id === sysId);
       if (system) selectGameSystem(system);
     });
   });
 
-  // Delete System button (inline two-step confirmation without window.confirm)
+  // Edit System & Ruleset button
+  container.querySelectorAll(".edit-system-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const sysId = btn.getAttribute("data-edit-system");
+      const system = state.systems.find((s) => s.id === sysId);
+      if (system) openEditModal(system);
+    });
+  });
+
+  // Delete System button
   container.querySelectorAll(".delete-system-btn").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -225,10 +294,17 @@ export function renderCampaignsView(container, state) {
             <div class="flex items-center gap-2.5 flex-wrap">
               <h1 class="text-xl sm:text-2xl font-bold text-amber-100">${escapeHtml(sys.name)} Campaigns</h1>
               <span class="rpg-slot-long text-xs text-amber-200">
-                ${escapeHtml(formatTemplateLabel(sys.templateType))}
+                ${escapeHtml(getRulesetLabel(sys.templateType))}
               </span>
+              ${
+                sys.templateType !== "dnd5e"
+                  ? `<button type="button" id="quick-switch-dnd5e-btn" class="rpg-btn-secondary text-[11px] px-2.5 py-1 rounded-lg">
+                      Switch to D&amp;D 5e Ruleset
+                    </button>`
+                  : ""
+              }
             </div>
-            <p class="text-slate-300 text-xs sm:text-sm mt-1">${escapeHtml(sys.description || "Manage all campaigns, chronicles, and worlds built under this system.")}</p>
+            <p class="text-slate-300 text-xs sm:text-sm mt-1">${escapeHtml(sys.description || RULESET_DEFINITIONS[sys.templateType]?.description || "Manage all campaigns, chronicles, and worlds built under this system.")}</p>
           </div>
         </div>
         <button id="open-new-campaign-modal" class="rpg-btn-primary inline-flex items-center gap-2 text-xs sm:text-sm font-semibold shrink-0">
@@ -299,7 +375,7 @@ export function renderCampaignsView(container, state) {
 
     <!-- New Campaign Modal -->
     <div id="new-campaign-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+      <div class="rpg-panel-ornate rounded-2xl max-w-md w-full p-5 sm:p-6 max-h-[88vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-lg font-bold text-amber-100">New Campaign in ${escapeHtml(sys.name)}</h2>
           <button id="close-campaign-modal" class="rpg-icon-btn w-7 h-7" title="Close">
@@ -338,6 +414,10 @@ export function renderCampaignsView(container, state) {
 
   container.querySelector("#back-to-systems").addEventListener("click", () => {
     setState({ activeSystem: null, activeCampaign: null, currentView: "systems" });
+  });
+
+  container.querySelector("#quick-switch-dnd5e-btn")?.addEventListener("click", async () => {
+    await updateGameSystem(sys.id, { templateType: "dnd5e" });
   });
 
   const modal = container.querySelector("#new-campaign-modal");
@@ -386,16 +466,6 @@ export function renderCampaignsView(container, state) {
       await deleteCampaign(campId);
     });
   });
-}
-
-function formatTemplateLabel(type) {
-  const labels = {
-    generic: "System-Agnostic",
-    dnd5e: "D&D 5e",
-    vtm5e: "Vampire 5e",
-    daggerheart: "Daggerheart"
-  };
-  return labels[type] || "System-Agnostic";
 }
 
 function statusBarClass(status) {
