@@ -1,12 +1,13 @@
 // prompt-guide.js
 // Interactive guided worldbuilding prompt system ("Campaign Muse") + Global Settings Menu.
 // Interviews the GM one question at a time using selectable guide personalities
-// (defaulting to "The Enthusiastic Fan") and auto-saves answers straight into the
-// corresponding Campaign Planner chapters in Firestore.
+// (defaulting to "The Enthusiastic Fan"), adapts to the active Game System ruleset
+// (such as D&D 5e), and auto-saves answers straight into the Campaign Planner chapters.
 
 import { appState, setState } from "./state.js";
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import { getTheme, setTheme, applyThemeToImages } from "./theme-manager.js";
+import { isDnd5e } from "./system-rulesets.js";
 
 const GUIDE_SETTINGS_KEY = "realmforge_guide_settings";
 
@@ -114,13 +115,11 @@ function extractWorldContext(entities = []) {
   const npc = entities.find((e) => e.type === "npc")?.systemData || {};
   const deities = entities.find((e) => e.type === "deities")?.systemData || {};
   const encounters = entities.find((e) => e.type === "random-encounters")?.systemData || {};
+  const items = entities.find((e) => e.type === "item-list")?.systemData || {};
 
   const firstTown = Array.isArray(setting.towns) && setting.towns[0]?.name ? setting.towns[0].name.trim() : "";
   const firstMarket = Array.isArray(setting.markets) && setting.markets[0]?.marketName ? setting.markets[0].marketName.trim() : "";
-  const firstAdventure = Array.isArray(plot.adventures) && plot.adventures[0]?.title ? plot.adventures[0].title.trim() : "";
   const firstFaction = Array.isArray(factions.factions) && factions.factions[0]?.factionName ? factions.factions[0].factionName.trim() : "";
-  const firstMinorNpc = Array.isArray(npc.minorNpcs) && npc.minorNpcs[0]?.name ? npc.minorNpcs[0].name.trim() : "";
-  const firstKeyNpc = Array.isArray(npc.keyNpcs) && npc.keyNpcs[0]?.name ? npc.keyNpcs[0].name.trim() : "";
 
   return {
     setting,
@@ -130,25 +129,22 @@ function extractWorldContext(entities = []) {
     npc,
     deities,
     encounters,
+    items,
     worldName: (setting.worldName || "").trim(),
     timePeriod: (setting.timePeriod || "").trim(),
     magicSystem: (setting.magicSystem || "").trim(),
-    currentEvents: (setting.currentEvents || "").trim(),
     firstTown,
     firstMarket,
     apocalypticEvent: (plot.apocalypticEvent || "").trim(),
     howToStop: (plot.howToStop || "").trim(),
-    firstAdventure,
     mainVillain: (enemies.mainVillain || "").trim(),
     villainMotivation: (enemies.villainMotivation || "").trim(),
-    firstFaction,
-    firstMinorNpc,
-    firstKeyNpc
+    firstFaction
   };
 }
 
 // ============================================================================
-// 3. CURATED PROMPT BANK (WITH ENTHUSIASTIC FAN VOICE + ALTERNATE PERSONAS)
+// 3. CURATED PROMPT BANK (WITH ENTHUSIASTIC FAN VOICE + D&D 5E AWARENESS)
 // ============================================================================
 
 const PROMPT_TEMPLATES = [
@@ -398,19 +394,20 @@ const PROMPT_TEMPLATES = [
     namePlaceholder: "e.g., Trouble at Bellweather Mine",
     answerLabel: "The Inciting Incident / Plot Hook",
     answerPlaceholder: "What sudden event, plea for help, or mystery kicks off the very first adventure?",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona, ctx, dndMode) => {
       const placeRef = ctx.firstMarket
         ? `at ${ctx.firstMarket}`
         : ctx.firstTown
         ? `in ${ctx.firstTown}`
         : "in the opening scene";
+      const dndTag = dndMode ? " (and what tier/level are the adventurers starting at?)" : "";
       if (persona === "scholar") {
-        return `What inciting incident ${placeRef} compels the heroes to take up arms and embark on their very first expedition?`;
+        return `What inciting incident ${placeRef} compels the heroes to take up arms and embark on their very first expedition${dndTag}?`;
       }
       if (persona === "bard") {
-        return `Picture the opening scene ${placeRef}: the music stops, the door bursts open—what sudden crisis or tempting bounty launches the first adventure?`;
+        return `Picture the opening scene ${placeRef}: the music stops, the door bursts open—what sudden crisis or tempting bounty launches the first adventure${dndTag}?`;
       }
-      return `Alright, imagine the camera pans in ${placeRef}—what suddenly bursts through the door or drops onto the table to kick off the very first quest?!`;
+      return `Alright, imagine the camera pans in ${placeRef}—what suddenly bursts through the door or drops onto the table to kick off the very first quest${dndTag}?!`;
     },
     sparkIdeas: [
       "A courier stumbles in clutching a locked iron strongbox that's ticking—and says three different factions are already tracking it.",
@@ -484,14 +481,15 @@ const PROMPT_TEMPLATES = [
     hasNameField: false,
     answerLabel: "World Era, Genre & Atmosphere",
     answerPlaceholder: "e.g., Gritty medieval fantasy after a fallen arcane empire, sun-drenched sky-pirate archipelago, gothic steampunk...",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona, _ctx, dndMode) => {
+      const dndAddon = dndMode ? " (And are we doing Milestone leveling or classic XP?)" : "";
       if (persona === "scholar") {
-        return "To properly categorize this world in our archives, what historical era, aesthetic tone, and genre conventions define daily life across the realm?";
+        return `To properly categorize this world in our archives, what historical era, aesthetic tone, and genre conventions define daily life across the realm${dndAddon}?`;
       }
       if (persona === "bard") {
-        return "Set the mood for the listeners! What kind of world are we stepping into—high heroic fantasy, grim survival, arcane steampunk, or something totally unique?";
+        return `Set the mood for the listeners! What kind of world are we stepping into—high heroic fantasy, grim survival, arcane steampunk, or something totally unique${dndAddon}?`;
       }
-      return "Okay, give me the elevator pitch! What kind of vibe are we talking for this world—classic swords-and-sorcery, gritty low magic, sky-pirate steampunk, or something totally wild?!";
+      return `Okay, give me the elevator pitch! What kind of vibe are we talking for this world—classic swords-and-sorcery, gritty low magic, sky-pirate steampunk, or something totally wild${dndAddon}?!`;
     },
     sparkIdeas: [
       "Post-apocalyptic high fantasy: civilization survives in walled city-states built inside the ruins of colossal fallen titans.",
@@ -531,7 +529,7 @@ const PROMPT_TEMPLATES = [
     namePlaceholder: "e.g., Aethelgard, The Shattered Reach, Vaelora",
     answerLabel: "What Makes This World Instantly Memorable?",
     answerPlaceholder: "e.g., Two moons that control the tides of magic, a continent where the sun never fully sets, floating stone islands...",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona) => {
       if (persona === "scholar") {
         return "By what name do inhabitants call this world, and what cosmological or geographical trait sets it apart from all other planes?";
       }
@@ -757,7 +755,7 @@ const PROMPT_TEMPLATES = [
     namePlaceholder: "e.g., The Iron Vanguard, The Veilwalkers",
     answerLabel: "Their Goal, Reputation & Methods",
     answerPlaceholder: "What do they stand for, how do commoners view them, and what are they secretly after?",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona) => {
       if (persona === "scholar") {
         return "Which influential guild, order, or political faction wields significant sway in the realm, and what objective guides their actions?";
       }
@@ -902,7 +900,7 @@ const PROMPT_TEMPLATES = [
     namePlaceholder: "e.g., Lady Seraphina Thorne, Archmage Vaelen",
     answerLabel: "Their Secret, Agenda & Connection to the Main Plot",
     answerPlaceholder: "What do they want, what secret are they hiding, and how will they help or complicate the party's journey?",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona) => {
       if (persona === "scholar") {
         return "Which pivotal patron, ruler, or enigmatic figure stands at the center of the main storyline, and what hidden motive shapes their counsel?";
       }
@@ -987,17 +985,18 @@ const PROMPT_TEMPLATES = [
     sectionId: "world-details",
     chapterLabel: "Ch. 1: Campaign Setting › Nature, Magic & Society",
     hasNameField: false,
-    answerLabel: "How Magic & the Supernatural Work",
+    answerLabel: "How Magic & Magic Items Work",
     answerPlaceholder: "Is magic common and sold in shops, feared by commoners, regulated by guilds, or wildly unpredictable?",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona, ctx, dndMode) => {
       const worldRef = ctx.worldName ? ` in ${ctx.worldName}` : "";
+      const dndTag = dndMode ? " (and how rare are magic items and attuned relics?)" : "";
       if (persona === "scholar") {
-        return `How is arcane or supernatural power sourced, practiced, and regulated by society${worldRef}?`;
+        return `How is arcane or supernatural power sourced, practiced, and regulated by society${worldRef}${dndTag}?`;
       }
       if (persona === "bard") {
-        return `Do folks light their hearths with cantrips, or do villagers cross the street when a spellcaster walks by? How does magic feel${worldRef}?`;
+        return `Do folks light their hearths with cantrips, or do villagers cross the street when a spellcaster walks by? How does magic feel${worldRef}${dndTag}?`;
       }
-      return `Tell me about the magic system${worldRef}! Is magic super common and everyday, rare and mysterious, or regulated by strict wizard guilds?!`;
+      return `Tell me about the magic system${worldRef}${dndTag}! Is magic super common and everyday, rare and mysterious, or regulated by strict wizard guilds?!`;
     },
     sparkIdeas: [
       "Magic leaves visible glowing frost or embers on the caster's hands for hours, making secret spellcasting risky.",
@@ -1035,14 +1034,15 @@ const PROMPT_TEMPLATES = [
     hasNameField: false,
     answerLabel: "Role of Gods, Faith & Patrons",
     answerPlaceholder: "Are the gods active and vocal, distant myths, locked in celestial war, or central to the main plot?",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona, _ctx, dndMode) => {
+      const dndTag = dndMode ? " (for Clerics, Paladins, and Warlock patrons)" : "";
       if (persona === "scholar") {
-        return "What role do deities, temples, and cosmological faiths play in the mortal affairs and central conflict of your world?";
+        return `What role do deities, temples, and cosmological faiths play in the mortal affairs and central conflict of your world${dndTag}?`;
       }
       if (persona === "bard") {
-        return "Do the gods still answer prayers and walk among mortals, or are their temples echoes of an older age?";
+        return `Do the gods still answer prayers and walk among mortals, or are their temples echoes of an older age${dndTag}?`;
       }
-      return "What's the deal with the gods and religion in your world?! Are they super active in the main plot, or more distant legends that clerics pray to?";
+      return `What's the deal with the gods and religion in your world${dndTag}?! Are they super active in the main plot, or more distant legends that clerics pray to?`;
     },
     sparkIdeas: [
       "The gods went silent a century ago, and now their abandoned cathedrals are suddenly relighting their sacred braziers.",
@@ -1089,7 +1089,7 @@ const PROMPT_TEMPLATES = [
     hasNameField: false,
     answerLabel: "Signature Road or Wilderness Encounter",
     answerPlaceholder: "e.g., 1d4+1 Rust-Eater Wolves hunting at dusk, or a traveling clockwork merchant with a broken axle...",
-    getQuestion: (persona, ctx) => {
+    getQuestion: (persona) => {
       if (persona === "scholar") {
         return "What notable hazard, creature pack, or unexpected encounter awaits travelers who stray off the cobbles onto the wild roads?";
       }
@@ -1142,17 +1142,11 @@ const PROMPT_TEMPLATES = [
   }
 ];
 
-/**
- * Returns the ordered prompt list sorted by the active Prep Path ("session1" vs "bigpicture").
- */
 export function getOrderedPrompts() {
   const orderKey = guideSettings.prepPath === "bigpicture" ? "bigPictureOrder" : "session1Order";
   return [...PROMPT_TEMPLATES].sort((a, b) => a[orderKey] - b[orderKey]);
 }
 
-/**
- * Computes progress across all prompts for the current campaign's entities.
- */
 export function getPromptProgress(entities = []) {
   const ctx = extractWorldContext(entities);
   const prompts = getOrderedPrompts();
@@ -1236,7 +1230,6 @@ export function openSettingsModal(onSettingsSaved = null) {
 
       <!-- Inner Scrollable Options Body -->
       <div class="rpg-modal-body overflow-y-auto flex-1 min-h-0 pr-1 space-y-4">
-        <!-- 1. Campaign Muse Personality -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-amber-200 mb-2">
             Campaign Muse Personality
@@ -1274,7 +1267,6 @@ export function openSettingsModal(onSettingsSaved = null) {
           </div>
         </div>
 
-        <!-- 2. Worldbuilding Prep Path -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-amber-200 mb-2">
             Guided Prompt Order
@@ -1302,7 +1294,6 @@ export function openSettingsModal(onSettingsSaved = null) {
           </div>
         </div>
 
-        <!-- 3. Visual Theme -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-amber-200 mb-2">
             Visual Theme
@@ -1317,7 +1308,7 @@ export function openSettingsModal(onSettingsSaved = null) {
               <span class="w-4 h-4 rounded-full bg-slate-800 border border-amber-400/60 shrink-0"></span>
               <div>
                 <div class="text-xs font-bold text-white">Stone (Dark)</div>
-                <div class="text-[10px] text-slate-400">Carved slate & gold</div>
+                <div class="text-[10px] text-slate-400">Carved slate &amp; gold</div>
               </div>
             </button>
             <button type="button" data-pick-theme="parchment"
@@ -1329,7 +1320,7 @@ export function openSettingsModal(onSettingsSaved = null) {
               <span class="w-4 h-4 rounded-full bg-amber-100 border border-amber-800/60 shrink-0"></span>
               <div>
                 <div class="text-xs font-bold text-white">Parchment (Light)</div>
-                <div class="text-[10px] text-slate-400">Sunlit oak & vellum</div>
+                <div class="text-[10px] text-slate-400">Sunlit oak &amp; vellum</div>
               </div>
             </button>
           </div>
@@ -1355,9 +1346,7 @@ export function openSettingsModal(onSettingsSaved = null) {
   if (window.lucide) window.lucide.createIcons();
   applyThemeToImages(modal);
 
-  const closeModal = () => {
-    modal.classList.add("hidden");
-  };
+  const closeModal = () => modal.classList.add("hidden");
 
   modal.querySelector("#close-settings-modal-btn")?.addEventListener("click", closeModal);
   modal.querySelector("#cancel-settings-modal-btn")?.addEventListener("click", closeModal);
@@ -1385,7 +1374,6 @@ export function openSettingsModal(onSettingsSaved = null) {
     if (typeof onSettingsSaved === "function") {
       onSettingsSaved();
     } else {
-      // Trigger a state refresh so active workspace banners immediately adopt the new personality
       setState({});
     }
   });
@@ -1395,10 +1383,6 @@ export function openSettingsModal(onSettingsSaved = null) {
 // 5. WORKSPACE "NEXT PROMPT" BANNER & INTERVIEW MODAL
 // ============================================================================
 
-/**
- * Renders the compact "Campaign Muse" prompt bar at the top of the workspace
- * and wires the sidebar trigger button.
- */
 export function renderWorkspacePromptBanner(bannerSlot, state, onJumpToChapter) {
   if (!bannerSlot) return;
 
@@ -1408,6 +1392,7 @@ export function renderWorkspacePromptBanner(bannerSlot, state, onJumpToChapter) 
     return;
   }
 
+  const dndMode = isDnd5e(state);
   const persona = GUIDE_PERSONALITIES[guideSettings.personality] || GUIDE_PERSONALITIES.fan;
   const ctx = extractWorldContext(state.entities);
   const progress = getPromptProgress(state.entities);
@@ -1418,7 +1403,7 @@ export function renderWorkspacePromptBanner(bannerSlot, state, onJumpToChapter) 
     return;
   }
 
-  const questionPreview = nextItem.prompt.getQuestion(persona.id, ctx);
+  const questionPreview = nextItem.prompt.getQuestion(persona.id, ctx, dndMode);
 
   bannerSlot.innerHTML = `
     <div class="rpg-panel rounded-xl p-3.5 sm:p-4 mb-5">
@@ -1473,9 +1458,6 @@ export function renderWorkspacePromptBanner(bannerSlot, state, onJumpToChapter) 
   });
 }
 
-/**
- * Opens the focused 1-Question-at-a-Time Worldbuilding Interview Modal.
- */
 export function openPromptInterviewModal(state, startIndex = null, onJumpToChapter = null) {
   const progress = getPromptProgress(state.entities);
   if (typeof startIndex === "number" && startIndex >= 0 && startIndex < progress.items.length) {
@@ -1495,12 +1477,13 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
   }
 
   const renderModalContent = (toastMessage = "") => {
+    const dndMode = isDnd5e(appState);
     const freshProgress = getPromptProgress(appState.entities);
     const ctx = extractWorldContext(appState.entities);
     const persona = GUIDE_PERSONALITIES[guideSettings.personality] || GUIDE_PERSONALITIES.fan;
     const currentItem = freshProgress.items[activePromptIndex] || freshProgress.items[0];
     const promptObj = currentItem.prompt;
-    const questionText = promptObj.getQuestion(persona.id, ctx);
+    const questionText = promptObj.getQuestion(persona.id, ctx, dndMode);
 
     const activeSpark =
       activeSparkIndex >= 0 && promptObj.sparkIdeas?.[activeSparkIndex]
@@ -1559,7 +1542,6 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
               : ""
           }
 
-          <!-- Stage & Question Navigator -->
           <div class="flex items-center justify-between gap-2 mb-3 text-xs">
             <span class="font-semibold text-amber-300">${escapeHtml(promptObj.stage)}</span>
             <div class="flex items-center gap-1.5">
@@ -1572,14 +1554,12 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
             </div>
           </div>
 
-          <!-- Question Speech Box -->
           <div class="bg-slate-950/75 border border-amber-500/30 rounded-xl p-3.5 sm:p-4 mb-4">
             <p class="text-sm sm:text-base text-amber-50 font-medium leading-relaxed">
               "${escapeHtml(questionText)}"
             </p>
           </div>
 
-          <!-- Answer Form -->
           <div class="space-y-3.5">
             ${
               promptObj.hasNameField
@@ -1659,7 +1639,7 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
             <button type="button" id="save-next-prompt-btn"
               class="rpg-btn-primary text-xs px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5">
               <i data-lucide="save" class="w-4 h-4"></i>
-              <span>Save & Next Question →</span>
+              <span>Save &amp; Next Question →</span>
             </button>
           </div>
         </div>
@@ -1670,7 +1650,6 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
     if (window.lucide) window.lucide.createIcons();
     applyThemeToImages(modal);
 
-    // Wire Close & Settings
     modal.querySelector("#close-prompt-modal-btn")?.addEventListener("click", () => {
       modal.classList.add("hidden");
     });
@@ -1679,7 +1658,6 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
       openSettingsModal(() => renderModalContent());
     });
 
-    // Wire Spark Idea cycling
     modal.querySelector("#spark-idea-btn")?.addEventListener("click", () => {
       const ideas = promptObj.sparkIdeas || [];
       if (ideas.length === 0) return;
@@ -1694,7 +1672,6 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
       }
     });
 
-    // Wire Previous / Skip
     modal.querySelector("#prev-prompt-btn")?.addEventListener("click", () => {
       activeSparkIndex = -1;
       activePromptIndex = (activePromptIndex - 1 + freshProgress.totalCount) % freshProgress.totalCount;
@@ -1707,7 +1684,6 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
       renderModalContent();
     });
 
-    // Wire Open Full Chapter Sheet
     modal.querySelector("#jump-to-chapter-btn")?.addEventListener("click", () => {
       modal.classList.add("hidden");
       if (typeof onJumpToChapter === "function") {
@@ -1715,7 +1691,6 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
       }
     });
 
-    // Wire Save & Advance to Next Unanswered Prompt
     modal.querySelector("#save-next-prompt-btn")?.addEventListener("click", async () => {
       const saveBtn = modal.querySelector("#save-next-prompt-btn");
       const nameVal = modal.querySelector("#prompt-name-input")?.value.trim() || "";
@@ -1743,7 +1718,10 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
         );
         if (nextIdx >= 0) {
           activePromptIndex = nextIdx;
-        } else if (updatedProgress.nextUnansweredIndex >= 0 && !updatedProgress.items[updatedProgress.nextUnansweredIndex].isAnswered) {
+        } else if (
+          updatedProgress.nextUnansweredIndex >= 0 &&
+          !updatedProgress.items[updatedProgress.nextUnansweredIndex].isAnswered
+        ) {
           activePromptIndex = updatedProgress.nextUnansweredIndex;
         } else {
           activePromptIndex = (activePromptIndex + 1) % updatedProgress.totalCount;
