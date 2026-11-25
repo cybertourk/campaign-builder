@@ -1,14 +1,19 @@
 // chapter-items.js
 // Dedicated interactive workbook for Chapter 8: Item List.
-// Includes Items, Armor List, Weapon List, Spell List, and D&D 5e enhancements
-// (Item Rarity, Requires Attunement toggle, Spell Level/School, Casting Time, Range, Components, Duration).
+// Includes Items, Armor List, Weapon List, Spell / Domain Card List, and ruleset-aware
+// metadata for both D&D 5e and Daggerheart (Tiers 1–4, Range Bands, Thresholds, Domain Cards).
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import {
   isDnd5e,
+  isDaggerheart,
   DND5E_RARITIES,
   DND5E_SPELL_SCHOOLS,
-  DND5E_SPELL_LEVELS
+  DND5E_SPELL_LEVELS,
+  DAGGERHEART_TIERS,
+  DAGGERHEART_RANGE_BANDS,
+  DAGGERHEART_DOMAINS,
+  DAGGERHEART_TRAITS
 } from "./system-rulesets.js";
 
 export const ITEMS_TABS = [
@@ -37,6 +42,7 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
   }
 
   const dndMode = isDnd5e(state);
+  const dhMode = isDaggerheart(state);
   const existingDoc = state.entities.find((e) => e.type === "item-list");
   const data = {
     ...getDefaultItemsData(),
@@ -50,6 +56,11 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
   const currentSection =
     ITEMS_TABS.find((t) => t.id === activeItemsTab) || ITEMS_TABS[0];
 
+  const sectionDisplayLabel =
+    dhMode && currentSection.id === "spell-list"
+      ? "Domain Cards & Grimoires"
+      : currentSection.label;
+
   paneContainer.innerHTML = `
     <!-- Chapter & Active Section Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
@@ -59,13 +70,17 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
         </div>
         <div>
           <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
+            <h1 class="text-xl font-bold text-white">${escapeHtml(sectionDisplayLabel)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 8: Item List${dndMode ? " • D&D 5e" : ""}
+              Chapter 8: Item List${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Catalog custom items, armor, weapons, and spells with ${dndMode ? "5e rarity, attunement, spell schools/components, and" : "stats, descriptions, and"} artwork previews.
+            ${
+              dhMode
+                ? "Catalog Daggerheart gear, Tier 1–4 armor with Base Thresholds, Trait & Range Band weapons, and Domain Cards."
+                : `Catalog custom items, armor, weapons, and spells with ${dndMode ? "5e rarity, attunement, spell schools/components, and" : "stats, descriptions, and"} artwork previews.`
+            }
           </p>
         </div>
       </div>
@@ -82,7 +97,7 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderItemsTabContent(activeItemsTab, data, dndMode)}
+      ${renderItemsTabContent(activeItemsTab, data, dndMode, dhMode)}
     </div>
   `;
 
@@ -154,16 +169,16 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderItemsTabContent(tabId, data, dndMode) {
+function renderItemsTabContent(tabId, data, dndMode, dhMode) {
   switch (tabId) {
     case "general-items":
       return renderGeneralItemsSection(data.items, dndMode);
     case "armor-list":
-      return renderArmorSection(data.armor, dndMode);
+      return renderArmorSection(data.armor, dndMode, dhMode);
     case "weapon-list":
-      return renderWeaponsSection(data.weapons, dndMode);
+      return renderWeaponsSection(data.weapons, dndMode, dhMode);
     case "spell-list":
-      return renderSpellsSection(data.spells, dndMode);
+      return renderSpellsSection(data.spells, dndMode, dhMode);
     case "misc-notes":
       return `
         <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
@@ -263,12 +278,12 @@ function renderGeneralItemsSection(items, dndMode) {
   `;
 }
 
-function renderArmorSection(armorList, dndMode) {
+function renderArmorSection(armorList, dndMode, dhMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
         <h3 class="text-sm font-bold text-white">Armor List</h3>
-        <p class="text-xs text-slate-400">Track armor pieces, shields, AC bonuses, cost, and artwork.</p>
+        <p class="text-xs text-slate-400">${dhMode ? "Track Daggerheart armor Base Thresholds (Major / Severe), Base Armor Score, Tier, and Features." : "Track armor pieces, shields, AC bonuses, cost, and artwork."}</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
         <i data-lucide="plus" class="w-4 h-4"></i> Add Armor
@@ -291,54 +306,32 @@ function renderArmorSection(armorList, dndMode) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-6">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Type</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Armor Name & Tier" : "Name / Type"}</label>
                     <input type="text" data-list-key="armor" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(arm.nameLevel || "")}"
-                      placeholder="e.g., Mithral Breastplate (Medium)"
+                      placeholder="${dhMode ? "e.g., Runed Chainmail (Tier 2)" : "e.g., Mithral Breastplate (Medium)"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-3">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">AC / Defense</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Base Armor Score" : "AC / Defense"}</label>
                     <input type="text" data-list-key="armor" data-row-idx="${idx}" data-row-field="ac" value="${escapeHtml(arm.ac || "")}"
-                      placeholder="e.g., 14 + Dex (max 2)"
+                      placeholder="${dhMode ? "e.g., 4" : "e.g., 14 + Dex (max 2)"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-emerald-300 focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-3">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Cost</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Base Thresholds (Major/Severe)" : "Cost"}</label>
                     <input type="text" data-list-key="armor" data-row-idx="${idx}" data-row-field="cost" value="${escapeHtml(arm.cost || "")}"
-                      placeholder="e.g., 400 gp"
+                      placeholder="${dhMode ? "e.g., 7 / 15" : "e.g., 400 gp"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-amber-300 focus:outline-none focus:border-indigo-500" />
                   </div>
                 </div>
 
                 ${dndMode ? renderRarityAttuneRow("armor", idx, arm) : ""}
-
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                  <div class="md:col-span-4">
-                    ${renderInlineImageControl("armor", idx, arm.imageUrl)}
-                  </div>
-                  <div class="md:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description</label>
-                    <textarea data-list-key="armor" data-row-idx="${idx}" data-row-field="description" rows="4"
-                      placeholder="Stealth penalties, resistances, weight, special enchantments..."
-                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(arm.description || "")}</textarea>
-                  </div>
-                </div>
-              </div>
-            `
-              )
-              .join("")}
-          </div>
-        `
-    }
-  `;
-}
-
-function renderWeaponsSection(weaponList, dndMode) {
+function renderWeaponsSection(weaponList, dndMode, dhMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
         <h3 class="text-sm font-bold text-white">Weapon List</h3>
-        <p class="text-xs text-slate-400">Catalog melee, ranged, and enchanted weapons with damage, properties, and artwork.</p>
+        <p class="text-xs text-slate-400">${dhMode ? "Catalog Primary & Secondary weapons with Trait, Range Band (Melee–Very Far), Damage Dice & Type (phy/mag), and Features." : "Catalog melee, ranged, and enchanted weapons with damage, properties, and artwork."}</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
         <i data-lucide="plus" class="w-4 h-4"></i> Add Weapon
@@ -361,57 +354,71 @@ function renderWeaponsSection(weaponList, dndMode) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Category</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Weapon Name & Tier" : "Name / Category"}</label>
                     <input type="text" data-list-key="weapons" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(wpn.nameLevel || "")}"
-                      placeholder="e.g., Sunforged Longsword +1 (Martial Melee)"
+                      placeholder="${dhMode ? "e.g., Gilded Longbow (Tier 2 Primary)" : "e.g., Sunforged Longsword +1 (Martial Melee)"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-4">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Damage</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Damage Dice & Type" : "Damage"}</label>
                     <input type="text" data-list-key="weapons" data-row-idx="${idx}" data-row-field="damage" value="${escapeHtml(wpn.damage || "")}"
-                      placeholder="e.g., 1d8 + 1 slashing + 1d4 fire"
+                      placeholder="${dhMode ? "e.g., d8+3 phy / d10 mag" : "e.g., 1d8 + 1 slashing + 1d4 fire"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-rose-300 focus:outline-none focus:border-indigo-500" />
                   </div>
                 </div>
 
+                ${
+                  dhMode
+                    ? `
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-900/50 border border-slate-800 rounded-xl p-2.5">
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Trait</label>
+                          <select data-list-key="weapons" data-row-idx="${idx}" data-row-field="dhTrait"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${DAGGERHEART_TRAITS.map(
+                              (t) => `<option value="${t.label}" ${(wpn.dhTrait || "Agility") === t.label ? "selected" : ""}>${t.label}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Range Band</label>
+                          <select data-list-key="weapons" data-row-idx="${idx}" data-row-field="dhRange"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${DAGGERHEART_RANGE_BANDS.map(
+                              (rb) => `<option value="${rb}" ${(wpn.dhRange || "Melee") === rb ? "selected" : ""}>${rb}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Tier</label>
+                          <select data-list-key="weapons" data-row-idx="${idx}" data-row-field="dhTier"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${DAGGERHEART_TIERS.map(
+                              (tr) => `<option value="${tr}" ${(wpn.dhTier || "Tier 1 (Lvl 1)") === tr ? "selected" : ""}>${tr}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                      </div>
+                    `
+                    : ""
+                }
+
                 ${dndMode ? renderRarityAttuneRow("weapons", idx, wpn) : ""}
-
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                  <div class="md:col-span-4">
-                    ${renderInlineImageControl("weapons", idx, wpn.imageUrl)}
-                  </div>
-                  <div class="md:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description &amp; Properties</label>
-                    <textarea data-list-key="weapons" data-row-idx="${idx}" data-row-field="description" rows="4"
-                      placeholder="Range, traits (Finesse, Heavy, Versatile, Reach), special abilities, cost..."
-                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(wpn.description || "")}</textarea>
-                  </div>
-                </div>
-              </div>
-            `
-              )
-              .join("")}
-          </div>
-        `
-    }
-  `;
-}
-
-function renderSpellsSection(spellList, dndMode) {
+function renderSpellsSection(spellList, dndMode, dhMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
-        <h3 class="text-sm font-bold text-white">Spell List</h3>
-        <p class="text-xs text-slate-400">Record custom spells, rituals, domain powers, spell levels, damage/effects, and artwork.</p>
+        <h3 class="text-sm font-bold text-white">${dhMode ? "Domain Cards & Grimoires" : "Spell List"}</h3>
+        <p class="text-xs text-slate-400">${dhMode ? "Catalog custom Domain Cards (Abilities, Spells & Grimoires) across Arcana, Blade, Bone, Codex, Grace, Midnight, Sage, Splendor & Valor." : "Record custom spells, rituals, domain powers, spell levels, damage/effects, and artwork."}</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
-        <i data-lucide="plus" class="w-4 h-4"></i> Add Spell
+        <i data-lucide="plus" class="w-4 h-4"></i> ${dhMode ? "Add Domain Card" : "Add Spell"}
       </button>
     </div>
 
     ${
       spellList.length === 0
-        ? renderEmptyState("wand-2", "No Spells Added Yet", 'Click "Add Spell" to document custom magic, rituals, and cantrips.')
+        ? renderEmptyState("wand-2", dhMode ? "No Domain Cards Added Yet" : "No Spells Added Yet", dhMode ? 'Click "Add Domain Card" to document custom abilities, spells, and grimoires.' : 'Click "Add Spell" to document custom magic, rituals, and cantrips.')
         : `
           <div class="space-y-4">
             ${spellList
@@ -419,24 +426,57 @@ function renderSpellsSection(spellList, dndMode) {
                 (spl, idx) => `
               <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
-                  <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Spell #${idx + 1}</span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">${dhMode ? `Domain Card #${idx + 1}` : `Spell #${idx + 1}`}</span>
                   <button type="button" data-del-row="${idx}" class="del-entry-row-btn text-xs text-slate-400 hover:text-rose-400 transition">Remove</button>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Spell Name</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Card Name" : "Spell Name"}</label>
                     <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(spl.nameLevel || "")}"
-                      placeholder="e.g., Astral Lance"
+                      placeholder="${dhMode ? "e.g., Rune Ward / Whirlwind" : "e.g., Astral Lance"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-4">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Damage / Effect</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Recall Cost (Stress)" : "Damage / Effect"}</label>
                     <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="damage" value="${escapeHtml(spl.damage || "")}"
-                      placeholder="e.g., 4d6 force (Dex save half)"
+                      placeholder="${dhMode ? "e.g., 1 Stress" : "e.g., 4d6 force (Dex save half)"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-purple-300 focus:outline-none focus:border-indigo-500" />
                   </div>
                 </div>
+
+                ${
+                  dhMode
+                    ? `
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-900/50 border border-slate-800 rounded-xl p-2.5">
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Domain</label>
+                          <select data-list-key="spells" data-row-idx="${idx}" data-row-field="dhDomain"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${DAGGERHEART_DOMAINS.map(
+                              (dom) => `<option value="${dom}" ${(spl.dhDomain || "Arcana") === dom ? "selected" : ""}>${dom}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Card Level (1–10)</label>
+                          <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="spellLevel" value="${escapeHtml(spl.spellLevel || "Level 1")}"
+                            placeholder="Level 1"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Card Type</label>
+                          <select data-list-key="spells" data-row-idx="${idx}" data-row-field="dhCardType"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${["Ability", "Spell", "Grimoire"]
+                              .map((ct) => `<option value="${ct}" ${(spl.dhCardType || "Spell") === ct ? "selected" : ""}>${ct}</option>`)
+                              .join("")}
+                          </select>
+                        </div>
+                      </div>
+                    `
+                    : ""
+                }
 
                 ${
                   dndMode
