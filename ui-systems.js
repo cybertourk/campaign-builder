@@ -74,7 +74,13 @@ export function renderSystemsView(container, state) {
                 (sys) => `
               <div data-system-id="${sys.id}" class="system-card rpg-card group rounded-xl p-5 flex flex-col justify-between cursor-pointer">
                 <div>
-                  <div class="${sys.templateType === "dnd5e" ? "rpg-bar-hp" : "rpg-bar-mana"} w-full mb-3.5 opacity-85"></div>
+                  <div class="${
+                    sys.templateType === "dnd5e"
+                      ? "rpg-bar-hp"
+                      : sys.templateType === "daggerheart"
+                      ? "rpg-bar-stamina"
+                      : "rpg-bar-mana"
+                  } w-full mb-3.5 opacity-85"></div>
                   <div class="flex items-center justify-between gap-2 mb-3">
                     <span class="rpg-slot-long inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-amber-200 px-2.5 py-1 rounded">
                       <img src="./GUI_Fantasy_RPG_Kit/settings-btn.png" alt="" class="w-3.5 h-3.5 object-contain" onerror="this.style.display='none'" />
@@ -138,8 +144,8 @@ export function renderSystemsView(container, state) {
             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Ruleset Module</label>
             <select id="sys-template" class="w-full px-3.5 py-2 rounded-lg text-sm focus:outline-none">
               <option value="dnd5e">D&amp;D 5e (5th Edition Ruleset)</option>
+              <option value="daggerheart">Daggerheart (Core Ruleset)</option>
               <option value="generic">System-Agnostic (Universal Core)</option>
-              <option value="daggerheart" disabled>Daggerheart (Module Coming Soon)</option>
               <option value="vtm5e" disabled>Vampire: The Masquerade 5e (Module Coming Soon)</option>
             </select>
             <p id="sys-template-hint" class="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
@@ -298,8 +304,15 @@ export function renderCampaignsView(container, state) {
               </span>
               ${
                 sys.templateType !== "dnd5e"
-                  ? `<button type="button" id="quick-switch-dnd5e-btn" class="rpg-btn-secondary text-[11px] px-2.5 py-1 rounded-lg">
-                      Switch to D&amp;D 5e Ruleset
+                  ? `<button type="button" data-quick-ruleset="dnd5e" class="quick-switch-ruleset-btn rpg-btn-secondary text-[11px] px-2.5 py-1 rounded-lg">
+                      Use D&amp;D 5e
+                    </button>`
+                  : ""
+              }
+              ${
+                sys.templateType !== "daggerheart"
+                  ? `<button type="button" data-quick-ruleset="daggerheart" class="quick-switch-ruleset-btn rpg-btn-secondary text-[11px] px-2.5 py-1 rounded-lg">
+                      Use Daggerheart
                     </button>`
                   : ""
               }
@@ -416,8 +429,13 @@ export function renderCampaignsView(container, state) {
     setState({ activeSystem: null, activeCampaign: null, currentView: "systems" });
   });
 
-  container.querySelector("#quick-switch-dnd5e-btn")?.addEventListener("click", async () => {
-    await updateGameSystem(sys.id, { templateType: "dnd5e" });
+  container.querySelectorAll(".quick-switch-ruleset-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const targetRuleset = btn.getAttribute("data-quick-ruleset");
+      if (targetRuleset) {
+        await updateGameSystem(sys.id, { templateType: targetRuleset });
+      }
+    });
   });
 
   const modal = container.querySelector("#new-campaign-modal");
