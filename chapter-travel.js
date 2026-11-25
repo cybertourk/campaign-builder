@@ -1,21 +1,26 @@
 // chapter-travel.js
-// Dedicated interactive workbook for Chapter 12: Overland Travel Tables (Pages 292–300).
-// Includes Examples & Reference (p. 292), Weather & Time of Day (p. 293), Terrain & Travel Map (p. 294),
-// D12 Success/Failure Tables for Hunting (p. 295), Discovery (p. 296), Camping (p. 297),
-// Exploration (p. 298), NPC (p. 299), Bard Performance (p. 300), built-in dice rollers, and Misc Notes.
+// Dedicated interactive workbook for Chapter 12: Overland Travel Tables.
+// Includes Examples & Reference, D&D 5e Travel Pace & Exhaustion quick-reference tables
+// when the D&D 5e ruleset is active, Weather & Time of Day, Terrain & Travel Map,
+// D12 Success/Failure Tables, built-in dice rollers, and Misc Notes.
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
+import {
+  isDnd5e,
+  DND5E_TRAVEL_PACE,
+  DND5E_EXHAUSTION_LEVELS
+} from "./system-rulesets.js";
 
 export const TRAVEL_TABS = [
-  { id: "examples", label: "Examples & Reference (p. 292)", icon: "book-open" },
-  { id: "weather", label: "Weather & Time (p. 293)", icon: "cloud-sun" },
-  { id: "terrain", label: "Terrain & Travel Map (p. 294)", icon: "mountain" },
-  { id: "hunting", label: "Hunting (p. 295)", icon: "crosshair" },
-  { id: "discovery", label: "Discovery (p. 296)", icon: "compass" },
-  { id: "camping", label: "Camping (p. 297)", icon: "flame" },
-  { id: "exploration", label: "Exploration (p. 298)", icon: "map-pin" },
-  { id: "travel-npc", label: "NPC Encounters (p. 299)", icon: "users" },
-  { id: "bard-performance", label: "Bard Performance (p. 300)", icon: "music" },
+  { id: "examples", label: "Examples & Reference", icon: "book-open" },
+  { id: "weather", label: "Weather & Time", icon: "cloud-sun" },
+  { id: "terrain", label: "Terrain & Travel Map", icon: "mountain" },
+  { id: "hunting", label: "Hunting (D12)", icon: "crosshair" },
+  { id: "discovery", label: "Discovery (D12)", icon: "compass" },
+  { id: "camping", label: "Camping (D12)", icon: "flame" },
+  { id: "exploration", label: "Exploration (D12)", icon: "map-pin" },
+  { id: "travel-npc", label: "NPC Encounters (D12)", icon: "users" },
+  { id: "bard-performance", label: "Bard Performance (D12)", icon: "music" },
   { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
 ];
 
@@ -32,7 +37,6 @@ function createRows(count, schema = "weather") {
 
 function getDefaultTravelData() {
   return {
-    // Page 293: Weather & Time of Day
     timeOfDay: [
       { roll: 1, label: "Dawn" },
       { roll: 2, label: "Morning" },
@@ -47,15 +51,11 @@ function getDefaultTravelData() {
     weatherSpringNight: createRows(6),
     weatherWinterDay: createRows(6),
     weatherWinterNight: createRows(6),
-
-    // Page 294: Terrain + Travel Map
     terrainForestPlains: createRows(6),
     terrainMountains: createRows(6),
     terrainUnderground: createRows(6),
     terrainTundraSnow: createRows(6),
     travelMapUrl: "",
-
-    // Pages 295–300: D12 Success & Failure Tables
     huntingSuccess: createRows(12, "d12"),
     huntingFailure: createRows(12, "d12"),
     discoverySuccess: createRows(12, "d12"),
@@ -68,7 +68,6 @@ function getDefaultTravelData() {
     npcFailure: createRows(12, "d12"),
     bardSuccess: createRows(12, "d12"),
     bardFailure: createRows(12, "d12"),
-
     miscNotes: ""
   };
 }
@@ -78,6 +77,7 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
     activeTravelTab = options.activeSectionId;
   }
 
+  const dndMode = isDnd5e(state);
   const existingDoc = state.entities.find((e) => e.type === "overland-travel");
   const defaults = getDefaultTravelData();
   const data = {
@@ -85,7 +85,6 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
     ...(existingDoc?.systemData || {})
   };
 
-  // Ensure all table arrays exist
   Object.keys(defaults).forEach((key) => {
     if (Array.isArray(defaults[key]) && !Array.isArray(data[key])) {
       data[key] = defaults[key];
@@ -106,11 +105,11 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 12: Overland Travel Tables
+              Chapter 12: Overland Travel Tables${dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Customize and roll on your D8 Time, D6 Weather & Terrain, and D12 Hunting, Discovery, Camping, Exploration, NPC & Bard tables.
+            Customize and roll on your D8 Time, D6 Weather &amp; Terrain, and D12 Hunting, Discovery, Camping, Exploration, NPC &amp; Bard tables.
           </p>
         </div>
       </div>
@@ -135,11 +134,11 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderTravelTabContent(activeTravelTab, data)}
+      ${renderTravelTabContent(activeTravelTab, data, dndMode)}
     </div>
   `;
 
-  // Preserve unsaved edits in memory when switching vertical sections in the sidebar
+  // Preserve unsaved edits in memory when switching vertical sections
   const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="overland-travel"]');
   sidebarSectionBtns.forEach((btn) => {
     btn.addEventListener(
@@ -154,7 +153,6 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
     );
   });
 
-  // Unsaved indicator
   const statusEl = paneContainer.querySelector("#travel-save-status");
   paneContainer.querySelectorAll("input, textarea").forEach((el) => {
     el.addEventListener("input", () => {
@@ -195,14 +193,13 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderTravelTabContent(tabId, data) {
+function renderTravelTabContent(tabId, data, dndMode) {
   switch (tabId) {
     case "examples":
-      return renderExamplesReferenceTab();
+      return renderExamplesReferenceTab(dndMode);
 
     case "weather":
       return `
-        <!-- D8 Time of Day Table -->
         <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div>
@@ -229,18 +226,14 @@ function renderTravelTabContent(tabId, data) {
           </div>
         </div>
 
-        <!-- Spring/Summer/Fall Day & Night -->
         ${renderD6TableCard("weatherSpringDay", "Spring / Summer / Fall — Day (D6)", "Day Weather", data.weatherSpringDay)}
         ${renderD6TableCard("weatherSpringNight", "Spring / Summer / Fall — Night (D6)", "Night Weather", data.weatherSpringNight)}
-
-        <!-- Winter Day & Night -->
         ${renderD6TableCard("weatherWinterDay", "Winter — Day (D6)", "Day Weather", data.weatherWinterDay)}
         ${renderD6TableCard("weatherWinterNight", "Winter — Night (D6)", "Night Weather", data.weatherWinterNight)}
       `;
 
     case "terrain":
       return `
-        <!-- Overland Travel / Hex Map Image URL & Preview -->
         <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
           <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
             Overland Travel / Hex Crawl Map Image URL (Optional)
@@ -307,7 +300,7 @@ function renderTravelTabContent(tabId, data) {
           </h3>
           <p class="text-xs text-slate-400">Track travel pace rules (miles/hexes per day), ration consumption, mount rules, or exhaustion mechanics.</p>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Overland Travel & Hex Crawl Notes</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Overland Travel &amp; Hex Crawl Notes</label>
             <textarea data-travel-misc="miscNotes" rows="12"
               placeholder="Write travel pace rules, watch shifts, foraging DCs, or regional hazard modifiers here..."
               class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
@@ -320,15 +313,63 @@ function renderTravelTabContent(tabId, data) {
   }
 }
 
-/**
- * Page 292: Examples Reference Sheet + One-Click Sample Populator
- */
-function renderExamplesReferenceTab() {
+function renderExamplesReferenceTab(dndMode) {
   return `
+    ${
+      dndMode
+        ? `
+          <!-- D&D 5e Travel Pace & Exhaustion Quick-Reference -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div class="lg:col-span-7 bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5 overflow-x-auto">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-amber-300">D&amp;D 5e Overland Travel Pace</h4>
+              <table class="w-full text-left text-xs border-collapse min-w-[420px]">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                    <th class="py-1.5 px-2">Pace</th>
+                    <th class="py-1.5 px-2">Minute</th>
+                    <th class="py-1.5 px-2">Hour</th>
+                    <th class="py-1.5 px-2">Day</th>
+                    <th class="py-1.5 px-2">Effect</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/70 text-slate-200">
+                  ${DND5E_TRAVEL_PACE.map(
+                    (row) => `
+                    <tr>
+                      <td class="py-1.5 px-2 font-bold text-white">${row.pace}</td>
+                      <td class="py-1.5 px-2">${row.minute}</td>
+                      <td class="py-1.5 px-2">${row.hour}</td>
+                      <td class="py-1.5 px-2 font-semibold text-amber-300">${row.day}</td>
+                      <td class="py-1.5 px-2">${row.effect}</td>
+                    </tr>
+                  `
+                  ).join("")}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="lg:col-span-5 bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400">D&amp;D 5e Exhaustion Levels (1–6)</h4>
+              <div class="divide-y divide-slate-800/70 text-xs">
+                ${DND5E_EXHAUSTION_LEVELS.map(
+                  (ex) => `
+                  <div class="py-1.5 flex items-center justify-between gap-2">
+                    <span class="font-bold text-amber-300 shrink-0">Level ${ex.level}</span>
+                    <span class="text-slate-200 text-right">${ex.effect}</span>
+                  </div>
+                `
+                ).join("")}
+              </div>
+            </div>
+          </div>
+        `
+        : ""
+    }
+
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
-        <h3 class="text-sm font-bold text-white">Planner Examples & Quick Reference (Page 292)</h3>
-        <p class="text-xs text-slate-400">Use these book examples as inspiration or copy the sample Spring/Summer/Fall weather into your editable Weather table.</p>
+        <h3 class="text-sm font-bold text-white">Planner Examples &amp; Quick Reference</h3>
+        <p class="text-xs text-slate-400">Use these examples as inspiration or copy the sample Spring/Summer/Fall weather into your editable Weather table.</p>
       </div>
       <button type="button" id="populate-weather-examples-btn"
         class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
@@ -336,7 +377,6 @@ function renderExamplesReferenceTab() {
       </button>
     </div>
 
-    <!-- Example 1: Spring / Summer / Fall Weather -->
     <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3 overflow-x-auto">
       <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Example: Spring / Summer / Fall Weather (D6)</h4>
       <table class="w-full text-left text-xs border-collapse min-w-[600px]">
@@ -388,32 +428,9 @@ function renderExamplesReferenceTab() {
         </tbody>
       </table>
     </div>
-
-    <!-- Example 2 & 3: Bard & Hunting -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
-        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Example: Bard Work (1d4 Work • 1d20 Check • 1d6 Reward/Fail)</h4>
-        <div class="text-xs text-slate-300 space-y-1.5">
-          <p><strong class="text-white">Work (1d4):</strong> 1. Song + Percep + Perf | 2. Fire-eating + Surv + Perf | 3. Tell Story + Persua + Perf | 4. Dance + Acrob + Perf</p>
-          <p><strong class="text-emerald-400">Success (1d6):</strong> 1. 1 Potion of Spell Renew | 2. 2d20 CP | 3. Standing ovation | 4. Gifted 2 days rations | 5. 1 Potion of Healing | 6. 1d20 SP</p>
-          <p><strong class="text-rose-400">Failure (1d6):</strong> 1. You have to pay | 2. Kicked out for night | 3. Get boo'd | 4. Get in bar fight | 5. People dislike you, perform again | 6. Fined 1d20 CP</p>
-        </div>
-      </div>
-
-      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
-        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Example: Hunting (Roll for Success • Roll 1d4 Animal/Fail)</h4>
-        <div class="text-xs text-slate-300 space-y-1.5">
-          <p><strong class="text-emerald-400">Success (1d4):</strong> 1. Pheasant (2 rations) | 2. Deer (4 rations) | 3. Squirrel (1 ration) | 4. Rat (1/2 ration)</p>
-          <p><strong class="text-rose-400">Failure (1d4):</strong> 1. 1d4 damage | 2. Lost 2 days rations | 3. Animal attack (encounter) | 4. Nothing</p>
-        </div>
-      </div>
-    </div>
   `;
 }
 
-/**
- * Renders a 6-row D6 Weather or Terrain table with a built-in 1d6 Roller button.
- */
 function renderD6TableCard(tableKey, title, colLabel, rows) {
   return `
     <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
@@ -463,9 +480,6 @@ function renderD6TableCard(tableKey, title, colLabel, rows) {
   `;
 }
 
-/**
- * Renders a 12-row D12 Success or Failure table (Pages 295–300) with a built-in 1d12 Roller button.
- */
 function renderD12TableCard(tableKey, title, rows, tone = "emerald") {
   const badgeColor = tone === "rose" ? "text-rose-400" : "text-emerald-400";
 
@@ -525,7 +539,6 @@ function wireTravelControls(paneContainer, state, existingDoc, data) {
     banner?.classList.add("hidden");
   });
 
-  // Dice Roller buttons for any D6, D8, or D12 table
   paneContainer.querySelectorAll(".roll-travel-table-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       collectTravelForm(paneContainer, data);
@@ -548,7 +561,6 @@ function wireTravelControls(paneContainer, state, existingDoc, data) {
     });
   });
 
-  // Populate Sample Weather button on Examples tab
   paneContainer.querySelector("#populate-weather-examples-btn")?.addEventListener("click", () => {
     data.weatherSpringDay = [
       { roll: 1, condition: "Scattered showers, intermittent sun", check: "15 Dexterity", result: "1-5: Drop weapon in mud (-1d6 dmg 1 day); 6-10: Drop & chase all day; 10+: Nothing" },
@@ -570,7 +582,6 @@ function wireTravelControls(paneContainer, state, existingDoc, data) {
     if (window.lucide) window.lucide.createIcons();
   });
 
-  // Live Travel Map Image URL preview
   const mapInput = paneContainer.querySelector('[data-travel-field="travelMapUrl"]');
   const mapPreview = paneContainer.querySelector("#travel-map-preview");
   mapInput?.addEventListener("input", () => {
