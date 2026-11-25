@@ -1,14 +1,18 @@
 // chapter-travel.js
 // Dedicated interactive workbook for Chapter 12: Overland Travel Tables.
-// Includes Examples & Reference, D&D 5e Travel Pace & Exhaustion quick-reference tables
-// when the D&D 5e ruleset is active, Weather & Time of Day, Terrain & Travel Map,
-// D12 Success/Failure Tables, built-in dice rollers, and Misc Notes.
+// Includes Examples & Reference, D&D 5e Travel Pace & Exhaustion quick-reference tables,
+// Daggerheart Duality Dice, Range Bands, Conditions & Downtime Rest quick-reference tables,
+// Weather & Time of Day, Terrain & Travel Map, D12 Success/Failure Tables, and Misc Notes.
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import {
   isDnd5e,
+  isDaggerheart,
   DND5E_TRAVEL_PACE,
-  DND5E_EXHAUSTION_LEVELS
+  DND5E_EXHAUSTION_LEVELS,
+  DAGGERHEART_DUALITY_OUTCOMES,
+  DAGGERHEART_DOWNTIME_MOVES,
+  DAGGERHEART_CONDITIONS
 } from "./system-rulesets.js";
 
 export const TRAVEL_TABS = [
@@ -78,6 +82,7 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
   }
 
   const dndMode = isDnd5e(state);
+  const dhMode = isDaggerheart(state);
   const existingDoc = state.entities.find((e) => e.type === "overland-travel");
   const defaults = getDefaultTravelData();
   const data = {
@@ -105,7 +110,7 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 12: Overland Travel Tables${dndMode ? " • D&D 5e" : ""}
+              Chapter 12: Overland Travel Tables${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
@@ -134,7 +139,7 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderTravelTabContent(activeTravelTab, data, dndMode)}
+      ${renderTravelTabContent(activeTravelTab, data, dndMode, dhMode)}
     </div>
   `;
 
@@ -193,10 +198,10 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderTravelTabContent(tabId, data, dndMode) {
+function renderTravelTabContent(tabId, data, dndMode, dhMode) {
   switch (tabId) {
     case "examples":
-      return renderExamplesReferenceTab(dndMode);
+      return renderExamplesReferenceTab(dndMode, dhMode);
 
     case "weather":
       return `
@@ -248,73 +253,74 @@ function renderTravelTabContent(tabId, data, dndMode) {
                 : `<p class="text-xs text-slate-500 py-4">Paste a regional or hex map URL above to preview your travel routes here.</p>`
             }
           </div>
-        </div>
-
-        ${renderD6TableCard("terrainForestPlains", "Forest / Plains (D6)", "Forest / Plains", data.terrainForestPlains)}
-        ${renderD6TableCard("terrainMountains", "Mountains (D6)", "Mountains", data.terrainMountains)}
-        ${renderD6TableCard("terrainUnderground", "Underground / Caves (D6)", "Underground / Caves", data.terrainUnderground)}
-        ${renderD6TableCard("terrainTundraSnow", "Icy Tundra / Snow (D6)", "Icy Tundra / Snow", data.terrainTundraSnow)}
-      `;
-
-    case "hunting":
-      return `
-        ${renderD12TableCard("huntingSuccess", "Hunting — Success (D12)", data.huntingSuccess, "emerald")}
-        ${renderD12TableCard("huntingFailure", "Hunting — Failure (D12)", data.huntingFailure, "rose")}
-      `;
-
-    case "discovery":
-      return `
-        ${renderD12TableCard("discoverySuccess", "Discovery — Success (D12)", data.discoverySuccess, "emerald")}
-        ${renderD12TableCard("discoveryFailure", "Discovery — Failure (D12)", data.discoveryFailure, "rose")}
-      `;
-
-    case "camping":
-      return `
-        ${renderD12TableCard("campingSuccess", "Camping — Success (D12)", data.campingSuccess, "emerald")}
-        ${renderD12TableCard("campingFailure", "Camping — Failure (D12)", data.campingFailure, "rose")}
-      `;
-
-    case "exploration":
-      return `
-        ${renderD12TableCard("explorationSuccess", "Exploration — Success (D12)", data.explorationSuccess, "emerald")}
-        ${renderD12TableCard("explorationFailure", "Exploration — Failure (D12)", data.explorationFailure, "rose")}
-      `;
-
-    case "travel-npc":
-      return `
-        ${renderD12TableCard("npcSuccess", "NPC Encounters — Success (D12)", data.npcSuccess, "emerald")}
-        ${renderD12TableCard("npcFailure", "NPC Encounters — Failure (D12)", data.npcFailure, "rose")}
-      `;
-
-    case "bard-performance":
-      return `
-        ${renderD12TableCard("bardSuccess", "Bard Performance — Success (D12)", data.bardSuccess, "emerald")}
-        ${renderD12TableCard("bardFailure", "Bard Performance — Failure (D12)", data.bardFailure, "rose")}
-      `;
-
-    case "misc-notes":
-      return `
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> Overland Travel — Misc Notes
-          </h3>
-          <p class="text-xs text-slate-400">Track travel pace rules (miles/hexes per day), ration consumption, mount rules, or exhaustion mechanics.</p>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Overland Travel &amp; Hex Crawl Notes</label>
-            <textarea data-travel-misc="miscNotes" rows="12"
-              placeholder="Write travel pace rules, watch shifts, foraging DCs, or regional hazard modifiers here..."
-              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
-          </div>
-        </div>
-      `;
-
-    default:
-      return "";
-  }
-}
-
-function renderExamplesReferenceTab(dndMode) {
+function renderExamplesReferenceTab(dndMode, dhMode) {
   return `
+    ${
+      dhMode
+        ? `
+          <!-- Daggerheart Core Rules Reference: Duality Dice Outcomes, Range Bands, Conditions & Downtime Rests -->
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div class="lg:col-span-7 bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-300">Daggerheart 2d12 Duality Dice Outcomes</h4>
+                <div class="divide-y divide-slate-800/70 text-xs">
+                  ${DAGGERHEART_DUALITY_OUTCOMES.map(
+                    (row) => `
+                    <div class="py-2 space-y-0.5">
+                      <div class="font-bold text-white">${escapeHtml(row.outcome)}</div>
+                      <div class="text-slate-300">${escapeHtml(row.effect)}</div>
+                    </div>
+                  `
+                  ).join("")}
+                </div>
+              </div>
+
+              <div class="lg:col-span-5 bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Range Bands &amp; Core Conditions</h4>
+                <div class="space-y-1.5 text-xs text-slate-200">
+                  <div><strong class="text-white">Melee:</strong> Within arm's reach (~5 ft)</div>
+                  <div><strong class="text-white">Very Close:</strong> 5–10 ft (step &amp; strike)</div>
+                  <div><strong class="text-white">Close:</strong> 10–30 ft (short dash / thrown)</div>
+                  <div><strong class="text-white">Far:</strong> 30–100 ft (bows / distant spell)</div>
+                  <div><strong class="text-white">Very Far:</strong> 100–300 ft (longbow / sniper)</div>
+                </div>
+                <div class="pt-2 border-t border-slate-800 space-y-1 text-xs">
+                  <div class="font-bold text-rose-400 uppercase text-[10px]">Core Conditions (${DAGGERHEART_CONDITIONS.join(", ")})</div>
+                  <div class="text-slate-300"><strong class="text-white">Hidden:</strong> Out of sight; rolls against you have disadvantage.</div>
+                  <div class="text-slate-300"><strong class="text-white">Restrained:</strong> Cannot move, but can still act from your spot.</div>
+                  <div class="text-slate-300"><strong class="text-white">Vulnerable:</strong> All rolls targeting you have advantage.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5 overflow-x-auto">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Daggerheart Rest &amp; Downtime Moves (Choose 2 per Rest)</h4>
+              <table class="w-full text-left text-xs border-collapse min-w-[480px]">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                    <th class="py-1.5 px-2">Downtime Move</th>
+                    <th class="py-1.5 px-2">Short Rest</th>
+                    <th class="py-1.5 px-2">Long Rest</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/70 text-slate-200">
+                  ${DAGGERHEART_DOWNTIME_MOVES.map(
+                    (dm) => `
+                    <tr>
+                      <td class="py-1.5 px-2 font-bold text-white">${escapeHtml(dm.move)}</td>
+                      <td class="py-1.5 px-2">${escapeHtml(dm.shortRest)}</td>
+                      <td class="py-1.5 px-2 text-emerald-300">${escapeHtml(dm.longRest)}</td>
+                    </tr>
+                  `
+                  ).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `
+        : ""
+    }
+
     ${
       dndMode
         ? `
