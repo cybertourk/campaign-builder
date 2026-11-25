@@ -22,9 +22,10 @@ export const RULESET_DEFINITIONS = {
   daggerheart: {
     id: "daggerheart",
     label: "Daggerheart",
-    shortLabel: "Coming Soon",
-    available: false,
-    description: "Duality Dice, Hope & Fear trackers, Evasion, Armor Slots, Stress, and Domain Cards."
+    shortLabel: "Duality Dice",
+    available: true,
+    description:
+      "Campaign Frames, 6 Character Traits, Hope/Fear/Stress/Armor Slots, Damage Thresholds, Experiences, Domain Cards, Adversary Tier/Role statblocks, Battle Points calculator & Spotlight tracker."
   },
   vtm5e: {
     id: "vtm5e",
@@ -39,6 +40,12 @@ export function isDnd5e(stateOrSystem) {
   if (!stateOrSystem) return false;
   const sys = stateOrSystem.activeSystem ? stateOrSystem.activeSystem : stateOrSystem;
   return sys?.templateType === "dnd5e";
+}
+
+export function isDaggerheart(stateOrSystem) {
+  if (!stateOrSystem) return false;
+  const sys = stateOrSystem.activeSystem ? stateOrSystem.activeSystem : stateOrSystem;
+  return sys?.templateType === "daggerheart";
 }
 
 export function getRulesetLabel(templateType) {
@@ -342,3 +349,199 @@ export const DND5E_EXHAUSTION_LEVELS = [
   { level: 5, effect: "Speed reduced to 0" },
   { level: 6, effect: "Death" }
 ];
+
+// ============================================================================
+// 5. DAGGERHEART CONSTANTS, TRAITS, DOMAINS & BATTLE POINTS CALCULATOR
+// ============================================================================
+
+export const DAGGERHEART_TRAITS = [
+  { key: "agility", label: "Agility", verbs: "Sprint • Leap • Maneuver" },
+  { key: "strength", label: "Strength", verbs: "Lift • Smash • Grapple" },
+  { key: "finesse", label: "Finesse", verbs: "Control • Hide • Tinker" },
+  { key: "instinct", label: "Instinct", verbs: "Perceive • Sense • Navigate" },
+  { key: "presence", label: "Presence", verbs: "Charm • Perform • Deceive" },
+  { key: "knowledge", label: "Knowledge", verbs: "Recall • Analyze • Comprehend" }
+];
+
+export const DAGGERHEART_CLASSES = [
+  { name: "Bard", domains: ["Grace", "Codex"], evasion: 10, hp: 5 },
+  { name: "Druid", domains: ["Sage", "Arcana"], evasion: 10, hp: 6 },
+  { name: "Guardian", domains: ["Valor", "Blade"], evasion: 9, hp: 7 },
+  { name: "Ranger", domains: ["Bone", "Sage"], evasion: 12, hp: 6 },
+  { name: "Rogue", domains: ["Midnight", "Grace"], evasion: 12, hp: 6 },
+  { name: "Seraph", domains: ["Splendor", "Valor"], evasion: 9, hp: 7 },
+  { name: "Sorcerer", domains: ["Arcana", "Midnight"], evasion: 10, hp: 6 },
+  { name: "Warrior", domains: ["Blade", "Bone"], evasion: 11, hp: 6 },
+  { name: "Wizard", domains: ["Codex", "Splendor"], evasion: 11, hp: 5 }
+];
+
+export const DAGGERHEART_DOMAINS = [
+  "Arcana",
+  "Blade",
+  "Bone",
+  "Codex",
+  "Grace",
+  "Midnight",
+  "Sage",
+  "Splendor",
+  "Valor"
+];
+
+export const DAGGERHEART_COMMUNITIES = [
+  "Highborne",
+  "Loreborne",
+  "Orderborne",
+  "Ridgeborne",
+  "Seaborne",
+  "Slyborne",
+  "Underborne",
+  "Wanderborne",
+  "Wildborne"
+];
+
+export const DAGGERHEART_ANCESTRIES = [
+  "Clank",
+  "Drakona",
+  "Dwarf",
+  "Elf",
+  "Faerie",
+  "Faun",
+  "Firbolg",
+  "Fungril",
+  "Galapa",
+  "Giant",
+  "Goblin",
+  "Halfling",
+  "Human",
+  "Infernis",
+  "Katari",
+  "Orc",
+  "Ribbet",
+  "Simiah",
+  "Mixed Ancestry"
+];
+
+export const DAGGERHEART_RANGE_BANDS = [
+  "Melee",
+  "Very Close",
+  "Close",
+  "Far",
+  "Very Far"
+];
+
+export const DAGGERHEART_TIERS = [
+  "Tier 1 (Lvl 1)",
+  "Tier 2 (Lvls 2–4)",
+  "Tier 3 (Lvls 5–7)",
+  "Tier 4 (Lvls 8–10)"
+];
+
+export const DAGGERHEART_ADVERSARY_TYPES = [
+  { type: "Minion", points: 1 },
+  { type: "Social", points: 1 },
+  { type: "Support", points: 1 },
+  { type: "Horde", points: 2 },
+  { type: "Ranged", points: 2 },
+  { type: "Skulk", points: 2 },
+  { type: "Standard", points: 2 },
+  { type: "Leader", points: 3 },
+  { type: "Bruiser", points: 4 },
+  { type: "Solo", points: 5 }
+];
+
+export const DAGGERHEART_CONDITIONS = [
+  "Hidden",
+  "Restrained",
+  "Vulnerable"
+];
+
+export const DAGGERHEART_DUALITY_OUTCOMES = [
+  {
+    outcome: "Critical Success (Matching Dice)",
+    effect: "Succeed with bonus! Gain 1 Hope and clear 1 Stress. In combat, deal maximum base damage + roll."
+  },
+  {
+    outcome: "Success with Hope (Total ≥ Difficulty, Hope > Fear)",
+    effect: "You achieve what you set out to do, and you gain 1 Hope."
+  },
+  {
+    outcome: "Success with Fear (Total ≥ Difficulty, Fear > Hope)",
+    effect: "You succeed, but with a cost or complication. The GM gains 1 Fear and may take the Spotlight."
+  },
+  {
+    outcome: "Failure with Hope (Total < Difficulty, Hope > Fear)",
+    effect: "Things don't go as planned and the GM makes a move, but you still gain 1 Hope."
+  },
+  {
+    outcome: "Failure with Fear (Total < Difficulty, Fear > Hope)",
+    effect: "Things go badly wrong! The GM gains 1 Fear and makes a major GM move."
+  }
+];
+
+export const DAGGERHEART_DOWNTIME_MOVES = [
+  {
+    move: "Tend to Wounds",
+    shortRest: "Clear 1d4 + Tier Hit Points for yourself or an ally.",
+    longRest: "Clear all Hit Points for yourself or an ally."
+  },
+  {
+    move: "Clear Stress",
+    shortRest: "Clear 1d4 + Tier Stress.",
+    longRest: "Clear all Stress."
+  },
+  {
+    move: "Repair Armor",
+    shortRest: "Clear 1d4 + Tier Armor Slots on your or an ally's armor.",
+    longRest: "Clear all Armor Slots on your or an ally's armor."
+  },
+  {
+    move: "Prepare",
+    shortRest: "Gain 1 Hope (or 2 Hope each if preparing with at least one party member).",
+    longRest: "Gain 1 Hope (or 2 Hope each if preparing with at least one party member)."
+  },
+  {
+    move: "Work on a Project",
+    shortRest: "Advance a long-term project countdown clock.",
+    longRest: "Advance a long-term project countdown clock."
+  }
+];
+
+export function getDaggerheartTierForLevel(levelRaw) {
+  const lvl = Math.max(1, Math.min(10, parseInt(levelRaw, 10) || 1));
+  if (lvl === 1) return "Tier 1";
+  if (lvl <= 4) return "Tier 2";
+  if (lvl <= 7) return "Tier 3";
+  return "Tier 4";
+}
+
+export function getDaggerheartBattlePointCost(adversaryType) {
+  const found = DAGGERHEART_ADVERSARY_TYPES.find(
+    (t) => t.type.toLowerCase() === String(adversaryType || "").toLowerCase()
+  );
+  return found ? found.points : 2;
+}
+
+export function calculateDaggerheartBattlePoints(pcCount = 4, adversaries = []) {
+  const pcs = Math.max(1, parseInt(pcCount, 10) || 4);
+  const budget = 3 * pcs + 2;
+  const activeAdversaries = adversaries.filter((a) => a.name && a.name.trim());
+  const spent = activeAdversaries.reduce((sum, a) => {
+    const explicit = parseInt(a.battlePoints, 10);
+    if (!isNaN(explicit) && explicit > 0) return sum + explicit;
+    return sum + getDaggerheartBattlePointCost(a.adversaryType);
+  }, 0);
+
+  let rating = "Balanced";
+  if (activeAdversaries.length === 0) rating = "No Adversaries";
+  else if (spent < budget - 3) rating = "Light Skirmish";
+  else if (spent <= budget) rating = "Standard Encounter";
+  else if (spent <= budget + 3) rating = "Challenging";
+  else rating = "Climactic / Deadly";
+
+  return {
+    budget,
+    spent,
+    remaining: budget - spent,
+    rating
+  };
+}
