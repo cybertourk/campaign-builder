@@ -692,8 +692,13 @@ background-size: 32px 32px;
 border-color: rgba(133, 88, 46, 0.5) !important;
 }
 
-/* 11. Custom Scrollbars
+/* 11. Custom Scrollbars & Modal Inner Scroll Body
 ---------------------------------------------------------------------------- */
+.rpg-modal-body {
+overflow-x: hidden;
+-webkit-overflow-scrolling: touch;
+}
+
 ::-webkit-scrollbar {
 width: 8px;
 height: 8px;
@@ -752,11 +757,11 @@ max-width: 100vw;
 font-size: 16px !important;
 }
 
-/* Ensure pop-up modals remain scrollable on short mobile screens */
+/* Ensure simple form modals remain scrollable on short mobile screens */
 #new-system-modal > div,
 #new-campaign-modal > div,
 #new-entity-modal > div {
-max-height: 90vh;
+max-height: 88vh;
 overflow-y: auto;
 -webkit-overflow-scrolling: touch;
 }
