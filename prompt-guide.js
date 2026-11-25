@@ -7,7 +7,7 @@
 import { appState, setState } from "./state.js";
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import { getTheme, setTheme, applyThemeToImages } from "./theme-manager.js";
-import { isDnd5e } from "./system-rulesets.js";
+import { isDnd5e, isDaggerheart } from "./system-rulesets.js";
 
 const GUIDE_SETTINGS_KEY = "realmforge_guide_settings";
 
@@ -394,20 +394,24 @@ const PROMPT_TEMPLATES = [
     namePlaceholder: "e.g., Trouble at Bellweather Mine",
     answerLabel: "The Inciting Incident / Plot Hook",
     answerPlaceholder: "What sudden event, plea for help, or mystery kicks off the very first adventure?",
-    getQuestion: (persona, ctx, dndMode) => {
+    getQuestion: (persona, ctx, dndMode, dhMode) => {
       const placeRef = ctx.firstMarket
         ? `at ${ctx.firstMarket}`
         : ctx.firstTown
         ? `in ${ctx.firstTown}`
         : "in the opening scene";
-      const dndTag = dndMode ? " (and what tier/level are the adventurers starting at?)" : "";
+      const sysTag = dhMode
+        ? " (your Daggerheart Campaign Frame's Inciting Incident!)"
+        : dndMode
+        ? " (and what tier/level are the adventurers starting at?)"
+        : "";
       if (persona === "scholar") {
-        return `What inciting incident ${placeRef} compels the heroes to take up arms and embark on their very first expedition${dndTag}?`;
+        return `What inciting incident ${placeRef} compels the heroes to take up arms and embark on their very first expedition${sysTag}?`;
       }
       if (persona === "bard") {
-        return `Picture the opening scene ${placeRef}: the music stops, the door bursts open—what sudden crisis or tempting bounty launches the first adventure${dndTag}?`;
+        return `Picture the opening scene ${placeRef}: the music stops, the door bursts open—what sudden crisis or tempting bounty launches the first adventure${sysTag}?`;
       }
-      return `Alright, imagine the camera pans in ${placeRef}—what suddenly bursts through the door or drops onto the table to kick off the very first quest${dndTag}?!`;
+      return `Alright, imagine the camera pans in ${placeRef}—what suddenly bursts through the door or drops onto the table to kick off the very first quest${sysTag}?!`;
     },
     sparkIdeas: [
       "A courier stumbles in clutching a locked iron strongbox that's ticking—and says three different factions are already tracking it.",
@@ -481,15 +485,19 @@ const PROMPT_TEMPLATES = [
     hasNameField: false,
     answerLabel: "World Era, Genre & Atmosphere",
     answerPlaceholder: "e.g., Gritty medieval fantasy after a fallen arcane empire, sun-drenched sky-pirate archipelago, gothic steampunk...",
-    getQuestion: (persona, _ctx, dndMode) => {
-      const dndAddon = dndMode ? " (And are we doing Milestone leveling or classic XP?)" : "";
+    getQuestion: (persona, _ctx, dndMode, dhMode) => {
+      const sysAddon = dhMode
+        ? " (What's your Daggerheart Campaign Frame's Tone, Feel & Touchstones?)"
+        : dndMode
+        ? " (And are we doing Milestone leveling or classic XP?)"
+        : "";
       if (persona === "scholar") {
-        return `To properly categorize this world in our archives, what historical era, aesthetic tone, and genre conventions define daily life across the realm${dndAddon}?`;
+        return `To properly categorize this world in our archives, what historical era, aesthetic tone, and genre conventions define daily life across the realm${sysAddon}?`;
       }
       if (persona === "bard") {
-        return `Set the mood for the listeners! What kind of world are we stepping into—high heroic fantasy, grim survival, arcane steampunk, or something totally unique${dndAddon}?`;
+        return `Set the mood for the listeners! What kind of world are we stepping into—high heroic fantasy, grim survival, arcane steampunk, or something totally unique${sysAddon}?`;
       }
-      return `Okay, give me the elevator pitch! What kind of vibe are we talking for this world—classic swords-and-sorcery, gritty low magic, sky-pirate steampunk, or something totally wild${dndAddon}?!`;
+      return `Okay, give me the elevator pitch! What kind of vibe are we talking for this world—classic swords-and-sorcery, gritty low magic, sky-pirate steampunk, or something totally wild${sysAddon}?!`;
     },
     sparkIdeas: [
       "Post-apocalyptic high fantasy: civilization survives in walled city-states built inside the ruins of colossal fallen titans.",
@@ -1034,15 +1042,19 @@ const PROMPT_TEMPLATES = [
     hasNameField: false,
     answerLabel: "Role of Gods, Faith & Patrons",
     answerPlaceholder: "Are the gods active and vocal, distant myths, locked in celestial war, or central to the main plot?",
-    getQuestion: (persona, _ctx, dndMode) => {
-      const dndTag = dndMode ? " (for Clerics, Paladins, and Warlock patrons)" : "";
+    getQuestion: (persona, _ctx, dndMode, dhMode) => {
+      const sysTag = dhMode
+        ? " (Forgotten Gods trapped in the Mortal Realm vs. the New Gods in the Hallows Above?)"
+        : dndMode
+        ? " (for Clerics, Paladins, and Warlock patrons)"
+        : "";
       if (persona === "scholar") {
-        return `What role do deities, temples, and cosmological faiths play in the mortal affairs and central conflict of your world${dndTag}?`;
+        return `What role do deities, temples, and cosmological faiths play in the mortal affairs and central conflict of your world${sysTag}?`;
       }
       if (persona === "bard") {
-        return `Do the gods still answer prayers and walk among mortals, or are their temples echoes of an older age${dndTag}?`;
+        return `Do the gods still answer prayers and walk among mortals, or are their temples echoes of an older age${sysTag}?`;
       }
-      return `What's the deal with the gods and religion in your world${dndTag}?! Are they super active in the main plot, or more distant legends that clerics pray to?`;
+      return `What's the deal with the gods and religion in your world${sysTag}?! Are they super active in the main plot, or more distant legends that faithful heroes pray to?`;
     },
     sparkIdeas: [
       "The gods went silent a century ago, and now their abandoned cathedrals are suddenly relighting their sacred braziers.",
@@ -1393,6 +1405,7 @@ export function renderWorkspacePromptBanner(bannerSlot, state, onJumpToChapter) 
   }
 
   const dndMode = isDnd5e(state);
+  const dhMode = isDaggerheart(state);
   const persona = GUIDE_PERSONALITIES[guideSettings.personality] || GUIDE_PERSONALITIES.fan;
   const ctx = extractWorldContext(state.entities);
   const progress = getPromptProgress(state.entities);
@@ -1403,7 +1416,7 @@ export function renderWorkspacePromptBanner(bannerSlot, state, onJumpToChapter) 
     return;
   }
 
-  const questionPreview = nextItem.prompt.getQuestion(persona.id, ctx, dndMode);
+  const questionPreview = nextItem.prompt.getQuestion(persona.id, ctx, dndMode, dhMode);
 
   bannerSlot.innerHTML = `
     <div class="rpg-panel rounded-xl p-3.5 sm:p-4 mb-5">
@@ -1478,12 +1491,13 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
 
   const renderModalContent = (toastMessage = "") => {
     const dndMode = isDnd5e(appState);
+    const dhMode = isDaggerheart(appState);
     const freshProgress = getPromptProgress(appState.entities);
     const ctx = extractWorldContext(appState.entities);
     const persona = GUIDE_PERSONALITIES[guideSettings.personality] || GUIDE_PERSONALITIES.fan;
     const currentItem = freshProgress.items[activePromptIndex] || freshProgress.items[0];
     const promptObj = currentItem.prompt;
-    const questionText = promptObj.getQuestion(persona.id, ctx, dndMode);
+    const questionText = promptObj.getQuestion(persona.id, ctx, dndMode, dhMode);
 
     const activeSpark =
       activeSparkIndex >= 0 && promptObj.sparkIdeas?.[activeSparkIndex]
