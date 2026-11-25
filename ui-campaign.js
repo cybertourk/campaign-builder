@@ -1,6 +1,7 @@
 // ui-campaign.js
 // Level 3: Campaign Builder workspace organized into the 12 Campaign Planner chapters,
-// styled with the carved stone & parchment frames, chapter emblems, dividers, and RPG buttons.
+// styled with the carved stone & parchment frames, chapter emblems, dividers, RPG buttons,
+// and integrated with the Campaign Muse guided prompt system.
 
 import {
   createEntity,
@@ -20,6 +21,11 @@ import { renderCharactersChapter, CHARACTERS_TABS } from "./chapter-characters.j
 import { renderSessionLogChapter, SESSION_LOG_TABS } from "./chapter-session-log.js";
 import { renderInitiativeChapter, INITIATIVE_TABS } from "./chapter-initiative.js";
 import { renderTravelChapter, TRAVEL_TABS } from "./chapter-travel.js";
+import {
+  getPromptProgress,
+  renderWorkspacePromptBanner,
+  openPromptInterviewModal
+} from "./prompt-guide.js";
 
 export const CAMPAIGN_CHAPTERS = [
   {
@@ -173,6 +179,7 @@ export function renderCampaignWorkspace(container, state) {
   const currentSecList = currentChapter.sections || [];
   const currentSecId = activeSectionMap[currentChapter.id] || currentSecList[0]?.id;
   const currentSecObj = currentSecList.find((s) => s.id === currentSecId) || currentSecList[0] || null;
+  const promptProgress = getPromptProgress(state.entities);
 
   const chapterEntries = state.entities.filter(
     (e) => e.type === currentChapter.id || e.type === currentChapter.label
@@ -198,6 +205,9 @@ export function renderCampaignWorkspace(container, state) {
         <span class="truncate">${escapeHtml(camp.title)}</span>
       </span>
     </nav>
+
+    <!-- Campaign Muse Guided Prompt Banner -->
+    <div id="workspace-prompt-banner-slot"></div>
 
     <!-- Main 2-Column Layout: 12-Chapter Sidebar + Active Chapter Workspace -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
@@ -225,6 +235,20 @@ export function renderCampaignWorkspace(container, state) {
             </button>
           </div>
 
+          <!-- Launch Guided Worldbuilding Interview Button -->
+          <div class="mt-2.5">
+            <button type="button" id="open-campaign-muse-btn"
+              class="rpg-btn-primary w-full text-xs py-2 px-3 rounded-lg font-semibold flex items-center justify-between gap-2">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Guide Me (Prompts)</span>
+              </span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/25">
+                ${promptProgress.answeredCount}/${promptProgress.totalCount}
+              </span>
+            </button>
+          </div>
+
           <!-- Mobile Active Chapter/Section Summary Pill when Drawer is Collapsed -->
           <div class="lg:hidden mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2 text-xs">
             <span class="font-semibold text-amber-200 truncate">
@@ -232,7 +256,7 @@ export function renderCampaignWorkspace(container, state) {
             </span>
           </div>
 
-          <div class="rpg-divider mt-2 hidden lg:block"></div>
+          <div class="rpg-divider mt-2.5 hidden lg:block"></div>
         </div>
 
         <nav id="campaign-tome-nav" class="${isMobileNavOpen ? "block" : "hidden"} lg:block p-2.5 space-y-1.5 max-h-[65vh] lg:max-h-[75vh] overflow-y-auto">
@@ -465,6 +489,26 @@ export function renderCampaignWorkspace(container, state) {
       </div>
     </div>
   `;
+
+  // Helper to jump directly to a chapter & section from the Campaign Muse prompt modal
+  const jumpToChapterSection = (chapId, secId) => {
+    activeChapterId = chapId;
+    if (secId) {
+      activeSectionMap[chapId] = secId;
+    }
+    isMobileNavOpen = false;
+    renderCampaignWorkspace(container, state);
+    if (window.lucide) window.lucide.createIcons();
+    document.getElementById("chapter-main-pane")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Render the Campaign Muse prompt banner & wire the sidebar Guide Me button
+  const bannerSlot = container.querySelector("#workspace-prompt-banner-slot");
+  renderWorkspacePromptBanner(bannerSlot, state, jumpToChapterSection);
+
+  container.querySelector("#open-campaign-muse-btn")?.addEventListener("click", () => {
+    openPromptInterviewModal(state, null, jumpToChapterSection);
+  });
 
   // Render active chapter workbook inside #chapter-main-pane
   const mainPane = container.querySelector("#chapter-main-pane");
