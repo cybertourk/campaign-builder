@@ -375,54 +375,6 @@ export function renderCharactersChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderCharactersTabContent(tabId, data, dndMode) {
-  if (tabId === "misc-notes") {
-    return `
-      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> Character Sheets — Misc Notes
-        </h3>
-        <p class="text-xs text-slate-400">Keep track of party marching order, shared loot, passive perception notes, or character arc ideas.</p>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Party & Character Notes</label>
-          <textarea data-chars-misc="miscNotes" rows="12"
-            placeholder="Write party notes, house character creation rules, or personal quest reminders here..."
-            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
-        </div>
-      </div>
-    `;
-  }
-
-  const characters = data.characters || [];
-  const activeChar = characters[selectedCharacterIndex] || null;
-
-  return `
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
-      <div>
-        <h3 class="text-sm font-bold text-white">Party Roster & Character Sheets</h3>
-        <p class="text-xs text-slate-400">Add player characters or key companions with full character sheets and portraits.</p>
-      </div>
-      <button type="button" id="add-char-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
-        <i data-lucide="plus" class="w-4 h-4"></i> Add Character
-      </button>
-    </div>
-
-    ${
-      characters.length === 0
-        ? `
-          <div class="text-center py-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/30">
-            <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-            <p class="text-sm font-medium text-slate-300">No Character Sheets Added Yet</p>
-            <p class="text-xs text-slate-500 mt-1">Click "Add Character" to create a character sheet.</p>
-          </div>
-        `
-        : `
-          <!-- Character Selector Pills -->
-          <div class="flex items-center gap-2 flex-wrap">
-            ${characters
-              .map(
-                (ch, i) => `
-              <button type="button" data-char-idx="${i}" class="select-char-btn px-3 py-1.5 rounded-lg text-xs font-medium transition ${
 function renderCharactersTabContent(tabId, data, dndMode, dhMode) {
   if (tabId === "misc-notes") {
     return `
@@ -432,7 +384,7 @@ function renderCharactersTabContent(tabId, data, dndMode, dhMode) {
         </h3>
         <p class="text-xs text-slate-400">Keep track of party marching order, shared loot, passive perception notes, or character arc ideas.</p>
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Party & Character Notes</label>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Party &amp; Character Notes</label>
           <textarea data-chars-misc="miscNotes" rows="12"
             placeholder="Write party notes, house character creation rules, or personal quest reminders here..."
             class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
@@ -447,7 +399,7 @@ function renderCharactersTabContent(tabId, data, dndMode, dhMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
-        <h3 class="text-sm font-bold text-white">Party Roster & Character Sheets</h3>
+        <h3 class="text-sm font-bold text-white">Party Roster &amp; Character Sheets</h3>
         <p class="text-xs text-slate-400">Add player characters or key companions with full character sheets and portraits.</p>
       </div>
       <button type="button" id="add-char-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
@@ -494,6 +446,458 @@ function renderCharactersTabContent(tabId, data, dndMode, dhMode) {
           }
         `
     }
+  `;
+}
+
+/**
+ * Renders the D&D 5e / Universal Core Character Sheet.
+ */
+function renderFullCharacterSheet(ch, dndMode) {
+  const derived = compute5eDerivedStats(ch);
+  const attacks = Array.isArray(ch.attacks) ? ch.attacks : [];
+  const spellSlots = ch.spellSlots || createBlankSpellSlots();
+  const attunements = Array.isArray(ch.attunements)
+    ? ch.attunements
+    : [
+        { active: false, name: "" },
+        { active: false, name: "" },
+        { active: false, name: "" }
+      ];
+  const attunedCount = attunements.filter((a) => a.active).length;
+
+  return `
+    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-6">
+      <!-- Top Header: Character Name + Auto-Calculate + Remove -->
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-800 pb-4">
+        <div class="flex-1">
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-1">Character Name</label>
+          <input type="text" data-char-field="characterName" value="${escapeHtml(ch.characterName || "")}"
+            placeholder="e.g., Thalion Stormweaver"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-base font-bold text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          ${
+            dndMode
+              ? `<button type="button" id="recalc-5e-stats-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-2 rounded-lg border border-slate-700 font-semibold transition">
+                  Auto-Fill 5e Bonuses
+                </button>`
+              : ""
+          }
+          <button type="button" id="delete-char-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2.5 py-2 rounded-lg border border-slate-800 hover:border-rose-800/60 transition">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <!-- Portrait URL & Preview -->
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">Character Portrait URL (Optional)</label>
+        <input type="url" data-char-field="imageUrl" value="${escapeHtml(ch.imageUrl || "")}"
+          placeholder="https://... (Paste a character illustration or token link)"
+          class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+        <div id="char-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+          ${
+            ch.imageUrl
+              ? `<img src="${escapeHtml(ch.imageUrl)}" alt="Character Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
+              : `<p class="text-xs text-slate-500 py-3">Paste an image URL above to preview the character portrait here.</p>`
+          }
+        </div>
+      </div>
+
+      <!-- Class & Level, Player Name, Race, Alignment, Background, XP -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Class &amp; Level</label>
+          <input type="text" data-char-field="classAndLevel" value="${escapeHtml(ch.classAndLevel || "")}"
+            placeholder="e.g., Paladin 5"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Player Name</label>
+          <input type="text" data-char-field="playerName" value="${escapeHtml(ch.playerName || "")}"
+            placeholder="Player's name"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Race / Species</label>
+          <input type="text" data-char-field="race" value="${escapeHtml(ch.race || "")}"
+            placeholder="e.g., Half-Elf"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Alignment</label>
+          <input type="text" data-char-field="alignment" value="${escapeHtml(ch.alignment || "")}"
+            placeholder="e.g., Chaotic Good"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Background</label>
+          <input type="text" data-char-field="background" value="${escapeHtml(ch.background || "")}"
+            placeholder="e.g., Noble, Outlander"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Experience Points</label>
+          <input type="text" data-char-field="experiencePoints" value="${escapeHtml(ch.experiencePoints || "")}"
+            placeholder="e.g., 6,500 XP"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-amber-300" />
+        </div>
+      </div>
+
+      <!-- 6 Ability Scores -->
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
+        ${ABILITY_LIST.map((ab) => {
+          const parsed = parseAbilityScore(ch[ab.key]);
+          return `
+            <div class="text-center">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${ab.abbr}</label>
+              <input type="text" data-char-field="${ab.key}" value="${escapeHtml(ch[ab.key] || "")}"
+                placeholder="10"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-sm font-bold text-center text-white" />
+              <span class="block text-[11px] font-bold text-amber-300 mt-0.5">${parsed ? parsed.modStr : "+0"}</span>
+            </div>
+          `;
+        }).join("")}
+      </div>
+
+      <!-- Core Combat Vitals: AC, Initiative, Speed, Proficiency Bonus, Passive Perception, Inspiration -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Armor Class</label>
+          <input type="text" data-char-field="armorClass" value="${escapeHtml(ch.armorClass || "")}"
+            placeholder="16"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Initiative</label>
+          <input type="text" data-char-field="initiative" value="${escapeHtml(ch.initiative || "")}"
+            placeholder="${formatSigned(derived.mods.dexterity)}"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Speed</label>
+          <input type="text" data-char-field="speed" value="${escapeHtml(ch.speed || "")}"
+            placeholder="30 ft."
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Proficiency</label>
+          <input type="text" data-char-field="proficiencyBonus" value="${escapeHtml(ch.proficiencyBonus || "+2")}"
+            placeholder="+2"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Passive Perc.</label>
+          <input type="text" data-char-field="passiveWisdom" value="${escapeHtml(ch.passiveWisdom || "")}"
+            placeholder="${derived.autoPassive}"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-emerald-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Inspiration</label>
+          <input type="text" data-char-field="inspiration" value="${escapeHtml(ch.inspiration || "")}"
+            placeholder="0 / 1"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-purple-300" />
+        </div>
+      </div>
+
+      <!-- Hit Points, Hit Dice & Death Saves -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
+        <div class="md:col-span-6 grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Max HP</label>
+            <input type="text" data-char-field="hpMax" value="${escapeHtml(ch.hpMax || "")}"
+              placeholder="44"
+              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-emerald-300" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Current HP</label>
+            <input type="text" data-char-field="hpCurrent" value="${escapeHtml(ch.hpCurrent || "")}"
+              placeholder="44"
+              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Temp HP</label>
+            <input type="text" data-char-field="hpTemp" value="${escapeHtml(ch.hpTemp || "")}"
+              placeholder="0"
+              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300" />
+          </div>
+        </div>
+        <div class="md:col-span-3 grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Total HD</label>
+            <input type="text" data-char-field="hitDiceTotal" value="${escapeHtml(ch.hitDiceTotal || "")}"
+              placeholder="5d10"
+              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-white" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hit Dice</label>
+            <input type="text" data-char-field="hitDice" value="${escapeHtml(ch.hitDice || "")}"
+              placeholder="5d10"
+              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-white" />
+          </div>
+        </div>
+        <div class="md:col-span-3 flex flex-col justify-center gap-1.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-emerald-400 font-semibold">Successes</span>
+            <div class="flex gap-1.5">
+              <input type="checkbox" data-char-check="deathSuccess1" ${ch.deathSuccess1 ? "checked" : ""} />
+              <input type="checkbox" data-char-check="deathSuccess2" ${ch.deathSuccess2 ? "checked" : ""} />
+              <input type="checkbox" data-char-check="deathSuccess3" ${ch.deathSuccess3 ? "checked" : ""} />
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-rose-400 font-semibold">Failures</span>
+            <div class="flex gap-1.5">
+              <input type="checkbox" data-char-check="deathFailure1" ${ch.deathFailure1 ? "checked" : ""} />
+              <input type="checkbox" data-char-check="deathFailure2" ${ch.deathFailure2 ? "checked" : ""} />
+              <input type="checkbox" data-char-check="deathFailure3" ${ch.deathFailure3 ? "checked" : ""} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saving Throws & Skills -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Saving Throws</h4>
+          <div class="space-y-1.5">
+            ${ABILITY_LIST.map((ab) => {
+              const sv = ch.saves?.[ab.key] || { prof: false, val: "" };
+              return `
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" data-save-prof="${ab.key}" ${sv.prof ? "checked" : ""} />
+                    <span class="text-slate-200">${ab.label}</span>
+                  </label>
+                  <input type="text" data-save-val="${ab.key}" value="${escapeHtml(sv.val || "")}"
+                    placeholder="${derived.calcSaves[ab.key]}"
+                    class="w-14 px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-xs text-center font-semibold text-white" />
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Skills (Proficiency &amp; Expertise)</h4>
+            <span class="text-[10px] text-slate-400">Prof • Exp • Bonus</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+            ${SKILLS_LIST.map((sk) => {
+              const skObj = ch.skills?.[sk.key] || { prof: false, expertise: false, val: "" };
+              return `
+                <div class="flex items-center justify-between gap-1.5 text-xs">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <input type="checkbox" data-skill-prof="${sk.key}" ${skObj.prof ? "checked" : ""} title="Proficient" />
+                    ${
+                      dndMode
+                        ? `<input type="checkbox" data-skill-exp="${sk.key}" ${skObj.expertise ? "checked" : ""} title="Expertise (2x Prof)" />`
+                        : ""
+                    }
+                    <span class="truncate text-slate-200">${sk.label} <span class="text-[10px] text-slate-400">(${sk.stat})</span></span>
+                  </div>
+                  <input type="text" data-skill-val="${sk.key}" value="${escapeHtml(skObj.val || "")}"
+                    placeholder="${derived.calcSkills[sk.key]}"
+                    class="w-12 px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded text-xs text-center font-semibold text-white shrink-0" />
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+
+      <!-- Attacks & Spellcasting -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400">Attacks &amp; Cantrips</h4>
+          <button type="button" id="add-char-attack-btn" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded border border-slate-700">
+            + Add Attack
+          </button>
+        </div>
+        <div class="space-y-1.5">
+          ${attacks
+            .map(
+              (atk, aIdx) => `
+            <div class="grid grid-cols-12 gap-2 items-center">
+              <input type="text" data-atk-idx="${aIdx}" data-atk-field="name" value="${escapeHtml(atk.name || "")}"
+                placeholder="Weapon / Spell Name"
+                class="col-span-5 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-white" />
+              <input type="text" data-atk-idx="${aIdx}" data-atk-field="atkBonus" value="${escapeHtml(atk.atkBonus || "")}"
+                placeholder="+7"
+                class="col-span-2 px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-center text-amber-300 font-bold" />
+              <input type="text" data-atk-idx="${aIdx}" data-atk-field="damageType" value="${escapeHtml(atk.damageType || "")}"
+                placeholder="1d8+4 slashing"
+                class="col-span-4 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-rose-300" />
+              <button type="button" data-del-atk="${aIdx}" class="del-char-atk-btn col-span-1 text-slate-500 hover:text-rose-400 flex justify-center">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+
+      ${
+        dndMode
+          ? `
+            <!-- D&D 5e Spellcasting & Spell Slots (Levels 1–9) -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">Spellcasting Ability</label>
+                  <select data-char-field="spellcastingAbility" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                    <option value="">None / Non-Caster</option>
+                    <option value="intelligence" ${ch.spellcastingAbility === "intelligence" ? "selected" : ""}>Intelligence (INT)</option>
+                    <option value="wisdom" ${ch.spellcastingAbility === "wisdom" ? "selected" : ""}>Wisdom (WIS)</option>
+                    <option value="charisma" ${ch.spellcastingAbility === "charisma" ? "selected" : ""}>Charisma (CHA)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">Spell Save DC</label>
+                  <input type="text" data-char-field="spellSaveDc" value="${escapeHtml(ch.spellSaveDc || "")}"
+                    placeholder="${derived.autoSpellDc || "13"}"
+                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-purple-300" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">Spell Attack Bonus</label>
+                  <input type="text" data-char-field="spellAttackBonus" value="${escapeHtml(ch.spellAttackBonus || "")}"
+                    placeholder="${derived.autoSpellAtk || "+5"}"
+                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-purple-300" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 sm:grid-cols-9 gap-2">
+                ${[1, 2, 3, 4, 5, 6, 7, 8, 9]
+                  .map((lvl) => {
+                    const slotObj = spellSlots[lvl] || { total: 0, used: [false, false, false, false] };
+                    const total = Number(slotObj.total) || 0;
+                    return `
+                      <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-2 text-center space-y-1">
+                        <div class="text-[10px] font-bold uppercase text-purple-300">Lvl ${lvl}</div>
+                        <select data-slot-total="${lvl}" class="w-full px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-[11px] text-white">
+                          ${[0, 1, 2, 3, 4]
+                            .map((n) => `<option value="${n}" ${total === n ? "selected" : ""}>${n}</option>`)
+                            .join("")}
+                        </select>
+                        <div class="flex justify-center gap-1 pt-0.5">
+                          ${Array.from({ length: total }, (_, sIdx) => `
+                            <input type="checkbox" data-slot-used-lvl="${lvl}" data-slot-used-idx="${sIdx}"
+                              ${slotObj.used?.[sIdx] ? "checked" : ""} title="Expended Slot" />
+                          `).join("")}
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+
+              <textarea data-char-field="spellNotes" rows="3"
+                placeholder="Prepared spells, cantrips, ritual spells, or domain/oath spells..."
+                class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.spellNotes || "")}</textarea>
+            </div>
+
+            <!-- Class Features, Racial Traits, Feats & Attunement (0/3) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Class Features &amp; Subclass Abilities</label>
+                <textarea data-char-field="classFeatures" rows="4"
+                  placeholder="Second Wind, Action Surge, Sneak Attack, Divine Smite, Wild Shape..."
+                  class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.classFeatures || "")}</textarea>
+              </div>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Racial Traits &amp; Feats</label>
+                  <textarea data-char-field="racialTraits" rows="2"
+                    placeholder="Darkvision, Fey Ancestry, Sentinel, War Caster..."
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.racialTraits || "")}</textarea>
+                </div>
+                <div class="bg-slate-900/50 border border-slate-800 rounded-lg p-2.5 space-y-1.5">
+                  <div class="text-[11px] font-bold uppercase text-amber-300">Magic Item Attunement (${attunedCount} / 3)</div>
+                  ${attunements
+                    .map(
+                      (att, idx) => `
+                    <div class="flex items-center gap-2">
+                      <input type="checkbox" data-attune-check="${idx}" ${att.active ? "checked" : ""} />
+                      <input type="text" data-attune-name="${idx}" value="${escapeHtml(att.name || "")}"
+                        placeholder="Attuned item #${idx + 1}..."
+                        class="flex-1 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                    </div>
+                  `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          `
+          : ""
+      }
+
+      <!-- Currency (CP, SP, EP, GP, PP) & Equipment -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Coinage</h4>
+          <div class="grid grid-cols-5 gap-1.5 text-center">
+            ${[
+              ["cp", "CP"],
+              ["sp", "SP"],
+              ["ep", "EP"],
+              ["gp", "GP"],
+              ["pp", "PP"]
+            ]
+              .map(
+                ([k, lbl]) => `
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 mb-1">${lbl}</label>
+                <input type="text" data-char-field="${k}" value="${escapeHtml(ch[k] || "")}"
+                  placeholder="0"
+                  class="w-full px-1 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-amber-300" />
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1 mt-2">Proficiencies &amp; Languages</label>
+            <textarea data-char-field="languagesProficiencies" rows="3"
+              placeholder="Armor, weapons, tools, saving throws, languages..."
+              class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-100">${escapeHtml(ch.languagesProficiencies || "")}</textarea>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Equipment, Backpack &amp; Treasure</label>
+          <textarea data-char-field="equipment" rows="6"
+            placeholder="Weapons, armor, adventuring pack, potions, quest items..."
+            class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100">${escapeHtml(ch.equipment || "")}</textarea>
+        </div>
+      </div>
+
+      <!-- Personality Traits, Ideals, Bonds, Flaws & Backstory -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Personality Traits</label>
+          <textarea data-char-field="personalityTraits" rows="3"
+            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.personalityTraits || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Ideals</label>
+          <textarea data-char-field="ideals" rows="3"
+            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.ideals || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Bonds</label>
+          <textarea data-char-field="bonds" rows="3"
+            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.bonds || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Flaws</label>
+          <textarea data-char-field="flaws" rows="3"
+            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100">${escapeHtml(ch.flaws || "")}</textarea>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -647,7 +1051,6 @@ function renderDaggerheartCharacterSheet(ch) {
 
       <!-- Defenses, Damage Thresholds, Hit Points, Stress, Hope & Armor Slots -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <!-- Left 5 Cols: Evasion, Armor Score, Proficiency & Damage Thresholds -->
         <div class="lg:col-span-5 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
           <h4 class="text-xs font-bold uppercase tracking-wider text-sky-400">Defenses &amp; Damage Thresholds</h4>
           <div class="grid grid-cols-3 gap-2">
@@ -694,7 +1097,6 @@ function renderDaggerheartCharacterSheet(ch) {
           </div>
         </div>
 
-        <!-- Right 7 Cols: Interactive HP, Stress, Armor Slots & Hope Trackers -->
         <div class="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
           <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Hit Points, Stress, Armor Slots &amp; Hope</h4>
 
@@ -781,7 +1183,7 @@ function renderDaggerheartCharacterSheet(ch) {
         </div>
       </div>
 
-      <!-- Experiences (Narrative Modifiers) & Gold (Handfuls, Bags, Chests) -->
+      <!-- Experiences & Gold -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div class="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
           <div class="flex items-center justify-between">
@@ -1168,10 +1570,12 @@ function wireCharacterControls(paneContainer, state, existingDoc, data, dndMode,
   const imgPreview = paneContainer.querySelector("#char-image-preview");
   imgInput?.addEventListener("input", () => {
     const val = imgInput.value.trim();
-    if (val) {
-      imgPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Character Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
-    } else {
-      imgPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the character portrait here.</p>`;
+    if (imgPreview) {
+      if (val) {
+        imgPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Character Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+      } else {
+        imgPreview.innerHTML = `<p class="text-xs text-slate-500 py-3">Paste an image URL above to preview the character portrait here.</p>`;
+      }
     }
   });
 }
