@@ -1,11 +1,20 @@
 // chapter-enemies.js
 // Dedicated interactive workbook for Chapter 4: Enemies.
-// Supports Universal Core as well as full D&D 5e Monster Manual statblocks (Size/Type/Alignment,
-// Saving Throws, Damage Vulnerabilities/Resistances/Immunities, Condition Immunities,
-// Traits, Actions, Bonus Actions, Reactions, and Legendary/Lair Actions).
+// Supports Universal Core, full D&D 5e Monster Manual statblocks, and Daggerheart
+// Adversaries & Environments (Tier 1–4, Role/Type with Battle Points, Motives & Tactics,
+// Difficulty, Major/Severe Thresholds, HP, Stress, Attack Mod/Weapon/Range/Damage, Experiences & Fear Features).
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
-import { isDnd5e, DND5E_CREATURE_SIZES, parseAbilityScore } from "./system-rulesets.js";
+import {
+  isDnd5e,
+  isDaggerheart,
+  DND5E_CREATURE_SIZES,
+  parseAbilityScore,
+  DAGGERHEART_TIERS,
+  DAGGERHEART_ADVERSARY_TYPES,
+  DAGGERHEART_RANGE_BANDS,
+  getDaggerheartBattlePointCost
+} from "./system-rulesets.js";
 
 export const ENEMIES_TABS = [
   { id: "bbg-hierarchy", label: "Main Villain & Hierarchy", icon: "crown" },
@@ -33,6 +42,7 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
   }
 
   const dndMode = isDnd5e(state);
+  const dhMode = isDaggerheart(state);
   const existingDoc = state.entities.find((e) => e.type === "enemies");
   const data = {
     ...getDefaultEnemiesData(),
@@ -58,11 +68,15 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 4: Enemies${dndMode ? " • D&D 5e" : ""}
+              Chapter 4: ${dhMode ? "Adversaries" : "Enemies"}${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Detail your Big Bad Guy (BBG), enemy hierarchy, allied monster groups, and ${dndMode ? "full D&D 5e monster statblocks" : "enemy statblocks"}.
+            ${
+              dhMode
+                ? "Build Daggerheart Adversaries with Tier, Role (Solo, Bruiser, Leader, Minion, etc.), Battle Points, Motives & Tactics, Difficulty, Thresholds, and Fear Features."
+                : `Detail your Big Bad Guy (BBG), enemy hierarchy, allied monster groups, and ${dndMode ? "full D&D 5e monster statblocks" : "enemy statblocks"}.`
+            }
           </p>
         </div>
       </div>
@@ -79,7 +93,7 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderEnemiesTabContent(activeEnemiesTab, data, dndMode)}
+      ${renderEnemiesTabContent(activeEnemiesTab, data, dndMode, dhMode)}
     </div>
   `;
 
@@ -149,7 +163,7 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderEnemiesTabContent(tabId, data, dndMode) {
+function renderEnemiesTabContent(tabId, data, dndMode, dhMode) {
   switch (tabId) {
     case "bbg-hierarchy":
       return `
@@ -190,7 +204,7 @@ function renderEnemiesTabContent(tabId, data, dndMode) {
       `;
 
     case "bestiary":
-      return renderBestiaryTab(data, dndMode);
+      return dhMode ? renderDaggerheartAdversaryBestiary(data) : renderBestiaryTab(data, dndMode);
 
     case "misc-notes":
       return `
@@ -304,191 +318,191 @@ function renderBestiaryTab(data, dndMode) {
                       `
                       : ""
                   }
+/**
+ * Renders Daggerheart Adversary Statblocks (Tier 1–4, Role/Type & Battle Points, Motives & Tactics,
+ * Difficulty, Major/Severe Thresholds, HP, Stress, Attack Mod/Weapon/Range/Damage, Experiences & Features).
+ */
+function renderDaggerheartAdversaryBestiary(data) {
+  const enemies = data.enemies || [];
+  const activeAdv = enemies[selectedEnemyIndex] || null;
 
-                  <!-- Enemy Artwork / Token Image URL & Preview -->
-                  <div class="space-y-2.5">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                      Enemy Artwork / Token Image URL (Optional)
-                    </label>
-                    <input type="url" data-enemy-field="imageUrl" value="${escapeHtml(activeEnemy.imageUrl || "")}"
-                      placeholder="https://... (Paste a monster illustration or VTT token image link)"
-                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                    <div id="enemy-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
-                      ${
-                        activeEnemy.imageUrl
-                          ? `<img src="${escapeHtml(activeEnemy.imageUrl)}" alt="Enemy Artwork" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
-                          : `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview enemy artwork or a token here.</p>`
-                      }
+  return `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div>
+        <h3 class="text-sm font-bold text-white">Daggerheart Adversary &amp; Environment Statblocks</h3>
+        <p class="text-xs text-slate-400">Create adversaries with Tier, Role, Battle Points, Motives &amp; Tactics, Difficulty, Thresholds, and Fear Features.</p>
+      </div>
+      <button type="button" id="add-enemy-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Adversary
+      </button>
+    </div>
+
+    ${
+      enemies.length === 0
+        ? `
+          <div class="text-center py-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/30">
+            <i data-lucide="skull" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <p class="text-sm font-medium text-slate-300">No Adversaries Added Yet</p>
+            <p class="text-xs text-slate-500 mt-1">Click "Add Adversary" to create a Daggerheart statblock.</p>
+          </div>
+        `
+        : `
+          <div class="flex items-center gap-2 flex-wrap">
+            ${enemies
+              .map((en, i) => {
+                const bp = getDaggerheartBattlePointCost(en.adversaryType || "Standard");
+                return `
+                  <button type="button" data-enemy-idx="${i}" class="select-enemy-btn px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    i === selectedEnemyIndex
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700"
+                  }">
+                    ${escapeHtml(en.name || `Adversary #${i + 1}`)}${en.adversaryType ? ` • ${escapeHtml(en.adversaryType)} (${bp} BP)` : ""}
+                  </button>
+                `;
+              })
+              .join("")}
+          </div>
+
+          ${
+            activeAdv
+              ? `
+                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-5">
+                  <!-- Top Header: Adversary Name + Remove -->
+                  <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div class="flex-1">
+                      <label class="block text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-1">Adversary / Environment Name</label>
+                      <input type="text" data-enemy-field="name" value="${escapeHtml(activeAdv.name || "")}"
+                        placeholder="e.g., Jagged Knife Bandit, Forest Wraith, Blighted Treant"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-base font-bold text-white" />
+                    </div>
+                    <button type="button" id="delete-enemy-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2.5 py-1.5 rounded border border-slate-800 transition self-end">
+                      Remove
+                    </button>
+                  </div>
+
+                  <!-- Tier, Role/Type & Battle Points -->
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Tier</label>
+                      <select data-enemy-field="tier" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                        ${DAGGERHEART_TIERS.map(
+                          (t) => `<option value="${t}" ${(activeAdv.tier || "Tier 1 (Lvl 1)") === t ? "selected" : ""}>${t}</option>`
+                        ).join("")}
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Adversary Role / Type</label>
+                      <select data-enemy-field="adversaryType" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                        ${DAGGERHEART_ADVERSARY_TYPES.map(
+                          (at) => `<option value="${at.type}" ${(activeAdv.adversaryType || "Standard") === at.type ? "selected" : ""}>${at.type} (${at.points} Battle Pts)</option>`
+                        ).join("")}
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Battle Points Cost</label>
+                      <input type="text" data-enemy-field="battlePoints"
+                        value="${escapeHtml(activeAdv.battlePoints || String(getDaggerheartBattlePointCost(activeAdv.adversaryType || "Standard")))}"
+                        placeholder="2"
+                        class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-amber-300 text-center" />
                     </div>
                   </div>
 
-                  <!-- Combat Vitals: Armor Class, Hit Points, Speed, Challenge -->
-                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <!-- Motives & Tactics -->
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Motives &amp; Tactics</label>
+                    <input type="text" data-enemy-field="motivesTactics" value="${escapeHtml(activeAdv.motivesTactics || "")}"
+                      placeholder="e.g., Ambush isolated travelers, steal shiny valuables, flee when reduced to 2 HP"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+                  </div>
+
+                  <!-- Core Adversary Numbers: Difficulty, Major/Severe Thresholds, HP, Stress -->
+                  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Armor Class</label>
-                      <input type="text" data-enemy-field="armorClass" value="${escapeHtml(activeEnemy.armorClass || "")}"
-                        placeholder="e.g., 15 (Chain)"
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                      <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Difficulty</label>
+                      <input type="text" data-enemy-field="difficulty" value="${escapeHtml(activeAdv.difficulty || "12")}"
+                        placeholder="12"
+                        class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300" />
                     </div>
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Hit Points</label>
-                      <input type="text" data-enemy-field="hitPoints" value="${escapeHtml(activeEnemy.hitPoints || "")}"
-                        placeholder="e.g., 68 (8d10+24)"
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                      <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Major Threshold</label>
+                      <input type="text" data-enemy-field="thresholdMajor" value="${escapeHtml(activeAdv.thresholdMajor || "6")}"
+                        placeholder="6"
+                        class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
                     </div>
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Speed</label>
-                      <input type="text" data-enemy-field="speed" value="${escapeHtml(activeEnemy.speed || "")}"
-                        placeholder="e.g., 30 ft., fly 60 ft."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                      <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Severe Threshold</label>
+                      <input type="text" data-enemy-field="thresholdSevere" value="${escapeHtml(activeAdv.thresholdSevere || "12")}"
+                        placeholder="12"
+                        class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-rose-300" />
                     </div>
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">${dndMode ? "Challenge (CR / XP)" : "Challenge / Threat"}</label>
-                      <input type="text" data-enemy-field="challenge" value="${escapeHtml(activeEnemy.challenge || "")}"
-                        placeholder="e.g., CR 4 (1,100 XP)"
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                      <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hit Points (HP)</label>
+                      <input type="text" data-enemy-field="hitPoints" value="${escapeHtml(activeAdv.hitPoints || "5")}"
+                        placeholder="5"
+                        class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-emerald-300" />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Stress</label>
+                      <input type="text" data-enemy-field="stress" value="${escapeHtml(activeAdv.stress || "3")}"
+                        placeholder="3"
+                        class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-purple-300" />
                     </div>
                   </div>
 
-                  <!-- 6 Core Ability Scores -->
-                  <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
-                    ${[
-                      ["strength", "Strength"],
-                      ["dexterity", "Dexterity"],
-                      ["constitution", "Constitution"],
-                      ["intelligence", "Intelligence"],
-                      ["wisdom", "Wisdom"],
-                      ["charisma", "Charisma"]
-                    ]
-                      .map(([key, label]) => {
-                        const parsed = parseAbilityScore(activeEnemy[key]);
-                        return `
-                          <div class="text-center">
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</label>
-                            <input type="text" data-enemy-field="${key}" value="${escapeHtml(activeEnemy[key] || "")}"
-                              placeholder="10"
-                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm font-semibold text-center text-white focus:outline-none focus:border-indigo-500" />
-                            ${
-                              dndMode && parsed
-                                ? `<div class="mt-0.5 text-[10px] font-bold text-indigo-300">${parsed.modStr}</div>`
-                                : ""
-                            }
-                          </div>
-                        `;
-                      })
-                      .join("")}
+                  <!-- Standard Attack Row: ATK Mod, Weapon/Attack Name, Range Band, Damage Dice & Type -->
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Attack Modifier</label>
+                      <input type="text" data-enemy-field="attackMod" value="${escapeHtml(activeAdv.attackMod || "+1")}"
+                        placeholder="+1"
+                        class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Weapon / Attack</label>
+                      <input type="text" data-enemy-field="weaponName" value="${escapeHtml(activeAdv.weaponName || "")}"
+                        placeholder="e.g., Jagged Dagger / Claws"
+                        class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Range Band</label>
+                      <select data-enemy-field="rangeBand" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                        ${DAGGERHEART_RANGE_BANDS.map(
+                          (rb) => `<option value="${rb}" ${(activeAdv.rangeBand || "Melee") === rb ? "selected" : ""}>${rb}</option>`
+                        ).join("")}
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Damage Dice &amp; Type</label>
+                      <input type="text" data-enemy-field="damageDice" value="${escapeHtml(activeAdv.damageDice || "")}"
+                        placeholder="e.g., 1d8+2 phy / 2d6 mag"
+                        class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-rose-300 font-semibold" />
+                    </div>
                   </div>
 
-                  ${
-                    dndMode
-                      ? `
-                        <!-- D&D 5e Saving Throws, Defenses & Condition Immunities -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Saving Throws</label>
-                            <input type="text" data-enemy-field="savingThrows" value="${escapeHtml(activeEnemy.savingThrows || "")}"
-                              placeholder="e.g., Dex +5, Con +6, Wis +4"
-                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Damage Vulnerabilities</label>
-                            <input type="text" data-enemy-field="damageVulnerabilities" value="${escapeHtml(activeEnemy.damageVulnerabilities || "")}"
-                              placeholder="e.g., Fire, Radiant"
-                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Damage Resistances</label>
-                            <input type="text" data-enemy-field="damageResistances" value="${escapeHtml(activeEnemy.damageResistances || "")}"
-                              placeholder="e.g., Cold; Bludgeoning, Piercing & Slashing from nonmagical attacks"
-                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Damage Immunities</label>
-                            <input type="text" data-enemy-field="damageImmunities" value="${escapeHtml(activeEnemy.damageImmunities || "")}"
-                              placeholder="e.g., Necrotic, Poison"
-                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Condition Immunities</label>
-                            <input type="text" data-enemy-field="conditionImmunities" value="${escapeHtml(activeEnemy.conditionImmunities || "")}"
-                              placeholder="e.g., Charmed, Exhaustion, Frightened, Poisoned"
-                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                        </div>
+                  <!-- Experiences & Features (Passives, Actions, Reactions & Spend Fear) -->
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Adversary Experiences</label>
+                    <input type="text" data-enemy-field="experiences" value="${escapeHtml(activeAdv.experiences || "")}"
+                      placeholder="e.g., Forest Ambush +2, Keen Scent +3"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-amber-200" />
+                  </div>
 
-                        <!-- D&D 5e Structured Action Blocks -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Special Traits &amp; Passives</label>
-                            <textarea data-enemy-field="traitsDescription" rows="4"
-                              placeholder="Magic Resistance, Pack Tactics, Sunlight Sensitivity, Legendary Resistance (3/Day)..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.traitsDescription || "")}</textarea>
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Actions</label>
-                            <textarea data-enemy-field="actions" rows="4"
-                              placeholder="Multiattack. The knight makes two greatsword attacks.&#10;Greatsword. Melee Weapon Attack: +7 to hit, reach 5 ft., Hit: 11 (2d6+4) slashing..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.actions || "")}</textarea>
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Bonus Actions &amp; Reactions</label>
-                            <textarea data-enemy-field="bonusReactions" rows="3"
-                              placeholder="Bonus Action: Shadow Step (30 ft.) | Reaction: Parry (+3 AC against one melee attack)..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.bonusReactions || "")}</textarea>
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Legendary / Lair Actions</label>
-                            <textarea data-enemy-field="legendaryActions" rows="3"
-                              placeholder="3 Legendary Actions/Round: Detect, Claw Attack, Wing Attack (Costs 2 Actions)..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.legendaryActions || "")}</textarea>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label class="block text-xs font-semibold text-slate-300 mb-1">Dropped Loot / Treasure Hoard</label>
-                          <textarea data-enemy-field="droppedLoot" rows="2"
-                            placeholder="Coins, magic items, harvesting components, quest clues..."
-                            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.droppedLoot || "")}</textarea>
-                        </div>
-                      `
-                      : `
-                        <!-- Standard Traits/Description + Dropped Loot -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Traits / Description & Actions</label>
-                            <textarea data-enemy-field="traitsDescription" rows="5"
-                              placeholder="Appearance, passive traits, attacks, special abilities, tactics..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.traitsDescription || "")}</textarea>
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Dropped Loot</label>
-                            <textarea data-enemy-field="droppedLoot" rows="5"
-                              placeholder="Coins, weapons, harvesting components, quest clues..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.droppedLoot || "")}</textarea>
-                          </div>
-                        </div>
-                      `
-                  }
-
-                  <!-- Skills, Senses, Languages -->
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-800/80">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Skills</label>
-                      <textarea data-enemy-field="skills" rows="3"
-                        placeholder="e.g., Perception +5, Stealth +6..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.skills || "")}</textarea>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Features (Passives, Actions &amp; Spend Fear Moves)</label>
+                      <textarea data-enemy-field="traitsDescription" rows="5"
+                        placeholder="Pack Tactics (Passive): ...&#10;Shadow Strike (Action - Spend 1 Fear): ...&#10;Relentless (Reaction): ..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeAdv.traitsDescription || "")}</textarea>
                     </div>
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Senses</label>
-                      <textarea data-enemy-field="senses" rows="3"
-                        placeholder="e.g., Darkvision 60 ft., Passive Perception 15..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.senses || "")}</textarea>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Languages</label>
-                      <textarea data-enemy-field="languages" rows="3"
-                        placeholder="e.g., Common, Abyssal, Telepathy 60 ft..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.languages || "")}</textarea>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Loot, Salvage &amp; Token Image URL</label>
+                      <input type="url" data-enemy-field="imageUrl" value="${escapeHtml(activeAdv.imageUrl || "")}"
+                        placeholder="Token Image URL (https://...)"
+                        class="w-full px-3 py-1.5 mb-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white" />
+                      <textarea data-enemy-field="droppedLoot" rows="3"
+                        placeholder="Gold handfuls, consumables, crafting materials..."
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeAdv.droppedLoot || "")}</textarea>
                     </div>
                   </div>
                 </div>
@@ -520,6 +534,19 @@ function wireEnemyControls(paneContainer, state, existingDoc, data) {
       size: "Medium",
       creatureType: "",
       alignment: "",
+      tier: "Tier 1 (Lvl 1)",
+      adversaryType: "Standard",
+      battlePoints: "2",
+      motivesTactics: "",
+      difficulty: "12",
+      thresholdMajor: "6",
+      thresholdSevere: "12",
+      stress: "3",
+      attackMod: "+1",
+      weaponName: "",
+      rangeBand: "Melee",
+      damageDice: "",
+      experiences: "",
       imageUrl: "",
       strength: "",
       dexterity: "",
