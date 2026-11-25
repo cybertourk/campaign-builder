@@ -1,8 +1,11 @@
 // chapter-enemies.js
-// Dedicated interactive workbook for Chapter 4: Enemies (Pages 103–104+).
-// Renders the active section selected from the vertical nested sidebar in ui-campaign.js.
+// Dedicated interactive workbook for Chapter 4: Enemies.
+// Supports Universal Core as well as full D&D 5e Monster Manual statblocks (Size/Type/Alignment,
+// Saving Throws, Damage Vulnerabilities/Resistances/Immunities, Condition Immunities,
+// Traits, Actions, Bonus Actions, Reactions, and Legendary/Lair Actions).
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
+import { isDnd5e, DND5E_CREATURE_SIZES, parseAbilityScore } from "./system-rulesets.js";
 
 export const ENEMIES_TABS = [
   { id: "bbg-hierarchy", label: "Main Villain & Hierarchy", icon: "crown" },
@@ -15,16 +18,11 @@ let selectedEnemyIndex = 0;
 
 function getDefaultEnemiesData() {
   return {
-    // Page 103: Enemies Overview Prompts
     mainVillain: "",
     villainMotivation: "",
     enemyHierarchy: "",
     alliedEnemiesList: "",
-
-    // Page 104+: Repeatable Enemy Statblock Cards
     enemies: [],
-
-    // Chapter 4 Misc Notes
     miscNotes: ""
   };
 }
@@ -34,6 +32,7 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
     activeEnemiesTab = options.activeSectionId;
   }
 
+  const dndMode = isDnd5e(state);
   const existingDoc = state.entities.find((e) => e.type === "enemies");
   const data = {
     ...getDefaultEnemiesData(),
@@ -59,11 +58,11 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 4: Enemies
+              Chapter 4: Enemies${dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Detail your Big Bad Guy (BBG), enemy hierarchy, allied monster groups, and full enemy statblocks.
+            Detail your Big Bad Guy (BBG), enemy hierarchy, allied monster groups, and ${dndMode ? "full D&D 5e monster statblocks" : "enemy statblocks"}.
           </p>
         </div>
       </div>
@@ -80,11 +79,11 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderEnemiesTabContent(activeEnemiesTab, data)}
+      ${renderEnemiesTabContent(activeEnemiesTab, data, dndMode)}
     </div>
   `;
 
-  // Preserve unsaved edits in memory when switching vertical sections in the sidebar
+  // Preserve unsaved edits in memory when switching vertical sections
   const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="enemies"]');
   sidebarSectionBtns.forEach((btn) => {
     btn.addEventListener(
@@ -101,8 +100,9 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
 
   // Unsaved indicator
   const statusEl = paneContainer.querySelector("#enemies-save-status");
-  paneContainer.querySelectorAll("input, textarea").forEach((el) => {
-    el.addEventListener("input", () => {
+  paneContainer.querySelectorAll("input, textarea, select").forEach((el) => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
       statusEl.textContent = "Unsaved changes";
       statusEl.className = "text-xs text-amber-400";
     });
@@ -149,7 +149,7 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderEnemiesTabContent(tabId, data) {
+function renderEnemiesTabContent(tabId, data, dndMode) {
   switch (tabId) {
     case "bbg-hierarchy":
       return `
@@ -190,7 +190,7 @@ function renderEnemiesTabContent(tabId, data) {
       `;
 
     case "bestiary":
-      return renderBestiaryTab(data);
+      return renderBestiaryTab(data, dndMode);
 
     case "misc-notes":
       return `
@@ -214,7 +214,7 @@ function renderEnemiesTabContent(tabId, data) {
   }
 }
 
-function renderBestiaryTab(data) {
+function renderBestiaryTab(data, dndMode) {
   const enemies = data.enemies || [];
   const activeEnemy = enemies[selectedEnemyIndex] || null;
 
@@ -249,7 +249,7 @@ function renderBestiaryTab(data) {
                     ? "bg-indigo-600 text-white"
                     : "bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700"
                 }">
-                ${escapeHtml(en.name || `Enemy #${i + 1}`)}
+                ${escapeHtml(en.name || `Enemy #${i + 1}`)}${en.challenge ? ` (${escapeHtml(en.challenge)})` : ""}
               </button>
             `
               )
@@ -272,6 +272,38 @@ function renderBestiaryTab(data) {
                       Remove Enemy
                     </button>
                   </div>
+
+                  ${
+                    dndMode
+                      ? `
+                        <!-- D&D 5e Creature Size, Type & Alignment Sub-Header -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+                          <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Size</label>
+                            <select data-enemy-field="size"
+                              class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500">
+                              <option value="">Select Size...</option>
+                              ${DND5E_CREATURE_SIZES.map(
+                                (sz) => `<option value="${sz}" ${activeEnemy.size === sz ? "selected" : ""}>${sz}</option>`
+                              ).join("")}
+                            </select>
+                          </div>
+                          <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Creature Type</label>
+                            <input type="text" data-enemy-field="creatureType" value="${escapeHtml(activeEnemy.creatureType || "")}"
+                              placeholder="e.g., Undead, Fiend, Humanoid (Cultist)"
+                              class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                          <div>
+                            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Alignment</label>
+                            <input type="text" data-enemy-field="alignment" value="${escapeHtml(activeEnemy.alignment || "")}"
+                              placeholder="e.g., Lawful Evil, Unaligned"
+                              class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                        </div>
+                      `
+                      : ""
+                  }
 
                   <!-- Enemy Artwork / Token Image URL & Preview -->
                   <div class="space-y-2.5">
@@ -311,14 +343,14 @@ function renderBestiaryTab(data) {
                         class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Challenge / Threat</label>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">${dndMode ? "Challenge (CR / XP)" : "Challenge / Threat"}</label>
                       <input type="text" data-enemy-field="challenge" value="${escapeHtml(activeEnemy.challenge || "")}"
                         placeholder="e.g., CR 4 (1,100 XP)"
                         class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
                     </div>
                   </div>
 
-                  <!-- 6 Core Ability Scores (STR, DEX, CON, INT, WIS, CHA) -->
+                  <!-- 6 Core Ability Scores -->
                   <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
                     ${[
                       ["strength", "Strength"],
@@ -328,34 +360,115 @@ function renderBestiaryTab(data) {
                       ["wisdom", "Wisdom"],
                       ["charisma", "Charisma"]
                     ]
-                      .map(
-                        ([key, label]) => `
-                      <div class="text-center">
-                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</label>
-                        <input type="text" data-enemy-field="${key}" value="${escapeHtml(activeEnemy[key] || "")}"
-                          placeholder="10 (+0)"
-                          class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm font-semibold text-center text-white focus:outline-none focus:border-indigo-500" />
-                      </div>
-                    `
-                      )
+                      .map(([key, label]) => {
+                        const parsed = parseAbilityScore(activeEnemy[key]);
+                        return `
+                          <div class="text-center">
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</label>
+                            <input type="text" data-enemy-field="${key}" value="${escapeHtml(activeEnemy[key] || "")}"
+                              placeholder="10"
+                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm font-semibold text-center text-white focus:outline-none focus:border-indigo-500" />
+                            ${
+                              dndMode && parsed
+                                ? `<div class="mt-0.5 text-[10px] font-bold text-indigo-300">${parsed.modStr}</div>`
+                                : ""
+                            }
+                          </div>
+                        `;
+                      })
                       .join("")}
                   </div>
 
-                  <!-- Traits/Description + Dropped Loot -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Traits / Description & Actions</label>
-                      <textarea data-enemy-field="traitsDescription" rows="5"
-                        placeholder="Appearance, passive traits, attacks, special abilities, tactics..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.traitsDescription || "")}</textarea>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Dropped Loot</label>
-                      <textarea data-enemy-field="droppedLoot" rows="5"
-                        placeholder="Coins, weapons, harvesting components, quest clues..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.droppedLoot || "")}</textarea>
-                    </div>
-                  </div>
+                  ${
+                    dndMode
+                      ? `
+                        <!-- D&D 5e Saving Throws, Defenses & Condition Immunities -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Saving Throws</label>
+                            <input type="text" data-enemy-field="savingThrows" value="${escapeHtml(activeEnemy.savingThrows || "")}"
+                              placeholder="e.g., Dex +5, Con +6, Wis +4"
+                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Damage Vulnerabilities</label>
+                            <input type="text" data-enemy-field="damageVulnerabilities" value="${escapeHtml(activeEnemy.damageVulnerabilities || "")}"
+                              placeholder="e.g., Fire, Radiant"
+                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Damage Resistances</label>
+                            <input type="text" data-enemy-field="damageResistances" value="${escapeHtml(activeEnemy.damageResistances || "")}"
+                              placeholder="e.g., Cold; Bludgeoning, Piercing & Slashing from nonmagical attacks"
+                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Damage Immunities</label>
+                            <input type="text" data-enemy-field="damageImmunities" value="${escapeHtml(activeEnemy.damageImmunities || "")}"
+                              placeholder="e.g., Necrotic, Poison"
+                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                          <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Condition Immunities</label>
+                            <input type="text" data-enemy-field="conditionImmunities" value="${escapeHtml(activeEnemy.conditionImmunities || "")}"
+                              placeholder="e.g., Charmed, Exhaustion, Frightened, Poisoned"
+                              class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
+                          </div>
+                        </div>
+
+                        <!-- D&D 5e Structured Action Blocks -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Special Traits &amp; Passives</label>
+                            <textarea data-enemy-field="traitsDescription" rows="4"
+                              placeholder="Magic Resistance, Pack Tactics, Sunlight Sensitivity, Legendary Resistance (3/Day)..."
+                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.traitsDescription || "")}</textarea>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Actions</label>
+                            <textarea data-enemy-field="actions" rows="4"
+                              placeholder="Multiattack. The knight makes two greatsword attacks.&#10;Greatsword. Melee Weapon Attack: +7 to hit, reach 5 ft., Hit: 11 (2d6+4) slashing..."
+                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.actions || "")}</textarea>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Bonus Actions &amp; Reactions</label>
+                            <textarea data-enemy-field="bonusReactions" rows="3"
+                              placeholder="Bonus Action: Shadow Step (30 ft.) | Reaction: Parry (+3 AC against one melee attack)..."
+                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.bonusReactions || "")}</textarea>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Legendary / Lair Actions</label>
+                            <textarea data-enemy-field="legendaryActions" rows="3"
+                              placeholder="3 Legendary Actions/Round: Detect, Claw Attack, Wing Attack (Costs 2 Actions)..."
+                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.legendaryActions || "")}</textarea>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label class="block text-xs font-semibold text-slate-300 mb-1">Dropped Loot / Treasure Hoard</label>
+                          <textarea data-enemy-field="droppedLoot" rows="2"
+                            placeholder="Coins, magic items, harvesting components, quest clues..."
+                            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.droppedLoot || "")}</textarea>
+                        </div>
+                      `
+                      : `
+                        <!-- Standard Traits/Description + Dropped Loot -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Traits / Description & Actions</label>
+                            <textarea data-enemy-field="traitsDescription" rows="5"
+                              placeholder="Appearance, passive traits, attacks, special abilities, tactics..."
+                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.traitsDescription || "")}</textarea>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Dropped Loot</label>
+                            <textarea data-enemy-field="droppedLoot" rows="5"
+                              placeholder="Coins, weapons, harvesting components, quest clues..."
+                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeEnemy.droppedLoot || "")}</textarea>
+                          </div>
+                        </div>
+                      `
+                  }
 
                   <!-- Skills, Senses, Languages -->
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-800/80">
@@ -404,6 +517,9 @@ function wireEnemyControls(paneContainer, state, existingDoc, data) {
     collectEnemiesForm(paneContainer, data);
     data.enemies.push({
       name: `Enemy ${data.enemies.length + 1}`,
+      size: "Medium",
+      creatureType: "",
+      alignment: "",
       imageUrl: "",
       strength: "",
       dexterity: "",
@@ -414,7 +530,15 @@ function wireEnemyControls(paneContainer, state, existingDoc, data) {
       armorClass: "",
       hitPoints: "",
       speed: "",
+      savingThrows: "",
+      damageVulnerabilities: "",
+      damageResistances: "",
+      damageImmunities: "",
+      conditionImmunities: "",
       traitsDescription: "",
+      actions: "",
+      bonusReactions: "",
+      legendaryActions: "",
       droppedLoot: "",
       skills: "",
       senses: "",
