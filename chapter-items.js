@@ -1,8 +1,15 @@
 // chapter-items.js
-// Dedicated interactive workbook for Chapter 8: Item List (Pages 201–207).
-// Includes Items, Armor List, Weapon List, Spell List (all with Image URL & preview), and Misc Notes.
+// Dedicated interactive workbook for Chapter 8: Item List.
+// Includes Items, Armor List, Weapon List, Spell List, and D&D 5e enhancements
+// (Item Rarity, Requires Attunement toggle, Spell Level/School, Casting Time, Range, Components, Duration).
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
+import {
+  isDnd5e,
+  DND5E_RARITIES,
+  DND5E_SPELL_SCHOOLS,
+  DND5E_SPELL_LEVELS
+} from "./system-rulesets.js";
 
 export const ITEMS_TABS = [
   { id: "general-items", label: "Items", icon: "package" },
@@ -16,19 +23,10 @@ let activeItemsTab = "general-items";
 
 function getDefaultItemsData() {
   return {
-    // Page 201: Items (Name, Description, Image)
     items: [],
-
-    // Page 203: Armor List (Name/Level, Description, AC, Cost, Image)
     armor: [],
-
-    // Page 205: Weapon List (Name/Level, Description, Damage, Image)
     weapons: [],
-
-    // Page 207: Spell List (Name/Level, Description, Damage, Image)
     spells: [],
-
-    // Chapter 8 Misc Notes
     miscNotes: ""
   };
 }
@@ -38,6 +36,7 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
     activeItemsTab = options.activeSectionId;
   }
 
+  const dndMode = isDnd5e(state);
   const existingDoc = state.entities.find((e) => e.type === "item-list");
   const data = {
     ...getDefaultItemsData(),
@@ -62,11 +61,11 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 8: Item List
+              Chapter 8: Item List${dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Catalog custom items, armor, weapons, and spells with stats, descriptions, and artwork previews.
+            Catalog custom items, armor, weapons, and spells with ${dndMode ? "5e rarity, attunement, spell schools/components, and" : "stats, descriptions, and"} artwork previews.
           </p>
         </div>
       </div>
@@ -83,11 +82,11 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderItemsTabContent(activeItemsTab, data)}
+      ${renderItemsTabContent(activeItemsTab, data, dndMode)}
     </div>
   `;
 
-  // Preserve unsaved edits in memory when switching vertical sections in the sidebar
+  // Preserve unsaved edits in memory when switching vertical sections
   const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="item-list"]');
   sidebarSectionBtns.forEach((btn) => {
     btn.addEventListener(
@@ -104,14 +103,14 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
 
   // Unsaved indicator
   const statusEl = paneContainer.querySelector("#items-save-status");
-  paneContainer.querySelectorAll("input, textarea").forEach((el) => {
-    el.addEventListener("input", () => {
+  paneContainer.querySelectorAll("input, textarea, select").forEach((el) => {
+    const ev = el.type === "checkbox" || el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
       statusEl.textContent = "Unsaved changes";
       statusEl.className = "text-xs text-amber-400";
     });
   });
 
-  // Wire add/remove/image-preview controls for the active list tab
   if (activeItemsTab !== "misc-notes") {
     wireItemListControls(paneContainer, state, existingDoc, data, activeItemsTab);
   }
@@ -155,16 +154,16 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
   });
 }
 
-function renderItemsTabContent(tabId, data) {
+function renderItemsTabContent(tabId, data, dndMode) {
   switch (tabId) {
     case "general-items":
-      return renderGeneralItemsSection(data.items);
+      return renderGeneralItemsSection(data.items, dndMode);
     case "armor-list":
-      return renderArmorSection(data.armor);
+      return renderArmorSection(data.armor, dndMode);
     case "weapon-list":
-      return renderWeaponsSection(data.weapons);
+      return renderWeaponsSection(data.weapons, dndMode);
     case "spell-list":
-      return renderSpellsSection(data.spells);
+      return renderSpellsSection(data.spells, dndMode);
     case "misc-notes":
       return `
         <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
@@ -173,7 +172,7 @@ function renderItemsTabContent(tabId, data) {
           </h3>
           <p class="text-xs text-slate-400">Jot down crafting recipes, attunement rules, currency conversion notes, or treasure parcel ideas.</p>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Gear, Loot & Magic Notes</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Gear, Loot &amp; Magic Notes</label>
             <textarea data-items-misc="miscNotes" rows="12"
               placeholder="Write extra relic lore, potion tables, or homebrew item rules here..."
               class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
@@ -185,14 +184,35 @@ function renderItemsTabContent(tabId, data) {
   }
 }
 
-/**
- * Page 201: ITEMS (Name, Description, Image)
- */
-function renderGeneralItemsSection(items) {
+function renderRarityAttuneRow(listKey, idx, entry) {
+  return `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 mb-1">D&amp;D 5e Rarity</label>
+        <select data-list-key="${listKey}" data-row-idx="${idx}" data-row-field="rarity"
+          class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500">
+          ${DND5E_RARITIES.map(
+            (r) => `<option value="${r}" ${(entry.rarity || "Common") === r ? "selected" : ""}>${r}</option>`
+          ).join("")}
+        </select>
+      </div>
+      <div class="flex items-end pb-1.5">
+        <label class="inline-flex items-center gap-2 text-xs text-slate-200 cursor-pointer select-none">
+          <input type="checkbox" data-list-key="${listKey}" data-row-idx="${idx}" data-row-check="requiresAttunement"
+            ${entry.requiresAttunement ? "checked" : ""}
+            class="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500" />
+          <span>Requires Attunement</span>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function renderGeneralItemsSection(items, dndMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
-        <h3 class="text-sm font-bold text-white">Items & Relics</h3>
+        <h3 class="text-sm font-bold text-white">Items &amp; Relics</h3>
         <p class="text-xs text-slate-400">Record wondrous items, consumables, quest relics, and adventuring gear with optional artwork.</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
@@ -222,12 +242,13 @@ function renderGeneralItemsSection(items) {
                         placeholder="e.g., Lantern of Revealing"
                         class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                     </div>
+                    ${dndMode ? renderRarityAttuneRow("items", idx, item) : ""}
                     ${renderInlineImageControl("items", idx, item.imageUrl)}
                   </div>
 
                   <div class="md:col-span-8">
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Description</label>
-                    <textarea data-list-key="items" data-row-idx="${idx}" data-row-field="description" rows="5"
+                    <textarea data-list-key="items" data-row-idx="${idx}" data-row-field="description" rows="6"
                       placeholder="Properties, charges, activation trigger, lore, and value..."
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(item.description || "")}</textarea>
                   </div>
@@ -242,15 +263,12 @@ function renderGeneralItemsSection(items) {
   `;
 }
 
-/**
- * Page 203: ARMOR LIST (Name/Level, Description, AC, Cost, Image)
- */
-function renderArmorSection(armorList) {
+function renderArmorSection(armorList, dndMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
         <h3 class="text-sm font-bold text-white">Armor List</h3>
-        <p class="text-xs text-slate-400">Track armor pieces, shields, tier/level requirements, AC bonuses, cost, and artwork.</p>
+        <p class="text-xs text-slate-400">Track armor pieces, shields, AC bonuses, cost, and artwork.</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
         <i data-lucide="plus" class="w-4 h-4"></i> Add Armor
@@ -273,9 +291,9 @@ function renderArmorSection(armorList) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-6">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Level</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Type</label>
                     <input type="text" data-list-key="armor" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(arm.nameLevel || "")}"
-                      placeholder="e.g., Mithral Breastplate (Tier 2)"
+                      placeholder="e.g., Mithral Breastplate (Medium)"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-3">
@@ -291,6 +309,8 @@ function renderArmorSection(armorList) {
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-amber-300 focus:outline-none focus:border-indigo-500" />
                   </div>
                 </div>
+
+                ${dndMode ? renderRarityAttuneRow("armor", idx, arm) : ""}
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                   <div class="md:col-span-4">
@@ -313,15 +333,12 @@ function renderArmorSection(armorList) {
   `;
 }
 
-/**
- * Page 205: WEAPON LIST (Name/Level, Description, Damage, Image)
- */
-function renderWeaponsSection(weaponList) {
+function renderWeaponsSection(weaponList, dndMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
         <h3 class="text-sm font-bold text-white">Weapon List</h3>
-        <p class="text-xs text-slate-400">Catalog melee, ranged, and enchanted weapons with level/tier, damage, properties, and artwork.</p>
+        <p class="text-xs text-slate-400">Catalog melee, ranged, and enchanted weapons with damage, properties, and artwork.</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
         <i data-lucide="plus" class="w-4 h-4"></i> Add Weapon
@@ -344,9 +361,9 @@ function renderWeaponsSection(weaponList) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Level</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Category</label>
                     <input type="text" data-list-key="weapons" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(wpn.nameLevel || "")}"
-                      placeholder="e.g., Sunforged Longsword +1 (Level 5)"
+                      placeholder="e.g., Sunforged Longsword +1 (Martial Melee)"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-4">
@@ -357,14 +374,16 @@ function renderWeaponsSection(weaponList) {
                   </div>
                 </div>
 
+                ${dndMode ? renderRarityAttuneRow("weapons", idx, wpn) : ""}
+
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                   <div class="md:col-span-4">
                     ${renderInlineImageControl("weapons", idx, wpn.imageUrl)}
                   </div>
                   <div class="md:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description &amp; Properties</label>
                     <textarea data-list-key="weapons" data-row-idx="${idx}" data-row-field="description" rows="4"
-                      placeholder="Range, traits (Finesse, Heavy, Versatile), special abilities, cost..."
+                      placeholder="Range, traits (Finesse, Heavy, Versatile, Reach), special abilities, cost..."
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(wpn.description || "")}</textarea>
                   </div>
                 </div>
@@ -378,10 +397,7 @@ function renderWeaponsSection(weaponList) {
   `;
 }
 
-/**
- * Page 207: SPELL LIST (Name/Level, Description, Damage, Image)
- */
-function renderSpellsSection(spellList) {
+function renderSpellsSection(spellList, dndMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
@@ -409,9 +425,9 @@ function renderSpellsSection(spellList) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name / Level</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Spell Name</label>
                     <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(spl.nameLevel || "")}"
-                      placeholder="e.g., Astral Lance (3rd-Level Evocation)"
+                      placeholder="e.g., Astral Lance"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-4">
@@ -422,14 +438,66 @@ function renderSpellsSection(spellList) {
                   </div>
                 </div>
 
+                ${
+                  dndMode
+                    ? `
+                      <!-- D&D 5e Full Spell Metadata -->
+                      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Level</label>
+                          <select data-list-key="spells" data-row-idx="${idx}" data-row-field="spellLevel"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${DND5E_SPELL_LEVELS.map(
+                              (lvl) => `<option value="${lvl}" ${(spl.spellLevel || "1st Level") === lvl ? "selected" : ""}>${lvl}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">School</label>
+                          <select data-list-key="spells" data-row-idx="${idx}" data-row-field="school"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+                            ${DND5E_SPELL_SCHOOLS.map(
+                              (sch) => `<option value="${sch}" ${(spl.school || "Evocation") === sch ? "selected" : ""}>${sch}</option>`
+                            ).join("")}
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Casting Time</label>
+                          <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="castingTime" value="${escapeHtml(spl.castingTime || "")}"
+                            placeholder="1 Action"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Range</label>
+                          <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="range" value="${escapeHtml(spl.range || "")}"
+                            placeholder="60 feet"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Components</label>
+                          <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="components" value="${escapeHtml(spl.components || "")}"
+                            placeholder="V, S, M"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Duration</label>
+                          <input type="text" data-list-key="spells" data-row-idx="${idx}" data-row-field="duration" value="${escapeHtml(spl.duration || "")}"
+                            placeholder="Conc, 1 min"
+                            class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                        </div>
+                      </div>
+                    `
+                    : ""
+                }
+
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                   <div class="md:col-span-4">
                     ${renderInlineImageControl("spells", idx, spl.imageUrl)}
                   </div>
                   <div class="md:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description &amp; At Higher Levels</label>
                     <textarea data-list-key="spells" data-row-idx="${idx}" data-row-field="description" rows="4"
-                      placeholder="Casting time, range, components, duration, and full spell rules..."
+                      placeholder="Full spell rules, saving throw effects, and At Higher Levels scaling..."
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(spl.description || "")}</textarea>
                   </div>
                 </div>
@@ -443,9 +511,6 @@ function renderSpellsSection(spellList) {
   `;
 }
 
-/**
- * Shared inline Image URL input + live thumbnail preview for Items, Armor, Weapons, and Spells.
- */
 function renderInlineImageControl(listKey, idx, imageUrl) {
   return `
     <div class="space-y-2">
@@ -499,13 +564,24 @@ function wireItemListControls(paneContainer, state, existingDoc, data, tabId) {
   paneContainer.querySelector("#add-entry-row-btn")?.addEventListener("click", () => {
     collectItemsForm(paneContainer, data);
     if (listKey === "items") {
-      data.items.push({ name: "", description: "", imageUrl: "" });
+      data.items.push({ name: "", description: "", rarity: "Common", requiresAttunement: false, imageUrl: "" });
     } else if (listKey === "armor") {
-      data.armor.push({ nameLevel: "", description: "", ac: "", cost: "", imageUrl: "" });
+      data.armor.push({ nameLevel: "", description: "", ac: "", cost: "", rarity: "Common", requiresAttunement: false, imageUrl: "" });
     } else if (listKey === "weapons") {
-      data.weapons.push({ nameLevel: "", description: "", damage: "", imageUrl: "" });
+      data.weapons.push({ nameLevel: "", description: "", damage: "", rarity: "Common", requiresAttunement: false, imageUrl: "" });
     } else if (listKey === "spells") {
-      data.spells.push({ nameLevel: "", description: "", damage: "", imageUrl: "" });
+      data.spells.push({
+        nameLevel: "",
+        spellLevel: "1st Level",
+        school: "Evocation",
+        castingTime: "1 Action",
+        range: "60 feet",
+        components: "V, S",
+        duration: "Instantaneous",
+        description: "",
+        damage: "",
+        imageUrl: ""
+      });
     }
     rerenderWithLocalData();
   });
@@ -525,7 +601,6 @@ function wireItemListControls(paneContainer, state, existingDoc, data, tabId) {
     });
   });
 
-  // Live image URL preview updates
   paneContainer.querySelectorAll(".item-img-url-input").forEach((input) => {
     input.addEventListener("input", () => {
       const key = input.getAttribute("data-list-key");
@@ -547,12 +622,21 @@ function collectItemsForm(container, data) {
     data[el.getAttribute("data-items-misc")] = el.value;
   });
 
-  container.querySelectorAll("[data-list-key]").forEach((el) => {
+  container.querySelectorAll("[data-list-key][data-row-field]").forEach((el) => {
     const listKey = el.getAttribute("data-list-key");
     const idx = Number(el.getAttribute("data-row-idx"));
     const field = el.getAttribute("data-row-field");
     if (Array.isArray(data[listKey]) && data[listKey][idx]) {
       data[listKey][idx][field] = el.value;
+    }
+  });
+
+  container.querySelectorAll("[data-list-key][data-row-check]").forEach((el) => {
+    const listKey = el.getAttribute("data-list-key");
+    const idx = Number(el.getAttribute("data-row-idx"));
+    const field = el.getAttribute("data-row-check");
+    if (Array.isArray(data[listKey]) && data[listKey][idx]) {
+      data[listKey][idx][field] = el.checked;
     }
   });
 }
