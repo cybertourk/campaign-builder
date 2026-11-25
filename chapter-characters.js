@@ -1,15 +1,23 @@
 // chapter-characters.js
 // Dedicated interactive workbook for Chapter 9: Character Sheets.
-// Supports Universal Core as well as full D&D 5e enhancements (auto-calculated ability
-// modifiers, proficiency & expertise skill/save math, Spellcasting DC/Attack/Slots 1–9,
-// Class Features / Racial Traits / Feats, and 3-Slot Magic Item Attunement tracker).
+// Supports Universal Core, D&D 5e (auto-calculated modifiers, skills, spell slots 1–9,
+// class features, attunement), and Daggerheart (6 Traits, Evasion, Armor Score & Slots,
+// Damage Thresholds, Hit Points, Stress, Hope, Experiences, Primary/Secondary Weapons,
+// Active Armor, Gold Handfuls/Bags/Chests, and Domain Cards Loadout & Vault).
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import {
   isDnd5e,
+  isDaggerheart,
   parseAbilityScore,
   parseBonus,
-  formatSigned
+  formatSigned,
+  DAGGERHEART_TRAITS,
+  DAGGERHEART_CLASSES,
+  DAGGERHEART_DOMAINS,
+  DAGGERHEART_COMMUNITIES,
+  DAGGERHEART_ANCESTRIES,
+  getDaggerheartTierForLevel
 } from "./system-rulesets.js";
 
 export const CHARACTERS_TABS = [
@@ -144,7 +152,49 @@ function createBlankCharacter(index) {
       { active: false, name: "" },
       { active: false, name: "" },
       { active: false, name: "" }
-    ]
+    ],
+    // Daggerheart Character Sheet Fields
+    dhPronouns: "",
+    dhLevel: "1",
+    dhClass: "",
+    dhSubclass: "",
+    dhMulticlass: "",
+    dhCommunity: "",
+    dhAncestry: "",
+    dhEvasion: "10",
+    dhArmorScore: "0",
+    dhArmorSlotsTotal: "3",
+    dhArmorSlotsMarked: [false, false, false, false, false, false],
+    dhProficiency: "1",
+    dhThresholdMajor: "5",
+    dhThresholdSevere: "10",
+    dhHpTotal: "6",
+    dhHpMarked: [false, false, false, false, false, false, false, false, false, false],
+    dhStressTotal: "6",
+    dhStressMarked: [false, false, false, false, false, false, false, false],
+    dhHopeCount: 2,
+    dhTraits: {
+      agility: "+0",
+      strength: "+0",
+      finesse: "+0",
+      instinct: "+0",
+      presence: "+0",
+      knowledge: "+0"
+    },
+    dhExperiences: [
+      { name: "", modifier: "+2" },
+      { name: "", modifier: "+2" }
+    ],
+    dhPrimaryWeapon: { name: "", traitRange: "", damageDice: "", feature: "" },
+    dhSecondaryWeapon: { name: "", traitRange: "", damageDice: "", feature: "" },
+    dhActiveArmor: { name: "", baseThresholds: "", baseScore: "", feature: "" },
+    dhGoldHandfuls: "1",
+    dhGoldBags: "0",
+    dhGoldChests: "0",
+    dhDomainCards: [],
+    dhClassHopeFeature: "",
+    dhHeritageFeatures: "",
+    dhConnectionsNotes: ""
   };
 }
 
@@ -204,6 +254,7 @@ export function renderCharactersChapter(paneContainer, state, options = {}) {
   }
 
   const dndMode = isDnd5e(state);
+  const dhMode = isDaggerheart(state);
   const existingDoc = state.entities.find((e) => e.type === "character-sheets");
   const data = {
     ...getDefaultCharactersData(),
@@ -229,12 +280,14 @@ export function renderCharactersChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 9: Character Sheets${dndMode ? " • D&D 5e" : ""}
+              Chapter 9: Character Sheets${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
             ${
-              dndMode
+              dhMode
+                ? "Daggerheart character sheets with 6 Traits, Hope/Stress/HP/Armor slot trackers, Damage Thresholds, Experiences, Weapons, and Domain Cards."
+                : dndMode
                 ? "Full D&D 5e character sheets with auto-calculated modifiers, skills, spell slots (1–9), class features, and attunement."
                 : "Manage player character sheets, ability scores, saving throws, skills, attacks, equipment, and portraits."
             }
@@ -254,7 +307,7 @@ export function renderCharactersChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderCharactersTabContent(activeCharactersTab, data, dndMode)}
+      ${renderCharactersTabContent(activeCharactersTab, data, dndMode, dhMode)}
     </div>
   `;
 
@@ -284,7 +337,7 @@ export function renderCharactersChapter(paneContainer, state, options = {}) {
   });
 
   if (activeCharactersTab === "party-roster") {
-    wireCharacterControls(paneContainer, state, existingDoc, data, dndMode);
+    wireCharacterControls(paneContainer, state, existingDoc, data, dndMode, dhMode);
   }
 
   // Save to Firestore
@@ -370,505 +423,385 @@ function renderCharactersTabContent(tabId, data, dndMode) {
               .map(
                 (ch, i) => `
               <button type="button" data-char-idx="${i}" class="select-char-btn px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  i === selectedCharacterIndex
-                    ? "bg-indigo-600 text-white"
-                    : "bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700"
-                }">
-                ${escapeHtml(ch.characterName || `Character #${i + 1}`)}${ch.classAndLevel ? ` (${escapeHtml(ch.classAndLevel)})` : ""}
-              </button>
-            `
-              )
+function renderCharactersTabContent(tabId, data, dndMode, dhMode) {
+  if (tabId === "misc-notes") {
+    return `
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> Character Sheets — Misc Notes
+        </h3>
+        <p class="text-xs text-slate-400">Keep track of party marching order, shared loot, passive perception notes, or character arc ideas.</p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Party & Character Notes</label>
+          <textarea data-chars-misc="miscNotes" rows="12"
+            placeholder="Write party notes, house character creation rules, or personal quest reminders here..."
+            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  const characters = data.characters || [];
+  const activeChar = characters[selectedCharacterIndex] || null;
+
+  return `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div>
+        <h3 class="text-sm font-bold text-white">Party Roster & Character Sheets</h3>
+        <p class="text-xs text-slate-400">Add player characters or key companions with full character sheets and portraits.</p>
+      </div>
+      <button type="button" id="add-char-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Character
+      </button>
+    </div>
+
+    ${
+      characters.length === 0
+        ? `
+          <div class="text-center py-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/30">
+            <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <p class="text-sm font-medium text-slate-300">No Character Sheets Added Yet</p>
+            <p class="text-xs text-slate-500 mt-1">Click "Add Character" to create a character sheet.</p>
+          </div>
+        `
+        : `
+          <!-- Character Selector Pills -->
+          <div class="flex items-center gap-2 flex-wrap">
+            ${characters
+              .map((ch, i) => {
+                const subLabel = dhMode
+                  ? [ch.dhClass, ch.dhLevel ? `Lvl ${ch.dhLevel}` : ""].filter(Boolean).join(" ")
+                  : ch.classAndLevel;
+                return `
+                  <button type="button" data-char-idx="${i}" class="select-char-btn px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    i === selectedCharacterIndex
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700"
+                  }">
+                    ${escapeHtml(ch.characterName || `Character #${i + 1}`)}${subLabel ? ` (${escapeHtml(subLabel)})` : ""}
+                  </button>
+                `;
+              })
               .join("")}
           </div>
 
-          ${activeChar ? renderFullCharacterSheet(activeChar, dndMode) : ""}
+          ${
+            activeChar
+              ? dhMode
+                ? renderDaggerheartCharacterSheet(activeChar)
+                : renderFullCharacterSheet(activeChar, dndMode)
+              : ""
+          }
         `
     }
   `;
 }
 
-function renderFullCharacterSheet(ch, dndMode) {
-  const saves = ch.saves || {};
-  const skills = ch.skills || {};
-  const attacks = Array.isArray(ch.attacks) ? ch.attacks : [];
-  const spellSlots = ch.spellSlots || createBlankSpellSlots();
-  const attunements = Array.isArray(ch.attunements)
-    ? ch.attunements
+/**
+ * Renders the full Daggerheart Character Sheet (Traits, Heritage, Evasion, Armor Score/Slots,
+ * Damage Thresholds, Hit Points, Stress, Hope, Experiences, Weapons, Active Armor, Gold, and Domain Cards).
+ */
+function renderDaggerheartCharacterSheet(ch) {
+  const traits = ch.dhTraits || {
+    agility: "+0",
+    strength: "+0",
+    finesse: "+0",
+    instinct: "+0",
+    presence: "+0",
+    knowledge: "+0"
+  };
+  const tierLabel = getDaggerheartTierForLevel(ch.dhLevel);
+  const selectedClassObj = DAGGERHEART_CLASSES.find((c) => c.name === ch.dhClass);
+  const classDomainsText = selectedClassObj
+    ? `${selectedClassObj.domains[0]} & ${selectedClassObj.domains[1]}`
+    : "Choose Class for Domains";
+
+  const hpTotal = Math.max(1, Math.min(10, parseInt(ch.dhHpTotal, 10) || 6));
+  const hpMarked = Array.isArray(ch.dhHpMarked) ? ch.dhHpMarked : [];
+  const stressTotal = Math.max(1, Math.min(8, parseInt(ch.dhStressTotal, 10) || 6));
+  const stressMarked = Array.isArray(ch.dhStressMarked) ? ch.dhStressMarked : [];
+  const armorSlotsTotal = Math.max(0, Math.min(6, parseInt(ch.dhArmorSlotsTotal, 10) || 0));
+  const armorSlotsMarked = Array.isArray(ch.dhArmorSlotsMarked) ? ch.dhArmorSlotsMarked : [];
+  const hopeCount = Math.max(0, Math.min(6, Number(ch.dhHopeCount) ?? 2));
+
+  const experiences = Array.isArray(ch.dhExperiences)
+    ? ch.dhExperiences
     : [
-        { active: false, name: "" },
-        { active: false, name: "" },
-        { active: false, name: "" }
+        { name: "", modifier: "+2" },
+        { name: "", modifier: "+2" }
       ];
-  const derived = compute5eDerivedStats(ch);
-  const activeAttunementCount = attunements.filter((a) => a.active).length;
+  const priWpn = ch.dhPrimaryWeapon || { name: "", traitRange: "", damageDice: "", feature: "" };
+  const secWpn = ch.dhSecondaryWeapon || { name: "", traitRange: "", damageDice: "", feature: "" };
+  const actArm = ch.dhActiveArmor || { name: "", baseThresholds: "", baseScore: "", feature: "" };
+  const domainCards = Array.isArray(ch.dhDomainCards) ? ch.dhDomainCards : [];
 
   return `
     <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-6">
-      <!-- Top Header: Character Name & Remove -->
-      <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-4 flex-wrap">
-        <div class="flex-1 min-w-[200px]">
+      <!-- Top Header: Character Name, Pronouns, Level & Tier -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border-b border-slate-800 pb-4">
+        <div class="md:col-span-5">
           <label class="block text-[11px] font-semibold uppercase tracking-wider text-indigo-400 mb-1">Character Name</label>
           <input type="text" data-char-field="characterName" value="${escapeHtml(ch.characterName || "")}"
-            placeholder="e.g., Thalion Duskwalker"
+            placeholder="e.g., Vespera Thorn"
             class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-base font-bold text-white focus:outline-none focus:border-indigo-500" />
         </div>
-        <div class="flex items-center gap-2 self-end">
-          ${
-            dndMode
-              ? `<button type="button" id="recalc-5e-stats-btn"
-                  title="Auto-fill Saving Throws, Skills, Passive Perception, and Spell DC/Attack from your Ability Scores & Proficiency Bonus"
-                  class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-2 rounded-lg border border-slate-700 transition font-medium">
-                  Auto-Fill 5e Bonuses
-                </button>`
-              : ""
-          }
-          <button type="button" id="delete-char-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2.5 py-2 rounded-lg border border-slate-800 hover:border-rose-800/60 transition">
-            Remove Character
+        <div class="md:col-span-3">
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Pronouns &amp; Player</label>
+          <input type="text" data-char-field="dhPronouns" value="${escapeHtml(ch.dhPronouns || "")}"
+            placeholder="e.g., she/her • Alex"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Level (${tierLabel})</label>
+          <select data-char-field="dhLevel" class="dh-live-select w-full px-2.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-bold text-amber-300">
+            ${Array.from({ length: 10 }, (_, i) => i + 1)
+              .map((lvl) => `<option value="${lvl}" ${String(ch.dhLevel || "1") === String(lvl) ? "selected" : ""}>Level ${lvl}</option>`)
+              .join("")}
+          </select>
+        </div>
+        <div class="md:col-span-2 flex justify-end">
+          <button type="button" id="delete-char-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2.5 py-2 rounded-lg border border-slate-800 hover:border-rose-800/60 transition w-full">
+            Remove
           </button>
         </div>
       </div>
 
-      <!-- Character Portrait Image URL & Preview -->
-      <div class="space-y-2.5">
-        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-          Character Portrait Image URL (Optional)
-        </label>
+      <!-- Portrait URL & Preview -->
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">Character Portrait URL (Optional)</label>
         <input type="url" data-char-field="imageUrl" value="${escapeHtml(ch.imageUrl || "")}"
-          placeholder="https://... (Paste a character portrait, token, or HeroForge image link)"
+          placeholder="https://... (Paste a character illustration or token link)"
           class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
         <div id="char-image-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
           ${
             ch.imageUrl
-              ? `<img src="${escapeHtml(ch.imageUrl)}" alt="Character Portrait" class="max-h-72 mx-auto rounded-lg border border-slate-700 object-contain" />`
-              : `<p class="text-xs text-slate-500 py-4">Paste an image URL above to preview the character portrait here.</p>`
+              ? `<img src="${escapeHtml(ch.imageUrl)}" alt="Character Portrait" class="max-h-64 mx-auto rounded-lg border border-slate-700 object-contain" />`
+              : `<p class="text-xs text-slate-500 py-3">Paste an image URL above to preview the character portrait here.</p>`
           }
         </div>
       </div>
 
-      <!-- Identity Metadata -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
+      <!-- Class, Subclass, Heritage (Community + Ancestry) & Domains -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Class & Level</label>
-          <input type="text" data-char-field="classAndLevel" value="${escapeHtml(ch.classAndLevel || "")}"
-            placeholder="e.g., Ranger 5"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Class (${escapeHtml(classDomainsText)})</label>
+          <select data-char-field="dhClass" class="dh-live-select w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white">
+            <option value="">Select Class...</option>
+            ${DAGGERHEART_CLASSES.map(
+              (c) => `<option value="${c.name}" ${ch.dhClass === c.name ? "selected" : ""}>${c.name} (${c.domains.join("/")})</option>`
+            ).join("")}
+          </select>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Player Name</label>
-          <input type="text" data-char-field="playerName" value="${escapeHtml(ch.playerName || "")}"
-            placeholder="Player's name"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Subclass</label>
+          <input type="text" data-char-field="dhSubclass" value="${escapeHtml(ch.dhSubclass || "")}"
+            placeholder="e.g., Warden of the Elements"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1">${dndMode ? "Species / Race" : "Race / Ancestry"}</label>
-          <input type="text" data-char-field="race" value="${escapeHtml(ch.race || "")}"
-            placeholder="e.g., Wood Elf"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Community (Heritage)</label>
+          <select data-char-field="dhCommunity" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+            <option value="">Select Community...</option>
+            ${DAGGERHEART_COMMUNITIES.map(
+              (comm) => `<option value="${comm}" ${ch.dhCommunity === comm ? "selected" : ""}>${comm}</option>`
+            ).join("")}
+          </select>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Background</label>
-          <input type="text" data-char-field="background" value="${escapeHtml(ch.background || "")}"
-            placeholder="e.g., Outlander"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ancestry (Heritage)</label>
+          <select data-char-field="dhAncestry" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white">
+            <option value="">Select Ancestry...</option>
+            ${DAGGERHEART_ANCESTRIES.map(
+              (anc) => `<option value="${anc}" ${ch.dhAncestry === anc ? "selected" : ""}>${anc}</option>`
+            ).join("")}
+          </select>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Alignment</label>
-          <input type="text" data-char-field="alignment" value="${escapeHtml(ch.alignment || "")}"
-            placeholder="e.g., Chaotic Good"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Experience Points</label>
-          <input type="text" data-char-field="experiencePoints" value="${escapeHtml(ch.experiencePoints || "")}"
-            placeholder="e.g., 6,500 XP"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Multiclass (Lvl 5+)</label>
+          <input type="text" data-char-field="dhMulticlass" value="${escapeHtml(ch.dhMulticlass || "")}"
+            placeholder="Optional multiclass..."
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
         </div>
       </div>
 
-      <!-- Appearance Row -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Height</label>
-          <input type="text" data-char-field="height" value="${escapeHtml(ch.height || "")}" placeholder="e.g., 5'11&quot;"
-            class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+      <!-- 6 Daggerheart Character Traits -->
+      <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Daggerheart Character Traits</span>
+          <span class="text-[10px] text-slate-400">Standard Starting Array: +2, +1, +1, +0, +0, -1</span>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Weight</label>
-          <input type="text" data-char-field="weight" value="${escapeHtml(ch.weight || "")}" placeholder="e.g., 165 lbs"
-            class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Skin</label>
-          <input type="text" data-char-field="skin" value="${escapeHtml(ch.skin || "")}" placeholder="Skin tone / markings"
-            class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Hair</label>
-          <input type="text" data-char-field="hair" value="${escapeHtml(ch.hair || "")}" placeholder="Hair color / style"
-            class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-      </div>
-
-      <!-- Combat Vitals Bar -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Armor Class</label>
-          <input type="text" data-char-field="armorClass" value="${escapeHtml(ch.armorClass || "")}" placeholder="16"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Initiative</label>
-          <input type="text" data-char-field="initiative" value="${escapeHtml(ch.initiative || "")}"
-            placeholder="${dndMode ? formatSigned(derived.mods.dexterity) : "+3"}"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Speed</label>
-          <input type="text" data-char-field="speed" value="${escapeHtml(ch.speed || "")}" placeholder="30 ft."
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-            Passive Perc. ${dndMode ? `(${derived.autoPassive})` : ""}
-          </label>
-          <input type="text" data-char-field="passiveWisdom" value="${escapeHtml(ch.passiveWisdom || "")}"
-            placeholder="${dndMode ? String(derived.autoPassive) : "14"}"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">${dndMode ? "Heroic Insp." : "Inspiration"}</label>
-          <input type="text" data-char-field="inspiration" value="${escapeHtml(ch.inspiration || "")}" placeholder="0 / Yes"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300 focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Prof. Bonus</label>
-          <input type="text" data-char-field="proficiencyBonus" value="${escapeHtml(ch.proficiencyBonus || "")}" placeholder="+2"
-            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-indigo-300 focus:outline-none focus:border-indigo-500" />
-        </div>
-      </div>
-
-      <!-- Main Grid: Ability Scores + Saving Throws + Skills (Left) | HP + Death Saves + Personality (Right) -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <!-- Left 6 Columns -->
-        <div class="lg:col-span-6 space-y-4">
-          <!-- 6 Ability Scores with Live 5e Modifier Badges -->
-          <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
-            ${ABILITY_LIST.map((a) => {
-              const parsed = parseAbilityScore(ch[a.key]);
-              return `
-                <div class="text-center">
-                  <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">${a.abbr}</label>
-                  <input type="text" data-char-field="${a.key}" value="${escapeHtml(ch[a.key] || "")}"
-                    placeholder="10"
-                    class="w-full px-1.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-center text-white focus:outline-none focus:border-indigo-500" />
-                  ${
-                    dndMode
-                      ? `<div class="mt-1 text-[11px] font-bold text-indigo-300">${parsed ? parsed.modStr : "+0"}</div>`
-                      : ""
-                  }
-                </div>
-              `;
-            }).join("")}
-          </div>
-
-          <!-- Saving Throws -->
-          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">Saving Throws</h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              ${ABILITY_LIST.map((a) => {
-                const sv = saves[a.key] || { prof: false, val: "" };
-                const placeholderVal = dndMode ? derived.calcSaves[a.key] : "+0";
-                return `
-                  <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800/80 rounded-lg px-2.5 py-1.5">
-                    <input type="checkbox" data-save-prof="${a.key}" ${sv.prof ? "checked" : ""} title="Proficient"
-                      class="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500" />
-                    <input type="text" data-save-val="${a.key}" value="${escapeHtml(sv.val || "")}" placeholder="${placeholderVal}"
-                      class="w-11 px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-xs text-center text-white focus:outline-none focus:border-indigo-500" />
-                    <span class="text-xs text-slate-200">${a.label}</span>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          </div>
-
-          <!-- 18 Skills (with Proficiency & 5e Expertise checkboxes) -->
-          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Skills</h4>
-              ${dndMode ? `<span class="text-[10px] text-slate-400">Prof • Exp (2x)</span>` : ""}
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              ${SKILLS_LIST.map((sk) => {
-                const skObj = skills[sk.key] || { prof: false, expertise: false, val: "" };
-                const placeholderVal = dndMode ? derived.calcSkills[sk.key] : "+0";
-                return `
-                  <div class="flex items-center gap-1.5 bg-slate-950/70 border border-slate-800/70 rounded-lg px-2 py-1">
-                    <input type="checkbox" data-skill-prof="${sk.key}" ${skObj.prof ? "checked" : ""} title="Proficiency"
-                      class="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500" />
-                    ${
-                      dndMode
-                        ? `<input type="checkbox" data-skill-exp="${sk.key}" ${skObj.expertise ? "checked" : ""} title="Expertise (2x Proficiency)"
-                            class="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500" />`
-                        : ""
-                    }
-                    <input type="text" data-skill-val="${sk.key}" value="${escapeHtml(skObj.val || "")}" placeholder="${placeholderVal}"
-                      class="w-10 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-xs text-center text-white focus:outline-none focus:border-indigo-500" />
-                    <span class="text-xs text-slate-200 truncate">${sk.label}</span>
-                    <span class="text-[10px] text-slate-500 ml-auto">(${sk.stat})</span>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          </div>
-        </div>
-
-        <!-- Right 6 Columns -->
-        <div class="lg:col-span-6 space-y-4">
-          <!-- Hit Points & Death Saves Box -->
-          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Hit Points & Death Saves</h4>
-            <div class="grid grid-cols-3 gap-2.5">
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Hit Point Maximum</label>
-                <input type="text" data-char-field="hpMax" value="${escapeHtml(ch.hpMax || "")}" placeholder="45"
-                  class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Current Hit Points</label>
-                <input type="text" data-char-field="hpCurrent" value="${escapeHtml(ch.hpCurrent || "")}" placeholder="45"
-                  class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-emerald-300 focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Temporary Hit Points</label>
-                <input type="text" data-char-field="hpTemp" value="${escapeHtml(ch.hpTemp || "")}" placeholder="0"
-                  class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300 focus:outline-none focus:border-indigo-500" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
-              <div class="space-y-1.5">
-                <label class="block text-[11px] font-semibold text-slate-400">Hit Dice (Total / Remaining)</label>
-                <div class="grid grid-cols-2 gap-2">
-                  <input type="text" data-char-field="hitDiceTotal" value="${escapeHtml(ch.hitDiceTotal || "")}" placeholder="Total (5d10)"
-                    class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                  <input type="text" data-char-field="hitDice" value="${escapeHtml(ch.hitDice || "")}" placeholder="Left (5)"
-                    class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
-
-              <div class="space-y-1.5">
-                <label class="block text-[11px] font-semibold text-slate-400">Death Saves</label>
-                <div class="flex items-center justify-between text-xs bg-slate-950 border border-slate-800 rounded px-2.5 py-1">
-                  <span class="text-emerald-400 font-medium">Successes</span>
-                  <div class="flex items-center gap-1.5">
-                    <input type="checkbox" data-char-check="deathSuccess1" ${ch.deathSuccess1 ? "checked" : ""} class="rounded bg-slate-900 border-slate-700 text-emerald-500" />
-                    <input type="checkbox" data-char-check="deathSuccess2" ${ch.deathSuccess2 ? "checked" : ""} class="rounded bg-slate-900 border-slate-700 text-emerald-500" />
-                    <input type="checkbox" data-char-check="deathSuccess3" ${ch.deathSuccess3 ? "checked" : ""} class="rounded bg-slate-900 border-slate-700 text-emerald-500" />
-                  </div>
-                </div>
-                <div class="flex items-center justify-between text-xs bg-slate-950 border border-slate-800 rounded px-2.5 py-1">
-                  <span class="text-rose-400 font-medium">Failures</span>
-                  <div class="flex items-center gap-1.5">
-                    <input type="checkbox" data-char-check="deathFailure1" ${ch.deathFailure1 ? "checked" : ""} class="rounded bg-slate-900 border-slate-700 text-rose-500" />
-                    <input type="checkbox" data-char-check="deathFailure2" ${ch.deathFailure2 ? "checked" : ""} class="rounded bg-slate-900 border-slate-700 text-rose-500" />
-                    <input type="checkbox" data-char-check="deathFailure3" ${ch.deathFailure3 ? "checked" : ""} class="rounded bg-slate-900 border-slate-700 text-rose-500" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          ${
-            dndMode
-              ? `
-                <!-- D&D 5e Attunement Tracker (0 / 3) -->
-                <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
-                  <div class="flex items-center justify-between">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Magic Item Attunement</h4>
-                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-950 text-amber-300 border border-slate-800">
-                      ${activeAttunementCount} / 3 Attuned
-                    </span>
-                  </div>
-                  <div class="space-y-1.5">
-                    ${[0, 1, 2]
-                      .map((slotIdx) => {
-                        const att = attunements[slotIdx] || { active: false, name: "" };
-                        return `
-                          <div class="flex items-center gap-2">
-                            <input type="checkbox" data-attune-check="${slotIdx}" ${att.active ? "checked" : ""}
-                              class="rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500" />
-                            <input type="text" data-attune-name="${slotIdx}" value="${escapeHtml(att.name || "")}"
-                              placeholder="Attuned Magic Item #${slotIdx + 1}..."
-                              class="flex-1 px-2.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                        `;
-                      })
-                      .join("")}
-                  </div>
-                </div>
-              `
-              : ""
-          }
-
-          <!-- Personality Traits, Ideals, Bonds, Flaws -->
-          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Personality & Background</h4>
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Personality Traits</label>
-              <textarea data-char-field="personalityTraits" rows="2" placeholder="Quirks, demeanor, habits..."
-                class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.personalityTraits || "")}</textarea>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Ideals</label>
-              <textarea data-char-field="ideals" rows="2" placeholder="Core beliefs, principles, moral code..."
-                class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.ideals || "")}</textarea>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Bonds</label>
-              <textarea data-char-field="bonds" rows="2" placeholder="People, places, oaths, or relics they protect..."
-                class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.bonds || "")}</textarea>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Flaws</label>
-              <textarea data-char-field="flaws" rows="2" placeholder="Weaknesses, vices, fears, secrets..."
-                class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.flaws || "")}</textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      ${
-        dndMode
-          ? `
-            <!-- D&D 5e Spellcasting & Spell Slots (Levels 1–9) -->
-            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-4">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-                <h4 class="text-xs font-bold uppercase tracking-wider text-purple-400">D&amp;D 5e Spellcasting &amp; Spell Slots</h4>
-                <span class="text-[11px] text-slate-400">Check boxes to mark expended slots during combat</span>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">Spellcasting Ability</label>
-                  <select data-char-field="spellcastingAbility"
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500">
-                    <option value="" ${!ch.spellcastingAbility ? "selected" : ""}>None / Non-Caster</option>
-                    <option value="intelligence" ${ch.spellcastingAbility === "intelligence" ? "selected" : ""}>Intelligence (Wizard, Artificer)</option>
-                    <option value="wisdom" ${ch.spellcastingAbility === "wisdom" ? "selected" : ""}>Wisdom (Cleric, Druid, Ranger)</option>
-                    <option value="charisma" ${ch.spellcastingAbility === "charisma" ? "selected" : ""}>Charisma (Bard, Paladin, Sorcerer, Warlock)</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">
-                    Spell Save DC ${derived.autoSpellDc ? `(Auto: ${derived.autoSpellDc})` : ""}
-                  </label>
-                  <input type="text" data-char-field="spellSaveDc" value="${escapeHtml(ch.spellSaveDc || "")}"
-                    placeholder="${derived.autoSpellDc ? String(derived.autoSpellDc) : "14"}"
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">
-                    Spell Attack Bonus ${derived.autoSpellAtk ? `(Auto: ${derived.autoSpellAtk})` : ""}
-                  </label>
-                  <input type="text" data-char-field="spellAttackBonus" value="${escapeHtml(ch.spellAttackBonus || "")}"
-                    placeholder="${derived.autoSpellAtk || "+6"}"
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
-
-              <!-- 1st–9th Level Spell Slot Grid -->
-              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2">
-                ${Array.from({ length: 9 }, (_, idx) => {
-                  const lvl = idx + 1;
-                  const slotObj = spellSlots[lvl] || { total: 0, used: [false, false, false, false] };
-                  const total = Math.max(0, Math.min(4, Number(slotObj.total) || 0));
-                  const usedArr = Array.isArray(slotObj.used) ? slotObj.used : [false, false, false, false];
-                  return `
-                    <div class="bg-slate-950/80 border border-slate-800 rounded-lg p-2 text-center space-y-1.5">
-                      <div class="text-[10px] font-bold uppercase text-indigo-400">Lvl ${lvl}</div>
-                      <select data-slot-total="${lvl}"
-                        class="w-full px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-[11px] text-center text-white">
-                        ${[0, 1, 2, 3, 4]
-                          .map((n) => `<option value="${n}" ${total === n ? "selected" : ""}>${n} slots</option>`)
-                          .join("")}
-                      </select>
-                      <div class="flex items-center justify-center gap-1 min-h-[18px]">
-                        ${
-                          total === 0
-                            ? `<span class="text-[10px] text-slate-500">—</span>`
-                            : Array.from({ length: total }, (_, sIdx) => `
-                                <input type="checkbox" data-slot-used-lvl="${lvl}" data-slot-used-idx="${sIdx}"
-                                  ${usedArr[sIdx] ? "checked" : ""} title="Expended Slot ${sIdx + 1}"
-                                  class="rounded border-slate-700 bg-slate-900 text-purple-500" />
-                              `).join("")
-                        }
-                      </div>
-                    </div>
-                  `;
-                }).join("")}
-              </div>
-
-              <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Prepared Spells, Cantrips &amp; Pact Magic Notes</label>
-                <textarea data-char-field="spellNotes" rows="3"
-                  placeholder="Cantrips: Fire Bolt, Mage Hand, Prestidigitation | 1st: Shield, Magic Missile, Bless..."
-                  class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.spellNotes || "")}</textarea>
-              </div>
-            </div>
-
-            <!-- D&D 5e Class Features, Species Traits & Feats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Class &amp; Subclass Features</label>
-                <textarea data-char-field="classFeatures" rows="4"
-                  placeholder="Second Wind, Action Surge, Sneak Attack (3d6), Wild Shape, Channel Divinity..."
-                  class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.classFeatures || "")}</textarea>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Species / Racial Traits</label>
-                <textarea data-char-field="racialTraits" rows="4"
-                  placeholder="Darkvision 60 ft., Fey Ancestry, Trance, Stonecunning, Breath Weapon..."
-                  class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.racialTraits || "")}</textarea>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Feats &amp; Fighting Styles</label>
-                <textarea data-char-field="feats" rows="4"
-                  placeholder="Alert, War Caster, Sharpshooter, Sentinel, Defense Fighting Style..."
-                  class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.feats || "")}</textarea>
-              </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          ${DAGGERHEART_TRAITS.map(
+            (tr) => `
+            <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-2 text-center">
+              <label class="block text-xs font-bold uppercase tracking-wider text-amber-300">${tr.label}</label>
+              <input type="text" data-dh-trait="${tr.key}" value="${escapeHtml(traits[tr.key] || "+0")}"
+                placeholder="+0"
+                class="w-full mt-1 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-sm font-bold text-center text-white" />
+              <div class="text-[9px] text-slate-400 mt-1 leading-tight">${tr.verbs}</div>
             </div>
           `
-          : ""
-      }
+          ).join("")}
+        </div>
+      </div>
 
-      <!-- Bottom Grid: Attacks & Spellcasting + Equipment & Coinage -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2 border-t border-slate-800/80">
-        <!-- Attacks & Spellcasting -->
-        <div class="lg:col-span-6 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
+      <!-- Defenses, Damage Thresholds, Hit Points, Stress, Hope & Armor Slots -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Left 5 Cols: Evasion, Armor Score, Proficiency & Damage Thresholds -->
+        <div class="lg:col-span-5 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-sky-400">Defenses &amp; Damage Thresholds</h4>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Evasion</label>
+              <input type="text" data-char-field="dhEvasion" value="${escapeHtml(ch.dhEvasion || "10")}"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Armor Score</label>
+              <input type="text" data-char-field="dhArmorScore" value="${escapeHtml(ch.dhArmorScore || "0")}"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Proficiency</label>
+              <input type="text" data-char-field="dhProficiency" value="${escapeHtml(ch.dhProficiency || "1")}"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-white" />
+            </div>
+          </div>
+
+          <!-- Damage Thresholds Banner -->
+          <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-2.5 space-y-2">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">
+              Damage Thresholds (Add Current Level)
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 items-center text-center text-xs">
+              <div class="p-1.5 rounded bg-slate-900 border border-slate-800">
+                <div class="font-bold text-slate-200">Minor</div>
+                <div class="text-[10px] text-emerald-400">Mark 1 HP</div>
+              </div>
+              <div class="p-1.5 rounded bg-slate-900 border border-amber-500/40">
+                <div class="text-[10px] uppercase text-amber-300 font-bold">Major ≥</div>
+                <input type="text" data-char-field="dhThresholdMajor" value="${escapeHtml(ch.dhThresholdMajor || "5")}"
+                  class="w-full mt-0.5 px-1 py-0.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-white" />
+                <div class="text-[10px] text-amber-300 mt-0.5">Mark 2 HP</div>
+              </div>
+              <div class="p-1.5 rounded bg-slate-900 border border-rose-500/40">
+                <div class="text-[10px] uppercase text-rose-300 font-bold">Severe ≥</div>
+                <input type="text" data-char-field="dhThresholdSevere" value="${escapeHtml(ch.dhThresholdSevere || "10")}"
+                  class="w-full mt-0.5 px-1 py-0.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-white" />
+                <div class="text-[10px] text-rose-300 mt-0.5">Mark 3 HP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 7 Cols: Interactive HP, Stress, Armor Slots & Hope Trackers -->
+        <div class="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Hit Points, Stress, Armor Slots &amp; Hope</h4>
+
+          <!-- Hit Points Slots -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-rose-400">Hit Points</span>
+              <select data-char-field="dhHpTotal" class="dh-live-select px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-[11px] text-white">
+                ${Array.from({ length: 10 }, (_, i) => i + 1)
+                  .map((n) => `<option value="${n}" ${hpTotal === n ? "selected" : ""}>Max ${n}</option>`)
+                  .join("")}
+              </select>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${Array.from({ length: hpTotal }, (_, idx) => `
+                <input type="checkbox" data-dh-hp-slot="${idx}" ${hpMarked[idx] ? "checked" : ""} title="Marked HP Slot ${idx + 1}"
+                  class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-rose-500" />
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- Stress Slots -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-purple-400">Stress</span>
+              <select data-char-field="dhStressTotal" class="dh-live-select px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-[11px] text-white">
+                ${Array.from({ length: 8 }, (_, i) => i + 1)
+                  .map((n) => `<option value="${n}" ${stressTotal === n ? "selected" : ""}>Max ${n}</option>`)
+                  .join("")}
+              </select>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${Array.from({ length: stressTotal }, (_, idx) => `
+                <input type="checkbox" data-dh-stress-slot="${idx}" ${stressMarked[idx] ? "checked" : ""} title="Marked Stress Slot ${idx + 1}"
+                  class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-purple-500" />
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- Armor Slots -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-sky-400">Armor Slots</span>
+              <select data-char-field="dhArmorSlotsTotal" class="dh-live-select px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-[11px] text-white">
+                ${[0, 1, 2, 3, 4, 5, 6]
+                  .map((n) => `<option value="${n}" ${armorSlotsTotal === n ? "selected" : ""}>${n} Slots</option>`)
+                  .join("")}
+              </select>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${
+                armorSlotsTotal === 0
+                  ? `<span class="text-[11px] text-slate-500">Unarmored</span>`
+                  : Array.from({ length: armorSlotsTotal }, (_, idx) => `
+                      <input type="checkbox" data-dh-armor-slot="${idx}" ${armorSlotsMarked[idx] ? "checked" : ""} title="Marked Armor Slot ${idx + 1}"
+                        class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-sky-500" />
+                    `).join("")
+              }
+            </div>
+          </div>
+
+          <!-- Hope Diamonds (0–6) -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 border border-amber-500/40 rounded-lg px-3 py-2">
+            <div>
+              <span class="text-xs font-bold text-amber-300">Hope (${hopeCount} / 6)</span>
+              <span class="text-[10px] text-slate-400 ml-1.5">Spend 1 Hope for Experience or Help an Ally</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              ${Array.from({ length: 6 }, (_, idx) => {
+                const filled = idx < hopeCount;
+                return `
+                  <button type="button" data-dh-set-hope="${filled && idx + 1 === hopeCount ? idx : idx + 1}"
+                    class="dh-hope-pip-btn w-6 h-6 rounded-full text-xs font-bold border transition ${
+                      filled
+                        ? "bg-amber-500 border-amber-300 text-slate-950"
+                        : "bg-slate-900 border-slate-700 text-slate-400"
+                    }" title="Set Hope to ${filled && idx + 1 === hopeCount ? idx : idx + 1}">
+                    ◆
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Experiences (Narrative Modifiers) & Gold (Handfuls, Bags, Chests) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
           <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400">Attacks &amp; Weapon Actions</h4>
-            <button type="button" id="add-char-attack-btn" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded border border-slate-700 transition">
-              + Add Row
+            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Experiences (Spend 1 Hope to Add)</h4>
+            <button type="button" id="add-dh-exp-btn" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded border border-slate-700">
+              + Add Experience
             </button>
           </div>
-          <div class="grid grid-cols-12 gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
-            <div class="col-span-5">Name</div>
-            <div class="col-span-3">ATK Bonus</div>
-            <div class="col-span-3">Damage / Type</div>
-            <div class="col-span-1"></div>
-          </div>
           <div class="space-y-1.5">
-            ${attacks
+            ${experiences
               .map(
-                (atk, aIdx) => `
-              <div class="grid grid-cols-12 gap-1.5 items-center">
-                <input type="text" data-atk-idx="${aIdx}" data-atk-field="name" value="${escapeHtml(atk.name || "")}" placeholder="Longbow"
-                  class="col-span-5 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                <input type="text" data-atk-idx="${aIdx}" data-atk-field="atkBonus" value="${escapeHtml(atk.atkBonus || "")}" placeholder="+7"
-                  class="col-span-3 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-center text-white focus:outline-none focus:border-indigo-500" />
-                <input type="text" data-atk-idx="${aIdx}" data-atk-field="damageType" value="${escapeHtml(atk.damageType || "")}" placeholder="1d8+4 Piercing"
-                  class="col-span-3 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-indigo-500" />
-                <button type="button" data-del-atk="${aIdx}" class="del-char-atk-btn col-span-1 text-slate-500 hover:text-rose-400 flex justify-center">
+                (exp, eIdx) => `
+              <div class="flex items-center gap-2">
+                <input type="text" data-dh-exp-idx="${eIdx}" data-dh-exp-field="name" value="${escapeHtml(exp.name || "")}"
+                  placeholder="e.g., Former Harbor Smuggler, Raised by Storm Druids..."
+                  class="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white" />
+                <input type="text" data-dh-exp-idx="${eIdx}" data-dh-exp-field="modifier" value="${escapeHtml(exp.modifier || "+2")}"
+                  placeholder="+2"
+                  class="w-14 px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-amber-300" />
+                <button type="button" data-del-dh-exp="${eIdx}" class="del-dh-exp-btn text-slate-500 hover:text-rose-400 p-1">
                   <i data-lucide="x" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -878,56 +811,176 @@ function renderFullCharacterSheet(ch, dndMode) {
           </div>
         </div>
 
-        <!-- Equipment & Coinage -->
-        <div class="lg:col-span-6 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-3">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Equipment &amp; Currency</h4>
-          <div class="grid grid-cols-5 gap-2">
-            ${[
-              ["cp", "CP"],
-              ["sp", "SP"],
-              ["ep", "EP"],
-              ["gp", "GP"],
-              ["pp", "PP"]
-            ]
-              .map(
-                ([coinKey, coinLabel]) => `
-              <div class="text-center">
-                <label class="block text-[10px] font-bold uppercase text-amber-300/80 mb-0.5">${coinLabel}</label>
-                <input type="text" data-char-field="${coinKey}" value="${escapeHtml(ch[coinKey] || "")}" placeholder="0"
-                  class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-center text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-            `
-              )
-              .join("")}
+        <div class="lg:col-span-5 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Gold (Daggerheart Currency)</h4>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Handfuls (0–10)</label>
+              <input type="text" data-char-field="dhGoldHandfuls" value="${escapeHtml(ch.dhGoldHandfuls || "0")}"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Bags (10 Handfuls)</label>
+              <input type="text" data-char-field="dhGoldBags" value="${escapeHtml(ch.dhGoldBags || "0")}"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Chests (10 Bags)</label>
+              <input type="text" data-char-field="dhGoldChests" value="${escapeHtml(ch.dhGoldChests || "0")}"
+                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Equipment &amp; Inventory</label>
-            <textarea data-char-field="equipment" rows="5" placeholder="Weapons, armor, packs, potions, magical trinkets..."
-              class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.equipment || "")}</textarea>
-          </div>
+          <p class="text-[10px] text-slate-400">10 Handfuls = 1 Bag • 10 Bags = 1 Chest</p>
         </div>
       </div>
 
-      <!-- Bottom Row: Languages/Proficiencies + Allies/Organizations -->
+      <!-- Primary Weapon, Secondary Weapon & Active Armor -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400">Primary Weapon</h4>
+          <input type="text" data-dh-sub="dhPrimaryWeapon" data-dh-sub-field="name" value="${escapeHtml(priWpn.name || "")}"
+            placeholder="Weapon Name (e.g., Broadsword)"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white" />
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" data-dh-sub="dhPrimaryWeapon" data-dh-sub-field="traitRange" value="${escapeHtml(priWpn.traitRange || "")}"
+              placeholder="Trait & Range (Agility • Melee)"
+              class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-white" />
+            <input type="text" data-dh-sub="dhPrimaryWeapon" data-dh-sub-field="damageDice" value="${escapeHtml(priWpn.damageDice || "")}"
+              placeholder="Damage (d8 phy)"
+              class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-rose-300 font-semibold" />
+          </div>
+          <input type="text" data-dh-sub="dhPrimaryWeapon" data-dh-sub-field="feature" value="${escapeHtml(priWpn.feature || "")}"
+            placeholder="Weapon Feature (e.g., Reliable: +1 to attack rolls)"
+            class="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200" />
+        </div>
+
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400">Secondary Weapon</h4>
+          <input type="text" data-dh-sub="dhSecondaryWeapon" data-dh-sub-field="name" value="${escapeHtml(secWpn.name || "")}"
+            placeholder="Secondary / Off-Hand Weapon"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white" />
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" data-dh-sub="dhSecondaryWeapon" data-dh-sub-field="traitRange" value="${escapeHtml(secWpn.traitRange || "")}"
+              placeholder="Trait & Range (Finesse • Melee)"
+              class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-white" />
+            <input type="text" data-dh-sub="dhSecondaryWeapon" data-dh-sub-field="damageDice" value="${escapeHtml(secWpn.damageDice || "")}"
+              placeholder="Damage (d6 phy)"
+              class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-rose-300 font-semibold" />
+          </div>
+          <input type="text" data-dh-sub="dhSecondaryWeapon" data-dh-sub-field="feature" value="${escapeHtml(secWpn.feature || "")}"
+            placeholder="Feature (e.g., Paired: +2 damage to primary)"
+            class="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200" />
+        </div>
+
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-sky-400">Active Armor</h4>
+          <input type="text" data-dh-sub="dhActiveArmor" data-dh-sub-field="name" value="${escapeHtml(actArm.name || "")}"
+            placeholder="Armor Name (e.g., Gambeson / Chainmail)"
+            class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white" />
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" data-dh-sub="dhActiveArmor" data-dh-sub-field="baseThresholds" value="${escapeHtml(actArm.baseThresholds || "")}"
+              placeholder="Base Thresholds (5 / 11)"
+              class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-white" />
+            <input type="text" data-dh-sub="dhActiveArmor" data-dh-sub-field="baseScore" value="${escapeHtml(actArm.baseScore || "")}"
+              placeholder="Base Score (3)"
+              class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-sky-300 font-semibold" />
+          </div>
+          <input type="text" data-dh-sub="dhActiveArmor" data-dh-sub-field="feature" value="${escapeHtml(actArm.feature || "")}"
+            placeholder="Armor Feature (e.g., Flexible: +1 to Evasion)"
+            class="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200" />
+        </div>
+      </div>
+
+      <!-- Domain Cards (Active Loadout max 5 + Vault) -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-purple-400">Domain Cards (Loadout &amp; Vault)</h4>
+            <p class="text-[11px] text-slate-400">Track active Loadout cards (up to 5) and stored Vault cards with Recall Stress cost.</p>
+          </div>
+          <button type="button" id="add-dh-domain-card-btn" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-semibold shrink-0">
+            + Add Domain Card
+          </button>
+        </div>
+
+        ${
+          domainCards.length === 0
+            ? `<p class="text-xs text-slate-400">No Domain Cards added yet. Click "+ Add Domain Card" to add abilities, spells, or grimoires.</p>`
+            : `<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${domainCards
+                  .map(
+                    (card, cIdx) => `
+                  <div class="bg-slate-950/85 border border-slate-800 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <input type="text" data-dh-card-idx="${cIdx}" data-dh-card-field="name" value="${escapeHtml(card.name || "")}"
+                        placeholder="Domain Card Name..."
+                        class="flex-1 px-2.5 py-1 bg-slate-900 border border-slate-800 rounded text-xs font-bold text-white" />
+                      <button type="button" data-del-dh-card="${cIdx}" class="del-dh-card-btn text-slate-500 hover:text-rose-400 p-1">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5">
+                      <select data-dh-card-idx="${cIdx}" data-dh-card-field="domain"
+                        class="px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-[11px] text-white">
+                        ${DAGGERHEART_DOMAINS.map(
+                          (dom) => `<option value="${dom}" ${(card.domain || "Arcana") === dom ? "selected" : ""}>${dom}</option>`
+                        ).join("")}
+                      </select>
+                      <input type="text" data-dh-card-idx="${cIdx}" data-dh-card-field="level" value="${escapeHtml(card.level || "Lvl 1")}"
+                        placeholder="Lvl 1"
+                        class="px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-[11px] text-center text-white" />
+                      <input type="text" data-dh-card-idx="${cIdx}" data-dh-card-field="recallCost" value="${escapeHtml(card.recallCost || "0")}"
+                        placeholder="Recall" title="Recall Cost (Stress)"
+                        class="px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-[11px] text-center text-purple-300" />
+                      <select data-dh-card-idx="${cIdx}" data-dh-card-field="zone"
+                        class="px-1.5 py-1 bg-slate-900 border border-slate-800 rounded text-[11px] text-amber-300 font-semibold">
+                        <option value="Loadout" ${(card.zone || "Loadout") === "Loadout" ? "selected" : ""}>Loadout</option>
+                        <option value="Vault" ${card.zone === "Vault" ? "selected" : ""}>Vault</option>
+                      </select>
+                    </div>
+                    <textarea data-dh-card-idx="${cIdx}" data-dh-card-field="effect" rows="2"
+                      placeholder="Card ability, spell, or grimoire rules..."
+                      class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-200">${escapeHtml(card.effect || "")}</textarea>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>`
+        }
+      </div>
+
+      <!-- Class & Hope Feature, Heritage Features, Connections & Inventory -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Languages / Proficiencies</label>
-          <textarea data-char-field="languagesProficiencies" rows="4"
-            placeholder="Known languages, armor/weapon proficiencies, tools, instruments..."
-            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.languagesProficiencies || "")}</textarea>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Class Feature &amp; Hope Feature</label>
+          <textarea data-char-field="dhClassHopeFeature" rows="4"
+            placeholder="Record your Class Feature, Subclass Foundation/Specialization/Mastery, and 3-Hope Feature..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100">${escapeHtml(ch.dhClassHopeFeature || "")}</textarea>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Allies / Organizations</label>
-          <textarea data-char-field="alliesOrganizations" rows="4"
-            placeholder="Faction memberships, patrons, contacts, mounts, companions..."
-            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(ch.alliesOrganizations || "")}</textarea>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Community &amp; Ancestry Features</label>
+          <textarea data-char-field="dhHeritageFeatures" rows="4"
+            placeholder="Record your Community feature and Ancestry features..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100">${escapeHtml(ch.dhHeritageFeatures || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Party Connections &amp; Background Questions</label>
+          <textarea data-char-field="dhConnectionsNotes" rows="4"
+            placeholder="How is your character connected to the other PCs, and what answers did you give during Session Zero?"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100">${escapeHtml(ch.dhConnectionsNotes || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Inventory, Potions &amp; Class Items</label>
+          <textarea data-char-field="equipment" rows="4"
+            placeholder="Class starter items, Minor/Major Health & Stamina potions, inventory weapons, relics..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs sm:text-sm text-slate-100">${escapeHtml(ch.equipment || "")}</textarea>
         </div>
       </div>
     </div>
   `;
 }
 
-function wireCharacterControls(paneContainer, state, existingDoc, data, dndMode) {
+function wireCharacterControls(paneContainer, state, existingDoc, data, dndMode, dhMode) {
   const rerenderWithLocalData = () => {
     const tempEntity = existingDoc
       ? { ...existingDoc, systemData: data }
@@ -1003,6 +1056,87 @@ function wireCharacterControls(paneContainer, state, existingDoc, data, dndMode)
     paneContainer.querySelector('[data-char-field="spellcastingAbility"]')?.addEventListener("change", () => {
       collectCharactersForm(paneContainer, data);
       rerenderWithLocalData();
+    });
+  }
+
+  // Daggerheart Character Controls
+  if (dhMode) {
+    paneContainer.querySelectorAll(".dh-live-select").forEach((sel) => {
+      sel.addEventListener("change", () => {
+        collectCharactersForm(paneContainer, data);
+        const ch = data.characters[selectedCharacterIndex];
+        if (ch && sel.getAttribute("data-char-field") === "dhClass") {
+          const clsObj = DAGGERHEART_CLASSES.find((c) => c.name === ch.dhClass);
+          if (clsObj) {
+            ch.dhEvasion = String(clsObj.evasion);
+            ch.dhHpTotal = String(clsObj.hp);
+          }
+        }
+        rerenderWithLocalData();
+      });
+    });
+
+    paneContainer.querySelectorAll(".dh-hope-pip-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        collectCharactersForm(paneContainer, data);
+        const ch = data.characters[selectedCharacterIndex];
+        if (ch) {
+          ch.dhHopeCount = Number(btn.getAttribute("data-dh-set-hope")) || 0;
+          rerenderWithLocalData();
+        }
+      });
+    });
+
+    paneContainer.querySelector("#add-dh-exp-btn")?.addEventListener("click", () => {
+      collectCharactersForm(paneContainer, data);
+      const ch = data.characters[selectedCharacterIndex];
+      if (ch) {
+        if (!Array.isArray(ch.dhExperiences)) ch.dhExperiences = [];
+        ch.dhExperiences.push({ name: "", modifier: "+2" });
+        rerenderWithLocalData();
+      }
+    });
+
+    paneContainer.querySelectorAll(".del-dh-exp-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-del-dh-exp"));
+        collectCharactersForm(paneContainer, data);
+        const ch = data.characters[selectedCharacterIndex];
+        if (ch && Array.isArray(ch.dhExperiences)) {
+          ch.dhExperiences.splice(idx, 1);
+          rerenderWithLocalData();
+        }
+      });
+    });
+
+    paneContainer.querySelector("#add-dh-domain-card-btn")?.addEventListener("click", () => {
+      collectCharactersForm(paneContainer, data);
+      const ch = data.characters[selectedCharacterIndex];
+      if (ch) {
+        if (!Array.isArray(ch.dhDomainCards)) ch.dhDomainCards = [];
+        const clsObj = DAGGERHEART_CLASSES.find((c) => c.name === ch.dhClass);
+        ch.dhDomainCards.push({
+          name: "",
+          domain: clsObj ? clsObj.domains[0] : "Arcana",
+          level: "Lvl 1",
+          recallCost: "0",
+          zone: "Loadout",
+          effect: ""
+        });
+        rerenderWithLocalData();
+      }
+    });
+
+    paneContainer.querySelectorAll(".del-dh-card-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-del-dh-card"));
+        collectCharactersForm(paneContainer, data);
+        const ch = data.characters[selectedCharacterIndex];
+        if (ch && Array.isArray(ch.dhDomainCards)) {
+          ch.dhDomainCards.splice(idx, 1);
+          rerenderWithLocalData();
+        }
+      });
     });
   }
 
@@ -1125,6 +1259,50 @@ function collectCharactersForm(container, data) {
     container.querySelectorAll("[data-attune-name]").forEach((el) => {
       const idx = Number(el.getAttribute("data-attune-name"));
       if (ch.attunements[idx]) ch.attunements[idx].name = el.value;
+    });
+
+    // Daggerheart Form Collection
+    if (!ch.dhTraits) ch.dhTraits = {};
+    container.querySelectorAll("[data-dh-trait]").forEach((el) => {
+      ch.dhTraits[el.getAttribute("data-dh-trait")] = el.value;
+    });
+
+    if (!Array.isArray(ch.dhHpMarked)) ch.dhHpMarked = [];
+    container.querySelectorAll("[data-dh-hp-slot]").forEach((el) => {
+      ch.dhHpMarked[Number(el.getAttribute("data-dh-hp-slot"))] = el.checked;
+    });
+
+    if (!Array.isArray(ch.dhStressMarked)) ch.dhStressMarked = [];
+    container.querySelectorAll("[data-dh-stress-slot]").forEach((el) => {
+      ch.dhStressMarked[Number(el.getAttribute("data-dh-stress-slot"))] = el.checked;
+    });
+
+    if (!Array.isArray(ch.dhArmorSlotsMarked)) ch.dhArmorSlotsMarked = [];
+    container.querySelectorAll("[data-dh-armor-slot]").forEach((el) => {
+      ch.dhArmorSlotsMarked[Number(el.getAttribute("data-dh-armor-slot"))] = el.checked;
+    });
+
+    container.querySelectorAll("[data-dh-exp-idx]").forEach((el) => {
+      const idx = Number(el.getAttribute("data-dh-exp-idx"));
+      const field = el.getAttribute("data-dh-exp-field");
+      if (Array.isArray(ch.dhExperiences) && ch.dhExperiences[idx]) {
+        ch.dhExperiences[idx][field] = el.value;
+      }
+    });
+
+    container.querySelectorAll("[data-dh-sub]").forEach((el) => {
+      const objKey = el.getAttribute("data-dh-sub");
+      const field = el.getAttribute("data-dh-sub-field");
+      if (!ch[objKey]) ch[objKey] = {};
+      ch[objKey][field] = el.value;
+    });
+
+    container.querySelectorAll("[data-dh-card-idx]").forEach((el) => {
+      const idx = Number(el.getAttribute("data-dh-card-idx"));
+      const field = el.getAttribute("data-dh-card-field");
+      if (Array.isArray(ch.dhDomainCards) && ch.dhDomainCards[idx]) {
+        ch.dhDomainCards[idx][field] = el.value;
+      }
     });
   }
 }
