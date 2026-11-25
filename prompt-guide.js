@@ -1210,29 +1210,32 @@ export function openSettingsModal(onSettingsSaved = null) {
   const currentTheme = getTheme();
 
   modal.innerHTML = `
-    <div class="rpg-panel-ornate rounded-2xl max-w-lg w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between gap-3 mb-2">
-        <div class="flex items-center gap-2.5">
-          <div class="rpg-slot-small w-9 h-9 p-1 shrink-0">
-            <img src="./GUI_Fantasy_RPG_Kit/settings-btn.png"
-                 data-parchment-src="./Parchwood_UI_Kit/042-square-parchment-gear-button.png"
-                 alt="" class="w-5 h-5 object-contain" onerror="this.style.display='none'" />
+    <div class="rpg-panel-ornate rounded-2xl max-w-lg w-full p-4 sm:p-6 max-h-[88vh] flex flex-col">
+      <!-- Pinned Header -->
+      <div class="shrink-0">
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="rpg-slot-small w-9 h-9 p-1 shrink-0">
+              <img src="./GUI_Fantasy_RPG_Kit/settings-btn.png"
+                   data-parchment-src="./Parchwood_UI_Kit/042-square-parchment-gear-button.png"
+                   alt="" class="w-5 h-5 object-contain" onerror="this.style.display='none'" />
+            </div>
+            <div class="min-w-0">
+              <h2 class="font-rpg-display text-base sm:text-lg font-bold text-amber-100 truncate">RealmForge Settings</h2>
+              <p class="text-[11px] text-slate-400 truncate">Customize your Campaign Muse personality, prep order, and theme.</p>
+            </div>
           </div>
-          <div>
-            <h2 class="font-rpg-display text-lg font-bold text-amber-100">RealmForge Settings</h2>
-            <p class="text-[11px] text-slate-400">Customize your Campaign Muse personality, prep order, and theme.</p>
-          </div>
+          <button type="button" id="close-settings-modal-btn" class="rpg-icon-btn w-7 h-7 shrink-0" title="Close">
+            <img src="./GUI_Fantasy_RPG_Kit/close-btn.png"
+                 data-parchment-src="./Parchwood_UI_Kit/038-round-crimson-close-button-with-cream-X.png"
+                 alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
+          </button>
         </div>
-        <button type="button" id="close-settings-modal-btn" class="rpg-icon-btn w-7 h-7" title="Close">
-          <img src="./GUI_Fantasy_RPG_Kit/close-btn.png"
-               data-parchment-src="./Parchwood_UI_Kit/038-round-crimson-close-button-with-cream-X.png"
-               alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
-        </button>
+        <div class="rpg-divider my-3"></div>
       </div>
 
-      <div class="rpg-divider my-4"></div>
-
-      <div class="space-y-5">
+      <!-- Inner Scrollable Options Body -->
+      <div class="rpg-modal-body overflow-y-auto flex-1 min-h-0 pr-1 space-y-4">
         <!-- 1. Campaign Muse Personality -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-amber-200 mb-2">
@@ -1243,7 +1246,7 @@ export function openSettingsModal(onSettingsSaved = null) {
               .map((p) => {
                 const isSelected = guideSettings.personality === p.id;
                 return `
-                  <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                  <label class="flex items-start gap-3 p-2.5 sm:p-3 rounded-xl border cursor-pointer transition ${
                     isSelected
                       ? "bg-slate-950/90 border-amber-400/60"
                       : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
@@ -1281,7 +1284,7 @@ export function openSettingsModal(onSettingsSaved = null) {
               .map((path) => {
                 const isSelected = guideSettings.prepPath === path.id;
                 return `
-                  <label class="flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                  <label class="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-xl border cursor-pointer transition ${
                     isSelected
                       ? "bg-slate-950/90 border-amber-400/60"
                       : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
@@ -1304,7 +1307,7 @@ export function openSettingsModal(onSettingsSaved = null) {
           <label class="block text-xs font-bold uppercase tracking-wider text-amber-200 mb-2">
             Visual Theme
           </label>
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <button type="button" data-pick-theme="stone"
               class="settings-theme-btn p-2.5 rounded-xl border text-left transition flex items-center gap-2.5 ${
                 currentTheme === "stone"
@@ -1333,15 +1336,17 @@ export function openSettingsModal(onSettingsSaved = null) {
         </div>
       </div>
 
-      <div class="rpg-divider my-4"></div>
-
-      <div class="flex justify-end gap-2">
-        <button type="button" id="cancel-settings-modal-btn" class="rpg-btn-secondary px-4 py-2 text-xs font-medium rounded-lg">
-          Cancel
-        </button>
-        <button type="button" id="save-settings-modal-btn" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">
-          Save Settings
-        </button>
+      <!-- Pinned Footer -->
+      <div class="shrink-0">
+        <div class="rpg-divider my-3"></div>
+        <div class="flex justify-end gap-2">
+          <button type="button" id="cancel-settings-modal-btn" class="rpg-btn-secondary px-4 py-2 text-xs font-medium rounded-lg">
+            Cancel
+          </button>
+          <button type="button" id="save-settings-modal-btn" class="rpg-btn-primary px-4 py-2 text-xs font-semibold rounded-lg">
+            Save Settings
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -1503,154 +1508,160 @@ export function openPromptInterviewModal(state, startIndex = null, onJumpToChapt
         : null;
 
     modal.innerHTML = `
-      <div class="rpg-panel-ornate rounded-2xl max-w-2xl w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
-        <!-- Top Modal Header -->
-        <div class="flex items-center justify-between gap-3 mb-2">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="rpg-slot-big w-12 h-12 p-1.5 shrink-0">
-              <img src="${persona.rpgIcon}" data-parchment-src="${persona.parchmentIcon}" alt="" class="w-7 h-7 object-contain" onerror="this.style.display='none'" />
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h2 class="font-rpg-display text-base sm:text-lg font-bold text-amber-100 truncate">
-                  ${escapeHtml(persona.name)}
-                </h2>
-                <span class="rpg-slot-long text-[10px] font-semibold px-2.5 py-0.5 rounded-full">
-                  ${freshProgress.answeredCount} of ${freshProgress.totalCount} Explored
-                </span>
+      <div class="rpg-panel-ornate rounded-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[88vh] flex flex-col">
+        <!-- Pinned Top Modal Header -->
+        <div class="shrink-0">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="rpg-slot-big w-11 h-11 sm:w-12 sm:h-12 p-1.5 shrink-0">
+                <img src="${persona.rpgIcon}" data-parchment-src="${persona.parchmentIcon}" alt="" class="w-6 h-6 sm:w-7 sm:h-7 object-contain" onerror="this.style.display='none'" />
               </div>
-              <p class="text-[11px] text-slate-400 truncate mt-0.5">
-                Auto-saves to: <strong class="text-amber-200">${escapeHtml(promptObj.chapterLabel)}</strong>
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button type="button" id="interview-settings-btn" title="Switch Guide Personality"
-              class="rpg-btn-secondary text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-              <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-              <span class="hidden sm:inline">Guide</span>
-            </button>
-            <button type="button" id="close-prompt-modal-btn" class="rpg-icon-btn w-7 h-7" title="Close">
-              <img src="./GUI_Fantasy_RPG_Kit/close-btn.png"
-                   data-parchment-src="./Parchwood_UI_Kit/038-round-crimson-close-button-with-cream-X.png"
-                   alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
-            </button>
-          </div>
-        </div>
-
-        <div class="rpg-divider my-3.5"></div>
-
-        ${
-          toastMessage
-            ? `<div class="mb-4 p-3 rounded-xl bg-emerald-950/75 border border-emerald-600/50 text-emerald-200 text-xs flex items-center gap-2">
-                <i data-lucide="sparkles" class="w-4 h-4 shrink-0 text-emerald-400"></i>
-                <span>${escapeHtml(toastMessage)}</span>
-              </div>`
-            : ""
-        }
-
-        <!-- Stage & Question Navigator -->
-        <div class="flex items-center justify-between gap-2 mb-3 text-xs">
-          <span class="font-semibold text-amber-300">${escapeHtml(promptObj.stage)}</span>
-          <div class="flex items-center gap-1.5">
-            <span class="text-slate-400">Prompt ${activePromptIndex + 1} / ${freshProgress.totalCount}</span>
-            ${
-              currentItem.isAnswered
-                ? `<span class="px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/50 text-[10px] font-semibold">Answered ✓</span>`
-                : `<span class="px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-700 text-[10px]">Unanswered</span>`
-            }
-          </div>
-        </div>
-
-        <!-- Question Speech Box -->
-        <div class="bg-slate-950/75 border border-amber-500/30 rounded-xl p-4 mb-4">
-          <p class="text-sm sm:text-base text-amber-50 font-medium leading-relaxed">
-            "${escapeHtml(questionText)}"
-          </p>
-        </div>
-
-        <!-- Answer Form -->
-        <div class="space-y-3.5">
-          ${
-            promptObj.hasNameField
-              ? `
-                <div>
-                  <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                    ${escapeHtml(promptObj.nameLabel || "Name / Title")}
-                  </label>
-                  <input type="text" id="prompt-name-input" value="${escapeHtml(currentItem.nameValue || "")}"
-                    placeholder="${escapeHtml(promptObj.namePlaceholder || "")}"
-                    class="w-full px-3.5 py-2 rounded-lg text-sm font-semibold focus:outline-none" />
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h2 class="font-rpg-display text-base sm:text-lg font-bold text-amber-100 truncate">
+                    ${escapeHtml(persona.name)}
+                  </h2>
+                  <span class="rpg-slot-long text-[10px] font-semibold px-2.5 py-0.5 rounded-full">
+                    ${freshProgress.answeredCount} of ${freshProgress.totalCount} Explored
+                  </span>
                 </div>
-              `
-              : ""
-          }
+                <p class="text-[11px] text-slate-400 truncate mt-0.5">
+                  Auto-saves to: <strong class="text-amber-200">${escapeHtml(promptObj.chapterLabel)}</strong>
+                </p>
+              </div>
+            </div>
 
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                ${escapeHtml(promptObj.answerLabel || "Your Answer")}
-              </label>
-              <button type="button" id="spark-idea-btn"
-                class="rpg-btn-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1">
-                <i data-lucide="sparkles" class="w-3 h-3"></i>
-                <span>Spark an Idea</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" id="interview-settings-btn" title="Switch Guide Personality"
+                class="rpg-btn-secondary text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Guide</span>
+              </button>
+              <button type="button" id="close-prompt-modal-btn" class="rpg-icon-btn w-7 h-7" title="Close">
+                <img src="./GUI_Fantasy_RPG_Kit/close-btn.png"
+                     data-parchment-src="./Parchwood_UI_Kit/038-round-crimson-close-button-with-cream-X.png"
+                     alt="Close" class="w-7 h-7 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-400 hover:text-white\\'>✕</span>'" />
               </button>
             </div>
-            <textarea id="prompt-answer-input" rows="4"
-              placeholder="${escapeHtml(promptObj.answerPlaceholder || "")}"
-              class="w-full px-3.5 py-2.5 rounded-lg text-sm leading-relaxed focus:outline-none">${escapeHtml(currentItem.answerValue || "")}</textarea>
           </div>
 
-          ${
-            activeSpark
-              ? `
-                <div class="p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/40 text-xs text-indigo-100 flex items-start justify-between gap-3">
-                  <div class="space-y-1">
-                    <div class="font-bold text-amber-300 flex items-center gap-1">
-                      <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i> Idea Spark #${activeSparkIndex + 1}:
-                    </div>
-                    <p class="leading-relaxed">${escapeHtml(activeSpark)}</p>
-                  </div>
-                  <button type="button" id="use-spark-btn"
-                    class="rpg-btn-secondary text-[11px] px-2.5 py-1 rounded shrink-0">
-                    Use This
-                  </button>
-                </div>
-              `
-              : ""
-          }
+          <div class="rpg-divider my-3"></div>
         </div>
 
-        <div class="rpg-divider my-4"></div>
+        <!-- Inner Scrollable Question & Answer Area -->
+        <div class="rpg-modal-body overflow-y-auto flex-1 min-h-0 pr-1">
+          ${
+            toastMessage
+              ? `<div class="mb-4 p-3 rounded-xl bg-emerald-950/75 border border-emerald-600/50 text-emerald-200 text-xs flex items-center gap-2">
+                  <i data-lucide="sparkles" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+                  <span>${escapeHtml(toastMessage)}</span>
+                </div>`
+              : ""
+          }
 
-        <!-- Bottom Action Controls -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <button type="button" id="prev-prompt-btn" class="rpg-btn-secondary text-xs px-3 py-2 rounded-lg">
-              ← Prev
-            </button>
-            <button type="button" id="skip-prompt-btn" class="rpg-btn-secondary text-xs px-3 py-2 rounded-lg">
-              Ask Something Else →
-            </button>
+          <!-- Stage & Question Navigator -->
+          <div class="flex items-center justify-between gap-2 mb-3 text-xs">
+            <span class="font-semibold text-amber-300">${escapeHtml(promptObj.stage)}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-400">Prompt ${activePromptIndex + 1} / ${freshProgress.totalCount}</span>
+              ${
+                currentItem.isAnswered
+                  ? `<span class="px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/50 text-[10px] font-semibold">Answered ✓</span>`
+                  : `<span class="px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-700 text-[10px]">Unanswered</span>`
+              }
+            </div>
+          </div>
+
+          <!-- Question Speech Box -->
+          <div class="bg-slate-950/75 border border-amber-500/30 rounded-xl p-3.5 sm:p-4 mb-4">
+            <p class="text-sm sm:text-base text-amber-50 font-medium leading-relaxed">
+              "${escapeHtml(questionText)}"
+            </p>
+          </div>
+
+          <!-- Answer Form -->
+          <div class="space-y-3.5">
             ${
-              typeof onJumpToChapter === "function"
+              promptObj.hasNameField
                 ? `
-                  <button type="button" id="jump-to-chapter-btn" title="Open Full Chapter Sheet"
-                    class="text-xs text-amber-300 hover:underline px-2 py-1.5">
-                    Open Sheet ↗
-                  </button>
+                  <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                      ${escapeHtml(promptObj.nameLabel || "Name / Title")}
+                    </label>
+                    <input type="text" id="prompt-name-input" value="${escapeHtml(currentItem.nameValue || "")}"
+                      placeholder="${escapeHtml(promptObj.namePlaceholder || "")}"
+                      class="w-full px-3.5 py-2 rounded-lg text-sm font-semibold focus:outline-none" />
+                  </div>
+                `
+                : ""
+            }
+
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  ${escapeHtml(promptObj.answerLabel || "Your Answer")}
+                </label>
+                <button type="button" id="spark-idea-btn"
+                  class="rpg-btn-secondary text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  <i data-lucide="sparkles" class="w-3 h-3"></i>
+                  <span>Spark an Idea</span>
+                </button>
+              </div>
+              <textarea id="prompt-answer-input" rows="4"
+                placeholder="${escapeHtml(promptObj.answerPlaceholder || "")}"
+                class="w-full px-3.5 py-2.5 rounded-lg text-sm leading-relaxed focus:outline-none">${escapeHtml(currentItem.answerValue || "")}</textarea>
+            </div>
+
+            ${
+              activeSpark
+                ? `
+                  <div class="p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/40 text-xs text-indigo-100 flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                      <div class="font-bold text-amber-300 flex items-center gap-1">
+                        <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i> Idea Spark #${activeSparkIndex + 1}:
+                      </div>
+                      <p class="leading-relaxed">${escapeHtml(activeSpark)}</p>
+                    </div>
+                    <button type="button" id="use-spark-btn"
+                      class="rpg-btn-secondary text-[11px] px-2.5 py-1 rounded shrink-0">
+                      Use This
+                    </button>
+                  </div>
                 `
                 : ""
             }
           </div>
+        </div>
 
-          <button type="button" id="save-next-prompt-btn"
-            class="rpg-btn-primary text-xs px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-1.5">
-            <i data-lucide="save" class="w-4 h-4"></i>
-            <span>Save & Next Question →</span>
-          </button>
+        <!-- Pinned Bottom Action Controls -->
+        <div class="shrink-0">
+          <div class="rpg-divider my-3"></div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button type="button" id="prev-prompt-btn" class="rpg-btn-secondary text-xs px-3 py-2 rounded-lg">
+                ← Prev
+              </button>
+              <button type="button" id="skip-prompt-btn" class="rpg-btn-secondary text-xs px-3 py-2 rounded-lg">
+                Ask Something Else →
+              </button>
+              ${
+                typeof onJumpToChapter === "function"
+                  ? `
+                    <button type="button" id="jump-to-chapter-btn" title="Open Full Chapter Sheet"
+                      class="text-xs text-amber-300 hover:underline px-2 py-1.5">
+                      Open Sheet ↗
+                    </button>
+                  `
+                  : ""
+              }
+            </div>
+
+            <button type="button" id="save-next-prompt-btn"
+              class="rpg-btn-primary text-xs px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Save & Next Question →</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
