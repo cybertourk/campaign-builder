@@ -68,6 +68,32 @@ function getDefaultInitiativeData(campaignTitle = "") {
   };
 }
 
+function getSortedCombatants(data) {
+  const pcs = (data.pcNpcs || [])
+    .filter((p) => p.name && p.name.trim())
+    .map((p) => ({ ...p, role: "pc", initNum: parseFloat(p.initiative) || 0 }));
+  const foes = (data.enemies || [])
+    .filter((e) => e.name && e.name.trim())
+    .map((e) => ({ ...e, role: "enemy", initNum: parseFloat(e.initiative) || 0 }));
+  return [...pcs, ...foes].sort((a, b) => b.initNum - a.initNum);
+}
+
+function difficultyBadgeStyle(diff) {
+  switch (diff) {
+    case "Deadly":
+      return "bg-rose-950/90 text-rose-200 border-rose-700/70";
+    case "Hard":
+      return "bg-amber-950/90 text-amber-200 border-amber-700/70";
+    case "Medium":
+      return "bg-indigo-950/90 text-indigo-200 border-indigo-700/70";
+    case "Easy":
+    case "Trivial":
+      return "bg-emerald-950/90 text-emerald-200 border-emerald-700/70";
+    default:
+      return "bg-slate-900 text-slate-300 border-slate-700";
+  }
+}
+
 export function renderInitiativeChapter(paneContainer, state, options = {}) {
   if (options.activeSectionId) {
     activeInitiativeTab = options.activeSectionId;
@@ -178,7 +204,7 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
 
     const summary = [
       data.session && `Session: ${data.session}`,
-      `Round ${data.currentRound || 1}`,
+      dhMode ? `GM Fear: ${data.dhGmFear || 0}/12` : `Round ${data.currentRound || 1}`,
       `${data.pcNpcs.filter((p) => p.name).length} PC/NPCs, ${data.enemies.filter((e) => e.name).length} Enemies`
     ]
       .filter(Boolean)
@@ -204,6 +230,10 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
     } catch (err) {
       statusEl.textContent = "Save failed";
       statusEl.className = "text-xs text-rose-400";
+    }
+  });
+}
+
 function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
   if (tabId === "misc-notes") {
     return `
@@ -211,11 +241,11 @@ function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
           <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> Initiative Tracker — Misc Notes
         </h3>
-        <p class="text-xs text-slate-400">Record lair action initiative counts (e.g., Initiative 20), environmental hazards, or ongoing spell durations.</p>
+        <p class="text-xs text-slate-400">Record lair action initiative counts, environmental hazards, or ongoing spell/countdown durations.</p>
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Combat &amp; Condition Notes</label>
           <textarea data-init-misc="miscNotes" rows="12"
-            placeholder="Track concentration spells, lair actions, reinforcements arriving on Round 3, etc..."
+            placeholder="Track concentration spells, countdown clocks, lair actions, reinforcements, etc..."
             class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
         </div>
       </div>
@@ -234,7 +264,6 @@ function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
   const savedChars = state.entities.find((e) => e.type === "character-sheets")?.systemData?.characters || [];
   const savedEnemies = state.entities.find((e) => e.type === "enemies")?.systemData?.enemies || [];
 
-  // Calculate 5e Encounter Difficulty
   const partyLevels = String(data.partyLevelsInput || "")
     .split(/[,\s]+/)
     .map((s) => parseInt(s, 10))
@@ -301,7 +330,6 @@ function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
               showImporterDrawer
                 ? `
                   <div class="pt-3 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Saved Party PCs (Chapter 9) -->
                     <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-2">
                       <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-emerald-400">Saved Party PCs (Chapter 9)</span>
@@ -337,7 +365,6 @@ function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
                       }
                     </div>
 
-                    <!-- Saved Enemies (Chapter 4) -->
                     <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-2">
                       <span class="text-xs font-bold text-rose-400 block">Saved Bestiary Enemies (Chapter 4)</span>
                       ${
@@ -426,6 +453,162 @@ function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
           </button>
           <button type="button" id="next-turn-btn" ${sortedCombatants.length === 0 ? "disabled" : ""}
             class="text-xs bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white px-2.5 py-1 rounded font-medium transition">
+            Next Turn →
+          </button>
+        </div>
+      </div>
+
+      ${
+        sortedCombatants.length === 0
+          ? `<p class="text-xs text-slate-400">Enter names and initiative numbers in the PC/NPC or Enemy tables below to track turn order automatically.</p>`
+          : `<div class="flex items-center gap-2 flex-wrap">
+              ${sortedCombatants
+                .map((c, idx) => {
+                  const isActive = idx === activeTurnIndex;
+                  return `
+                    <button type="button" data-turn-idx="${idx}"
+                      class="select-turn-btn px-3 py-1 rounded-lg text-xs border transition flex items-center gap-1.5 ${
+                        isActive
+                          ? "bg-amber-500/25 border-amber-400 text-white font-bold"
+                          : c.role === "enemy"
+                          ? "bg-rose-950/40 border-rose-800/60 text-rose-200"
+                          : "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
+                      }">
+                      <span class="font-mono font-bold">${escapeHtml(c.initiative || "0")}</span>
+                      <span>${escapeHtml(c.name)}</span>
+                    </button>
+                  `;
+                })
+                .join("")}
+            </div>`
+      }
+    </div>
+
+    <!-- Two-Column Combatant Rosters: PC / NPCs & Enemies -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">PCs &amp; Allied NPCs</h3>
+          <button type="button" id="add-pc-row-btn" class="text-xs bg-slate-800 text-slate-200 px-2.5 py-1 rounded border border-slate-700">+ Add Row</button>
+        </div>
+        ${renderStandardCombatantList(data.pcNpcs, "pcNpcs", false, dndMode)}
+      </div>
+
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">Enemies &amp; Monsters</h3>
+          <div class="flex items-center gap-2">
+            <button type="button" id="clear-enemies-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2 py-1 rounded border border-slate-800">Clear</button>
+            <button type="button" id="add-enemy-row-btn" class="text-xs bg-slate-800 text-slate-200 px-2.5 py-1 rounded border border-slate-700">+ Add Enemy</button>
+          </div>
+        </div>
+        ${renderStandardCombatantList(data.enemies, "enemies", true, dndMode)}
+      </div>
+    </div>
+
+    <!-- Encounter Battle Map Preview -->
+    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">Encounter Battle Map URL (Optional)</label>
+      <input type="url" data-init-field="battleMapUrl" value="${escapeHtml(data.battleMapUrl || "")}"
+        placeholder="https://... (Paste a battle map image URL)"
+        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+      <div id="init-map-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+        ${
+          data.battleMapUrl
+            ? `<img src="${escapeHtml(data.battleMapUrl)}" alt="Encounter Battle Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" />`
+            : `<p class="text-xs text-slate-500 py-4">Paste a battle map URL above to display it here during combat.</p>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderStandardCombatantList(list, listKey, isEnemy, dndMode) {
+  return `
+    <div class="space-y-2.5">
+      ${list
+        .map((row, idx) => {
+          const activeConds = Array.isArray(row.conditions) ? row.conditions : [];
+          return `
+            <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 space-y-2">
+              <div class="grid grid-cols-12 gap-1.5 items-center">
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="initiative"
+                  value="${escapeHtml(row.initiative || "")}" placeholder="Init" title="Initiative Roll"
+                  class="col-span-2 px-1.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-amber-300" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="name"
+                  value="${escapeHtml(row.name || "")}" placeholder="${isEnemy ? "Monster / Enemy" : "PC / Ally Name"}"
+                  class="col-span-4 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="ac"
+                  value="${escapeHtml(row.ac || "")}" placeholder="AC" title="Armor Class"
+                  class="col-span-2 px-1.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-center text-sky-300 font-semibold" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="hp"
+                  value="${escapeHtml(row.hp || "")}" placeholder="HP" title="Current HP"
+                  class="col-span-2 px-1.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-center text-rose-300 font-semibold" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="${isEnemy && dndMode ? "xp" : "passive"}"
+                  value="${escapeHtml((isEnemy && dndMode ? row.xp : row.passive) || "")}"
+                  placeholder="${isEnemy && dndMode ? "CR/XP" : "Pass"}"
+                  class="col-span-1 px-1 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-center text-slate-300" />
+                <button type="button" data-del-comb-list="${listKey}" data-del-comb-idx="${idx}"
+                  class="del-comb-row-btn col-span-1 text-slate-500 hover:text-rose-400 flex justify-center">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              ${
+                dndMode
+                  ? `
+                    <div class="flex items-center justify-between gap-2 flex-wrap pt-1">
+                      <div class="flex items-center gap-1">
+                        <input type="number" id="hp-delta-${listKey}-${idx}" placeholder="Amt"
+                          class="w-14 px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded text-[11px] text-center text-white" />
+                        <button type="button" data-hp-op="dmg" data-hp-list="${listKey}" data-hp-idx="${idx}"
+                          class="quick-hp-btn text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950/80 text-rose-200 border border-rose-800/60">
+                          -Dmg
+                        </button>
+                        <button type="button" data-hp-op="heal" data-hp-list="${listKey}" data-hp-idx="${idx}"
+                          class="quick-hp-btn text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-200 border border-emerald-800/60">
+                          +Heal
+                        </button>
+                      </div>
+
+                      <select data-add-cond-list="${listKey}" data-add-cond-idx="${idx}"
+                        class="add-5e-cond-select px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-300">
+                        <option value="">+ Condition...</option>
+                        ${DND5E_CONDITIONS.map((c) => `<option value="${c}">${c}</option>`).join("")}
+                      </select>
+                    </div>
+
+                    ${
+                      activeConds.length > 0
+                        ? `<div class="flex items-center gap-1 flex-wrap">
+                            ${activeConds
+                              .map(
+                                (cond) => `
+                              <button type="button" data-toggle-cond="${escapeHtml(cond)}" data-cond-list="${listKey}" data-cond-idx="${idx}"
+                                class="toggle-5e-cond-btn text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-200 border border-amber-700/60">
+                                ${escapeHtml(cond)} ×
+                              </button>
+                            `
+                              )
+                              .join("")}
+                          </div>`
+                        : ""
+                    }
+                  `
+                  : `
+                    <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="statusTracking"
+                      value="${escapeHtml(row.statusTracking || "")}" placeholder="Conditions, concentration, spell slots, notes..."
+                      class="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200" />
+                  `
+              }
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
 /**
  * Renders the Daggerheart Combat Spotlight & GM Fear Tracker (no initiative rolls;
  * features GM Fear Pool 0–12, Battle Points Budget Calculator, Spotlight selector,
@@ -467,7 +650,6 @@ function renderDaggerheartSpotlightTracker(data, state) {
 
     <!-- GM Fear Pool (0–12) & Battle Points Encounter Budget -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-      <!-- GM Fear Pool -->
       <div class="lg:col-span-7 bg-slate-950/70 border border-purple-500/40 rounded-xl p-4 space-y-2.5">
         <div class="flex items-center justify-between gap-2">
           <div>
@@ -496,7 +678,6 @@ function renderDaggerheartSpotlightTracker(data, state) {
         </div>
       </div>
 
-      <!-- Battle Points Encounter Calculator -->
       <div class="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2.5">
         <div class="flex items-center justify-between gap-2">
           <span class="text-xs font-bold uppercase tracking-wider text-amber-300">Battle Points Budget</span>
@@ -618,6 +799,21 @@ function renderDaggerheartSpotlightTracker(data, state) {
         ${renderDaggerheartCombatantList(data.enemies, "enemies", true)}
       </div>
     </div>
+
+    <!-- Encounter Battle Map Preview -->
+    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-2.5">
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">Scene / Environment Map URL (Optional)</label>
+      <input type="url" data-init-field="battleMapUrl" value="${escapeHtml(data.battleMapUrl || "")}"
+        placeholder="https://... (Paste a scene or encounter map image URL)"
+        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+      <div id="init-map-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
+        ${
+          data.battleMapUrl
+            ? `<img src="${escapeHtml(data.battleMapUrl)}" alt="Scene Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" />`
+            : `<p class="text-xs text-slate-500 py-4">Paste a scene or map URL above to display it here during combat.</p>`
+        }
+      </div>
+    </div>
   `;
 }
 
@@ -674,6 +870,7 @@ function renderDaggerheartCombatantList(list, listKey, isAdversary) {
     </div>
   `;
 }
+
 function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode, dhMode) {
   const rerenderWithLocalData = () => {
     const tempEntity = existingDoc
@@ -887,7 +1084,6 @@ function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode
       });
     });
 
-    // Quick -Dmg / +Heal buttons
     paneContainer.querySelectorAll(".quick-hp-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         collectInitiativeForm(paneContainer, data);
@@ -907,7 +1103,6 @@ function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode
       });
     });
 
-    // Add / Remove 5e Condition pills
     paneContainer.querySelectorAll(".add-5e-cond-select").forEach((sel) => {
       sel.addEventListener("change", () => {
         const cond = sel.value;
@@ -1041,10 +1236,12 @@ function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode
   const mapPreview = paneContainer.querySelector("#init-map-preview");
   mapInput?.addEventListener("input", () => {
     const val = mapInput.value.trim();
-    if (val) {
-      mapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Encounter Battle Map" class="max-h-96 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
-    } else {
-      mapPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste a battle map URL above to display it here during combat.</p>`;
+    if (mapPreview) {
+      if (val) {
+        mapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Encounter Battle Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+      } else {
+        mapPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste a battle map URL above to display it here during combat.</p>`;
+      }
     }
   });
 }
