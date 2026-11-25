@@ -253,6 +253,71 @@ function renderTravelTabContent(tabId, data, dndMode, dhMode) {
                 : `<p class="text-xs text-slate-500 py-4">Paste a regional or hex map URL above to preview your travel routes here.</p>`
             }
           </div>
+        </div>
+
+        ${renderD6TableCard("terrainForestPlains", "Forest / Plains / Hills (D6)", "Terrain Hazard / Event", data.terrainForestPlains)}
+        ${renderD6TableCard("terrainMountains", "Mountains / High Passes (D6)", "Terrain Hazard / Event", data.terrainMountains)}
+        ${renderD6TableCard("terrainUnderground", "Underground / Caverns (D6)", "Terrain Hazard / Event", data.terrainUnderground)}
+        ${renderD6TableCard("terrainTundraSnow", "Tundra / Snow / Frozen Wastes (D6)", "Terrain Hazard / Event", data.terrainTundraSnow)}
+      `;
+
+    case "hunting":
+      return `
+        ${renderD12TableCard("huntingSuccess", "Hunting & Foraging — Success (D12)", data.huntingSuccess, "emerald")}
+        ${renderD12TableCard("huntingFailure", "Hunting & Foraging — Failure / Complication (D12)", data.huntingFailure, "rose")}
+      `;
+
+    case "discovery":
+      return `
+        ${renderD12TableCard("discoverySuccess", "Discovery & Landmarks — Success (D12)", data.discoverySuccess, "emerald")}
+        ${renderD12TableCard("discoveryFailure", "Discovery & Landmarks — Failure / Complication (D12)", data.discoveryFailure, "rose")}
+      `;
+
+    case "camping":
+      return `
+        ${renderD12TableCard("campingSuccess", "Making Camp & Rest — Success (D12)", data.campingSuccess, "emerald")}
+        ${renderD12TableCard("campingFailure", "Making Camp & Rest — Failure / Ambush (D12)", data.campingFailure, "rose")}
+      `;
+
+    case "exploration":
+      return `
+        ${renderD12TableCard("explorationSuccess", "Exploration & Navigation — Success (D12)", data.explorationSuccess, "emerald")}
+        ${renderD12TableCard("explorationFailure", "Exploration & Navigation — Failure / Lost (D12)", data.explorationFailure, "rose")}
+      `;
+
+    case "travel-npc":
+      return `
+        ${renderD12TableCard("npcSuccess", "Roadside NPC Encounters — Friendly / Opportunity (D12)", data.npcSuccess, "emerald")}
+        ${renderD12TableCard("npcFailure", "Roadside NPC Encounters — Hostile / Complication (D12)", data.npcFailure, "rose")}
+      `;
+
+    case "bard-performance":
+      return `
+        ${renderD12TableCard("bardSuccess", "Tavern & Bard Performance — Triumph (D12)", data.bardSuccess, "emerald")}
+        ${renderD12TableCard("bardFailure", "Tavern & Bard Performance — Tough Crowd (D12)", data.bardFailure, "rose")}
+      `;
+
+    case "misc-notes":
+      return `
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> Overland Travel — Misc Notes
+          </h3>
+          <p class="text-xs text-slate-400">Keep track of rations, mount speeds, navigation DCs, or custom regional travel rules.</p>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Miscellaneous Overland Travel Notes</label>
+            <textarea data-travel-misc="miscNotes" rows="12"
+              placeholder="Write custom hex-crawl procedures, foraging rules, or travel montages here..."
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(data.miscNotes)}</textarea>
+          </div>
+        </div>
+      `;
+
+    default:
+      return "";
+  }
+}
+
 function renderExamplesReferenceTab(dndMode, dhMode) {
   return `
     ${
@@ -592,10 +657,12 @@ function wireTravelControls(paneContainer, state, existingDoc, data) {
   const mapPreview = paneContainer.querySelector("#travel-map-preview");
   mapInput?.addEventListener("input", () => {
     const val = mapInput.value.trim();
-    if (val) {
-      mapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Overland Travel Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
-    } else {
-      mapPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste a regional or hex map URL above to preview your travel routes here.</p>`;
+    if (mapPreview) {
+      if (val) {
+        mapPreview.innerHTML = `<img src="${escapeHtml(val)}" alt="Overland Travel Map" class="max-h-80 mx-auto rounded-lg border border-slate-700 object-contain" onerror="this.outerHTML='<p class=\\'text-xs text-rose-400 py-4\\'>Could not load image from that URL.</p>'" />`;
+      } else {
+        mapPreview.innerHTML = `<p class="text-xs text-slate-500 py-4">Paste a regional or hex map URL above to preview your travel routes here.</p>`;
+      }
     }
   });
 }
