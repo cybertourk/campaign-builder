@@ -37,7 +37,6 @@ import { appState, setState, setLoading } from "./state.js";
 export function initAuthListener() {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // Ensure user profile doc exists in Firestore
       await ensureUserDocument(user);
 
       setState({
@@ -68,9 +67,6 @@ export function initAuthListener() {
   });
 }
 
-/**
- * Creates or updates the root user document in Firestore.
- */
 async function ensureUserDocument(user) {
   try {
     const userRef = doc(db, "users", user.uid);
@@ -162,9 +158,7 @@ export async function loadUserSystems() {
 }
 
 /**
- * Creates a new Game System folder.
- * Includes `templateType` (defaulting to 'generic') so future D&D, Vampire, or
- * Daggerheart modules can hook into systems with matching templateTypes.
+ * Creates a new Game System folder with a selected ruleset templateType ('generic' | 'dnd5e' | etc.).
  */
 export async function createGameSystem({ name, description = "", templateType = "generic", accentColor = "indigo" }) {
   const uid = appState.user?.uid;
@@ -176,9 +170,9 @@ export async function createGameSystem({ name, description = "", templateType = 
     const newSystem = {
       name: name.trim(),
       description: description.trim(),
-      templateType, // 'generic' now; ready for 'dnd5e', 'vtm5e', 'daggerheart' later
+      templateType,
       accentColor,
-      systemMeta: {}, // Reserved for system-wide custom rules or terminology
+      systemMeta: {},
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -195,6 +189,45 @@ export async function createGameSystem({ name, description = "", templateType = 
   } catch (error) {
     console.error("Error creating game system:", error);
     setLoading(false, "Failed to create Game System.");
+    throw error;
+  }
+}
+
+/**
+ * Updates an existing Game System's name, description, or ruleset templateType
+ * without affecting any campaigns or notes nested inside it.
+ */
+export async function updateGameSystem(systemId, updates) {
+  const uid = appState.user?.uid;
+  if (!uid || !systemId) return;
+
+  try {
+    const sysRef = doc(db, "users", uid, "systems", systemId);
+    const cleanUpdates = {
+      ...(updates.name !== undefined ? { name: updates.name.trim() } : {}),
+      ...(updates.description !== undefined ? { description: updates.description.trim() } : {}),
+      ...(updates.templateType !== undefined ? { templateType: updates.templateType } : {})
+    };
+
+    await updateDoc(sysRef, {
+      ...cleanUpdates,
+      updatedAt: serverTimestamp()
+    });
+
+    const updatedSystems = appState.systems.map((s) =>
+      s.id === systemId ? { ...s, ...cleanUpdates } : s
+    );
+    const updatedActive =
+      appState.activeSystem?.id === systemId
+        ? { ...appState.activeSystem, ...cleanUpdates }
+        : appState.activeSystem;
+
+    setState({
+      systems: updatedSystems,
+      activeSystem: updatedActive
+    });
+  } catch (error) {
+    console.error("Error updating game system:", error);
     throw error;
   }
 }
@@ -216,9 +249,6 @@ export async function deleteGameSystem(systemId) {
   }
 }
 
-/**
- * Selects a Game System and loads all Campaigns nested inside it.
- */
 export async function selectGameSystem(system) {
   setState({
     activeSystem: system,
@@ -267,9 +297,9 @@ export async function createCampaign({ title, summary = "", status = "Active" })
     const newCampaign = {
       title: title.trim(),
       summary: summary.trim(),
-      status, // 'Active' | 'Planning' | 'Completed' | 'On Hold'
+      status,
       systemId,
-      campaignMeta: {}, // Extensible per-campaign settings
+      campaignMeta: {},
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -306,9 +336,6 @@ export async function deleteCampaign(campaignId) {
   }
 }
 
-/**
- * Opens a Campaign workspace and loads its entities (NPCs, Locations, Sessions, Lore).
- */
 export async function selectCampaign(campaign) {
   setState({
     activeCampaign: campaign,
@@ -377,11 +404,11 @@ export async function createEntity({ type = "Session", title, content = "", tags
     );
 
     const newEntity = {
-      type, // 'Session' | 'NPC' | 'Location' | 'Faction' | 'Lore'
+      type,
       title: title.trim(),
       content,
       tags,
-      systemData, // Modular payload for D&D statblocks, Vampire Disciplines, Daggerheart Fear/Hope, etc.
+      systemData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
