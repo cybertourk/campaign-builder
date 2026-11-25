@@ -1,16 +1,20 @@
 // chapter-initiative.js
 // Dedicated interactive workbook for Chapter 11: Initiative Tracker.
-// Supports Universal Core plus D&D 5e Combat Upgrades: One-Click Import of Party PCs &
-// Bestiary Monsters, Quick Damage/Healing (-HP / +Heal), clickable 5e Condition Pills,
-// and live 5e Encounter XP & Difficulty Meter (Easy / Medium / Hard / Deadly).
+// Supports Universal Core, D&D 5e Combat Upgrades, and Daggerheart Spotlight & Fear
+// Combat Tracker (GM Fear Pool 0–12, Battle Points Budget vs. Spent, Spotlight passing
+// without initiative rolls, HP/Stress/Thresholds tracking, and Hidden/Restrained/Vulnerable pills).
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import {
   isDnd5e,
+  isDaggerheart,
   DND5E_CONDITIONS,
   parseEnemyXp,
   parseLevelFromClass,
-  calculate5eEncounterDifficulty
+  calculate5eEncounterDifficulty,
+  DAGGERHEART_CONDITIONS,
+  getDaggerheartBattlePointCost,
+  calculateDaggerheartBattlePoints
 } from "./system-rulesets.js";
 
 export const INITIATIVE_TABS = [
@@ -42,6 +46,9 @@ function getDefaultInitiativeData(campaignTitle = "") {
     campaignName: campaignTitle,
     session: "",
     partyLevelsInput: "",
+    dhPcCount: 4,
+    dhGmFear: 2,
+    dhSpotlightName: "",
     currentRound: 1,
     completedRounds: [],
     battleMapUrl: "",
@@ -67,6 +74,7 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
   }
 
   const dndMode = isDnd5e(state);
+  const dhMode = isDaggerheart(state);
   const existingDoc = state.entities.find((e) => e.type === "initiative-tracker");
   const defaults = getDefaultInitiativeData(state.activeCampaign?.title || "");
   const data = {
@@ -102,12 +110,14 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 11: Initiative Tracker${dndMode ? " • D&D 5e" : ""}
+              Chapter 11: ${dhMode ? "Spotlight & Fear Tracker • Daggerheart" : `Initiative Tracker${dndMode ? " • D&D 5e" : ""}`}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
             ${
-              dndMode
+              dhMode
+                ? "Manage the GM Fear Pool (0–12), pass the Spotlight dynamically, track HP/Stress/Thresholds, and balance encounters with Battle Points."
+                : dndMode
                 ? "Import saved Party PCs & Monsters, apply quick HP damage/healing, toggle 5e conditions, and gauge Encounter XP difficulty."
                 : "Track combat rounds (1–20), 30–1 initiative order, PC/NPC and Enemy AC, HP, passive scores, conditions, and battle maps."
             }
@@ -127,7 +137,7 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
 
     <!-- Active Section Content -->
     <div class="space-y-6 flex-1">
-      ${renderInitiativeTabContent(activeInitiativeTab, data, state, dndMode)}
+      ${renderInitiativeTabContent(activeInitiativeTab, data, state, dndMode, dhMode)}
     </div>
   `;
 
@@ -157,7 +167,7 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
   });
 
   if (activeInitiativeTab === "combat-tracker") {
-    wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode);
+    wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode, dhMode);
   }
 
   // Save to Firestore
@@ -194,11 +204,7 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
     } catch (err) {
       statusEl.textContent = "Save failed";
       statusEl.className = "text-xs text-rose-400";
-    }
-  });
-}
-
-function renderInitiativeTabContent(tabId, data, state, dndMode) {
+function renderInitiativeTabContent(tabId, data, state, dndMode, dhMode) {
   if (tabId === "misc-notes") {
     return `
       <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
@@ -214,6 +220,10 @@ function renderInitiativeTabContent(tabId, data, state, dndMode) {
         </div>
       </div>
     `;
+  }
+
+  if (dhMode) {
+    return renderDaggerheartSpotlightTracker(data, state);
   }
 
   const sortedCombatants = getSortedCombatants(data);
@@ -416,247 +426,247 @@ function renderInitiativeTabContent(tabId, data, state, dndMode) {
           </button>
           <button type="button" id="next-turn-btn" ${sortedCombatants.length === 0 ? "disabled" : ""}
             class="text-xs bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white px-2.5 py-1 rounded font-medium transition">
-            Next Turn →
-          </button>
-        </div>
-      </div>
+/**
+ * Renders the Daggerheart Combat Spotlight & GM Fear Tracker (no initiative rolls;
+ * features GM Fear Pool 0–12, Battle Points Budget Calculator, Spotlight selector,
+ * and PC/Adversary HP, Stress & Condition tracking).
+ */
+function renderDaggerheartSpotlightTracker(data, state) {
+  const gmFear = Math.max(0, Math.min(12, Number(data.dhGmFear) ?? 2));
+  const savedChars = state.entities.find((e) => e.type === "character-sheets")?.systemData?.characters || [];
+  const savedAdversaries = state.entities.find((e) => e.type === "enemies")?.systemData?.enemies || [];
+  const bpCalc = calculateDaggerheartBattlePoints(data.dhPcCount || 4, data.enemies || []);
 
-      ${
-        sortedCombatants.length === 0
-          ? `<p class="text-xs text-slate-500">Enter names and initiative rolls in the PC/NPC or Enemy rows below to populate the live turn order.</p>`
-          : `
-            <div class="flex items-center gap-2 flex-wrap">
-              ${sortedCombatants
-                .map((c, idx) => {
-                  const isTurn = idx === activeTurnIndex;
-                  const condBadges =
-                    dndMode && Array.isArray(c.conditions) && c.conditions.length > 0
-                      ? ` • ${c.conditions.join(", ")}`
-                      : "";
-                  const roleBadge =
-                    c.role === "enemy"
-                      ? "border-rose-800/60 bg-rose-950/40 text-rose-200"
-                      : "border-emerald-800/60 bg-emerald-950/40 text-emerald-200";
-                  return `
-                    <button type="button" data-turn-idx="${idx}"
-                      class="select-turn-btn px-2.5 py-1 rounded-lg text-xs border transition flex items-center gap-1.5 ${
-                        isTurn
-                          ? "bg-amber-500/20 border-amber-400 text-white font-bold ring-1 ring-amber-400/50"
-                          : roleBadge
-                      }">
-                      <span class="font-mono font-bold text-amber-300">${escapeHtml(c.initiative || "—")}</span>
-                      <span>${escapeHtml(c.name)}</span>
-                      ${c.ac ? `<span class="text-[10px] opacity-75">(AC ${escapeHtml(c.ac)})</span>` : ""}
-                      ${condBadges ? `<span class="text-[10px] font-semibold text-rose-300">${escapeHtml(condBadges)}</span>` : ""}
-                    </button>
-                  `;
-                })
-                .join("")}
-            </div>
-          `
-      }
+  const allRoster = [
+    ...(data.pcNpcs || []).filter((p) => p.name && p.name.trim()).map((p) => ({ ...p, role: "pc" })),
+    ...(data.enemies || []).filter((e) => e.name && e.name.trim()).map((e) => ({ ...e, role: "enemy" }))
+  ];
+
+  return `
+    <!-- Top Metadata: DATE, CAMPAIGN NAME, SCENE / SESSION -->
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+      <div class="sm:col-span-3">
+        <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Date</label>
+        <input type="text" data-init-field="date" value="${escapeHtml(data.date || "")}"
+          placeholder="e.g., Nov 24, 2026"
+          class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+      </div>
+      <div class="sm:col-span-6">
+        <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Campaign / Scene</label>
+        <input type="text" data-init-field="campaignName" value="${escapeHtml(data.campaignName || "")}"
+          placeholder="Campaign or Encounter Scene"
+          class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white" />
+      </div>
+      <div class="sm:col-span-3">
+        <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Session</label>
+        <input type="text" data-init-field="session" value="${escapeHtml(data.session || "")}"
+          placeholder="e.g., Session 4"
+          class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+      </div>
     </div>
 
-    <!-- Main 12-Column Combat Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-      <!-- Left: INITIATIVE 30 down to 1 Reference Ladder -->
-      <div class="lg:col-span-3 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
-        <div class="text-xs font-bold uppercase tracking-wider text-indigo-400 pb-2 mb-2 border-b border-slate-800 flex items-center justify-between">
-          <span>Initiative (30–1)</span>
-          <span class="text-[10px] font-normal text-slate-500">Auto-slotted</span>
+    <!-- GM Fear Pool (0–12) & Battle Points Encounter Budget -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- GM Fear Pool -->
+      <div class="lg:col-span-7 bg-slate-950/70 border border-purple-500/40 rounded-xl p-4 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-purple-300">GM Fear Pool (${gmFear} / 12)</span>
+            <p class="text-[11px] text-slate-400">Gain 1 Fear when a PC rolls with Fear; spend Fear to spotlight Adversaries or trigger Fear Moves.</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" id="dh-fear-minus-btn" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">-1 Fear</button>
+            <button type="button" id="dh-fear-plus-btn" class="text-xs px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white font-semibold">+1 Fear</button>
+          </div>
         </div>
-        <div class="space-y-1 max-h-[640px] overflow-y-auto pr-1">
-          ${Array.from({ length: 30 }, (_, i) => {
-            const score = 30 - i;
-            const occupants = sortedCombatants.filter(
-              (c) => parseInt(c.initiative, 10) === score
-            );
+        <div class="flex items-center gap-1.5 flex-wrap">
+          ${Array.from({ length: 12 }, (_, idx) => {
+            const active = idx < gmFear;
             return `
-              <div class="flex items-center gap-2 text-xs py-0.5 border-b border-slate-900">
-                <span class="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold ${
-                  occupants.length > 0
-                    ? "bg-indigo-600 text-white"
-                    : "bg-slate-900 text-slate-500 border border-slate-800"
-                }">${score}</span>
-                <div class="flex-1 truncate text-[11px] ${
-                  occupants.length > 0 ? "text-white font-semibold" : "text-slate-600"
+              <button type="button" data-dh-set-fear="${active && idx + 1 === gmFear ? idx : idx + 1}"
+                class="dh-fear-pip-btn w-7 h-7 rounded-full text-xs font-bold border transition ${
+                  active
+                    ? "bg-purple-600 border-purple-300 text-white"
+                    : "bg-slate-900 border-slate-700 text-slate-500"
                 }">
-                  ${
-                    occupants.length > 0
-                      ? occupants.map((o) => escapeHtml(o.name)).join(", ")
-                      : "—————————"
-                  }
-                </div>
-              </div>
+                💀
+              </button>
             `;
           }).join("")}
         </div>
       </div>
 
-      <!-- Right: PC/NPC & ENEMY Tables -->
-      <div class="lg:col-span-9 space-y-5">
-        <!-- PC / NPC Combatants -->
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-              <i data-lucide="shield" class="w-4 h-4"></i> PC / NPC Roster
-            </h3>
-            <button type="button" id="add-pc-row-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded border border-slate-700 transition">
-              + Add PC / NPC
-            </button>
+      <!-- Battle Points Encounter Calculator -->
+      <div class="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-300">Battle Points Budget</span>
+          <div class="flex items-center gap-1.5">
+            <label class="text-[11px] text-slate-400">PCs:</label>
+            <input type="number" min="1" max="10" data-init-field="dhPcCount" value="${escapeHtml(String(data.dhPcCount || 4))}"
+              class="dh-pc-count-input w-12 px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-xs font-bold text-center text-white" />
           </div>
-
-          ${renderCombatantRows(data.pcNpcs, "pcNpcs", "PC / NPC Name", dndMode)}
         </div>
-
-        <div class="border-t-2 border-dotted border-slate-700 my-1"></div>
-
-        <!-- ENEMY Combatants -->
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-              <i data-lucide="skull" class="w-4 h-4"></i> Enemies
-            </h3>
-            <div class="flex items-center gap-2">
-              <button type="button" id="clear-enemies-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2 py-1 rounded border border-slate-800 transition">
-                Clear Enemies
-              </button>
-              <button type="button" id="add-enemy-row-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded border border-slate-700 transition">
-                + Add Enemy
-              </button>
-            </div>
-          </div>
-
-          ${renderCombatantRows(data.enemies, "enemies", "Enemy Name", dndMode)}
+        <div class="flex items-center justify-between text-xs bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2">
+          <span>Spent: <strong class="text-white">${bpCalc.spent}</strong> / <strong class="text-amber-300">${bpCalc.budget} BP</strong></span>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-700/50">
+            ${escapeHtml(bpCalc.rating)}
+          </span>
         </div>
+        <p class="text-[10px] text-slate-400">Formula: (3 × PCs) + 2 • Minion/Social/Support: 1 • Standard/Horde/Skulk/Ranged: 2 • Leader: 3 • Bruiser: 4 • Solo: 5</p>
       </div>
     </div>
 
-    <!-- Encounter Battle Map Image URL & Preview -->
-    <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
-      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-        Active Encounter Battle Map Image URL (Optional)
-      </label>
-      <input type="url" data-init-field="battleMapUrl" value="${escapeHtml(data.battleMapUrl || "")}"
-        placeholder="https://... (Paste an encounter battle map link to reference during combat)"
-        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-      <div id="init-map-preview" class="border border-dashed border-slate-700 rounded-xl bg-slate-900/60 p-3 text-center">
-        ${
-          data.battleMapUrl
-            ? `<img src="${escapeHtml(data.battleMapUrl)}" alt="Encounter Battle Map" class="max-h-96 mx-auto rounded-lg border border-slate-700 object-contain" />`
-            : `<p class="text-xs text-slate-500 py-4">Paste a battle map URL above to display it here during combat.</p>`
-        }
+    <!-- Roster Importer & Active Spotlight Bar -->
+    <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+          <span class="text-xs font-bold uppercase tracking-wider text-white">
+            Current Spotlight: <strong class="text-amber-300">${escapeHtml(data.dhSpotlightName || "Click any PC or Adversary below")}</strong>
+          </span>
+        </div>
+        <button type="button" id="toggle-5e-importer-btn"
+          class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-semibold inline-flex items-center gap-1.5 self-start sm:self-auto">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>${showImporterDrawer ? "Hide Importer" : "Import PCs & Adversaries"}</span>
+        </button>
+      </div>
+
+      ${
+        allRoster.length > 0
+          ? `<div class="flex items-center gap-2 flex-wrap">
+              ${allRoster
+                .map((c) => {
+                  const isSpot = data.dhSpotlightName === c.name;
+                  return `
+                    <button type="button" data-dh-spotlight="${escapeHtml(c.name)}"
+                      class="dh-spotlight-btn px-3 py-1 rounded-lg text-xs border transition ${
+                        isSpot
+                          ? "bg-amber-500/25 border-amber-400 text-white font-bold"
+                          : c.role === "enemy"
+                          ? "bg-rose-950/40 border-rose-800/60 text-rose-200"
+                          : "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
+                      }">
+                      ${isSpot ? "★ " : ""}${escapeHtml(c.name)}
+                    </button>
+                  `;
+                })
+                .join("")}
+            </div>`
+          : ""
+      }
+
+      ${
+        showImporterDrawer
+          ? `<div class="pt-3 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-emerald-400">Saved Daggerheart PCs (Ch. 9)</span>
+                  ${
+                    savedChars.length > 0
+                      ? `<button type="button" id="import-all-pcs-btn" class="text-[11px] bg-slate-800 text-emerald-300 px-2 py-0.5 rounded border border-slate-700">+ Import All (${savedChars.length})</button>`
+                      : ""
+                  }
+                </div>
+                ${savedChars
+                  .map(
+                    (c, idx) => `
+                  <div class="flex items-center justify-between text-xs bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5">
+                    <span class="truncate text-white">${escapeHtml(c.characterName || "PC")} (Evasion ${escapeHtml(c.dhEvasion || "10")}, HP ${escapeHtml(c.dhHpTotal || "6")})</span>
+                    <button type="button" data-import-pc-idx="${idx}" class="import-one-pc-btn text-[11px] text-emerald-300 font-semibold ml-2">+ Add</button>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>
+              <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2">
+                <span class="text-xs font-bold text-rose-400 block">Saved Adversaries (Ch. 4)</span>
+                ${savedAdversaries
+                  .map(
+                    (en, idx) => `
+                  <div class="flex items-center justify-between text-xs bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5">
+                    <span class="truncate text-white">${escapeHtml(en.name || "Adversary")} (Diff ${escapeHtml(en.difficulty || "12")}, HP ${escapeHtml(en.hitPoints || "5")}, ${escapeHtml(en.battlePoints || "2")} BP)</span>
+                    <button type="button" data-import-enemy-idx="${idx}" class="import-one-enemy-btn text-[11px] text-rose-300 font-semibold ml-2">+ Add</button>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>
+            </div>`
+          : ""
+      }
+    </div>
+
+    <!-- PC & Adversary Combatant Trackers -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Party PCs &amp; Allies</h3>
+          <button type="button" id="add-pc-row-btn" class="text-xs bg-slate-800 text-slate-200 px-2.5 py-1 rounded border border-slate-700">+ Add PC</button>
+        </div>
+        ${renderDaggerheartCombatantList(data.pcNpcs, "pcNpcs", false)}
+      </div>
+
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">Adversaries</h3>
+          <div class="flex items-center gap-2">
+            <button type="button" id="clear-enemies-btn" class="text-xs text-slate-400 hover:text-rose-400 px-2 py-1 rounded border border-slate-800">Clear</button>
+            <button type="button" id="add-enemy-row-btn" class="text-xs bg-slate-800 text-slate-200 px-2.5 py-1 rounded border border-slate-700">+ Add Adversary</button>
+          </div>
+        </div>
+        ${renderDaggerheartCombatantList(data.enemies, "enemies", true)}
       </div>
     </div>
   `;
 }
 
-function renderCombatantRows(list, listKey, namePlaceholder, dndMode) {
-  const isEnemy = listKey === "enemies";
-
+function renderDaggerheartCombatantList(list, listKey, isAdversary) {
   return `
     <div class="space-y-2.5">
-      <div class="hidden sm:grid sm:grid-cols-12 gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
-        <div class="col-span-1 text-center">Init</div>
-        <div class="col-span-3">${isEnemy ? "Enemy" : "PC / NPC"}</div>
-        <div class="col-span-1 text-center">${dndMode && isEnemy ? "CR/XP" : "Passive"}</div>
-        <div class="col-span-1 text-center">AC</div>
-        <div class="col-span-2 text-center">HP</div>
-        <div class="col-span-3">HP / Status Tracking</div>
-        <div class="col-span-1"></div>
-      </div>
-
       ${list
         .map((row, idx) => {
-          const activeConditions = Array.isArray(row.conditions) ? row.conditions : [];
+          const activeConds = Array.isArray(row.conditions) ? row.conditions : [];
           return `
-            <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-800/80 space-y-2">
-              <div class="grid grid-cols-2 sm:grid-cols-12 gap-2 items-center">
-                <div class="col-span-1">
-                  <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="initiative"
-                    value="${escapeHtml(row.initiative || "")}" placeholder="Init"
-                    class="init-roll-input w-full px-1.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-center text-amber-300 focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div class="col-span-1 sm:col-span-3">
-                  <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="name"
-                    value="${escapeHtml(row.name || "")}" placeholder="${namePlaceholder}"
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-white focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div class="col-span-1">
-                  ${
-                    dndMode && isEnemy
-                      ? `<input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="xp"
-                          value="${escapeHtml(row.xp || "")}" placeholder="CR / XP" title="CR or XP value for Encounter Calculator"
-                          class="w-full px-1.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-center text-amber-200 focus:outline-none focus:border-indigo-500" />`
-                      : `<input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="passive"
-                          value="${escapeHtml(row.passive || "")}" placeholder="PP"
-                          class="w-full px-1.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-center text-slate-200 focus:outline-none focus:border-indigo-500" />`
-                  }
-                </div>
-                <div class="col-span-1">
-                  <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="ac"
-                    value="${escapeHtml(row.ac || "")}" placeholder="AC"
-                    class="w-full px-1.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-center text-sky-300 focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div class="col-span-1 sm:col-span-2">
-                  <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="hp"
-                    value="${escapeHtml(row.hp || "")}" placeholder="HP"
-                    class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs font-semibold text-center text-emerald-300 focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div class="col-span-1 sm:col-span-3">
-                  <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="statusTracking"
-                    value="${escapeHtml(row.statusTracking || "")}" placeholder="Notes, temp HP, spell..."
-                    class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div class="col-span-2 sm:col-span-1 flex justify-end sm:justify-center">
-                  <button type="button" data-del-comb-list="${listKey}" data-del-comb-idx="${idx}"
-                    class="del-comb-row-btn text-slate-500 hover:text-rose-400 p-1 transition" title="Remove Row">
-                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                  </button>
+            <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 space-y-2">
+              <div class="grid grid-cols-12 gap-1.5 items-center">
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="name"
+                  value="${escapeHtml(row.name || "")}" placeholder="${isAdversary ? "Adversary Name" : "PC Name"}"
+                  class="col-span-5 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-bold text-white" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="ac"
+                  value="${escapeHtml(row.ac || "")}" placeholder="${isAdversary ? "Diff" : "Evas"}" title="${isAdversary ? "Difficulty" : "Evasion"}"
+                  class="col-span-2 px-1.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-center text-sky-300 font-semibold" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="hp"
+                  value="${escapeHtml(row.hp || "")}" placeholder="HP" title="Marked / Max HP"
+                  class="col-span-2 px-1.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-center text-rose-300 font-semibold" />
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="passive"
+                  value="${escapeHtml(row.passive || "")}" placeholder="Stress" title="Marked / Max Stress"
+                  class="col-span-2 px-1.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-center text-purple-300 font-semibold" />
+                <button type="button" data-del-comb-list="${listKey}" data-del-comb-idx="${idx}"
+                  class="del-comb-row-btn col-span-1 text-slate-500 hover:text-rose-400 flex justify-center">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <input type="text" data-comb-list="${listKey}" data-comb-idx="${idx}" data-comb-field="statusTracking"
+                  value="${escapeHtml(row.statusTracking || "")}" placeholder="${isAdversary ? "Thresholds (Major/Severe), BP & notes..." : "Thresholds (Major/Severe), Armor Slots..."}"
+                  class="flex-1 min-w-[140px] px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[11px] text-slate-200" />
+                <div class="flex items-center gap-1 flex-wrap">
+                  ${DAGGERHEART_CONDITIONS.map((cond) => {
+                    const hasCond = activeConds.includes(cond);
+                    return `
+                      <button type="button" data-dh-cond="${cond}" data-cond-list="${listKey}" data-cond-idx="${idx}"
+                        class="dh-cond-toggle-btn text-[10px] font-semibold px-2 py-0.5 rounded-full border transition ${
+                          hasCond
+                            ? "bg-rose-950/90 text-rose-200 border-rose-700/60"
+                            : "bg-slate-950 text-slate-400 border-slate-800"
+                        }">
+                        ${cond}
+                      </button>
+                    `;
+                  }).join("")}
                 </div>
               </div>
-
-              ${
-                dndMode
-                  ? `
-                    <!-- D&D 5e Quick HP Adjuster & Condition Pills -->
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-800/60">
-                      <div class="flex items-center gap-1">
-                        <input type="number" min="1" id="hp-delta-${listKey}-${idx}" placeholder="Amt"
-                          class="w-14 px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded text-[11px] text-center text-white" />
-                        <button type="button" data-hp-op="dmg" data-hp-list="${listKey}" data-hp-idx="${idx}"
-                          class="quick-hp-btn text-[11px] font-bold px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-700/60 hover:brightness-110">
-                          -Dmg
-                        </button>
-                        <button type="button" data-hp-op="heal" data-hp-list="${listKey}" data-hp-idx="${idx}"
-                          class="quick-hp-btn text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 hover:brightness-110">
-                          +Heal
-                        </button>
-                      </div>
-
-                      <div class="flex items-center gap-1 flex-wrap">
-                        ${activeConditions
-                          .map(
-                            (cond) => `
-                          <button type="button" data-toggle-cond="${escapeHtml(cond)}" data-cond-list="${listKey}" data-cond-idx="${idx}"
-                            class="toggle-5e-cond-btn text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-950/90 text-rose-200 border border-rose-700/60">
-                            ${escapeHtml(cond)} ×
-                          </button>
-                        `
-                          )
-                          .join("")}
-                        <select data-add-cond-list="${listKey}" data-add-cond-idx="${idx}"
-                          class="add-5e-cond-select px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded text-[10px] text-slate-300">
-                          <option value="">+ Condition</option>
-                          ${DND5E_CONDITIONS.filter((c) => !activeConditions.includes(c))
-                            .map((c) => `<option value="${c}">${c}</option>`)
-                            .join("")}
-                        </select>
-                      </div>
-                    </div>
-                  `
-                  : ""
-              }
             </div>
           `;
         })
@@ -664,40 +674,7 @@ function renderCombatantRows(list, listKey, namePlaceholder, dndMode) {
     </div>
   `;
 }
-
-function difficultyBadgeStyle(diff) {
-  switch (diff) {
-    case "Deadly":
-      return "bg-rose-950/85 text-rose-300 border-rose-700/60";
-    case "Hard":
-      return "bg-amber-950/85 text-amber-300 border-amber-700/60";
-    case "Medium":
-      return "bg-indigo-950/85 text-indigo-300 border-indigo-700/60";
-    case "Easy":
-    case "Trivial":
-      return "bg-emerald-950/85 text-emerald-300 border-emerald-700/60";
-    default:
-      return "bg-slate-900 text-slate-300 border-slate-700";
-  }
-}
-
-function getSortedCombatants(data) {
-  const all = [
-    ...(data.pcNpcs || []).map((c) => ({ ...c, role: "pc" })),
-    ...(data.enemies || []).map((c) => ({ ...c, role: "enemy" }))
-  ].filter((c) => (c.name && c.name.trim()) || (c.initiative && c.initiative.trim()));
-
-  return all.sort((a, b) => {
-    const numA = parseFloat(a.initiative);
-    const numB = parseFloat(b.initiative);
-    if (isNaN(numA) && isNaN(numB)) return 0;
-    if (isNaN(numA)) return 1;
-    if (isNaN(numB)) return -1;
-    return numB - numA;
-  });
-}
-
-function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode) {
+function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode, dhMode) {
   const rerenderWithLocalData = () => {
     const tempEntity = existingDoc
       ? { ...existingDoc, systemData: data }
@@ -709,6 +686,130 @@ function wireInitiativeControls(paneContainer, state, existingDoc, data, dndMode
     });
     if (window.lucide) window.lucide.createIcons();
   };
+
+  // Daggerheart GM Fear, Spotlight, Conditions & Importer Controls
+  if (dhMode) {
+    paneContainer.querySelector("#dh-fear-plus-btn")?.addEventListener("click", () => {
+      collectInitiativeForm(paneContainer, data);
+      data.dhGmFear = Math.min(12, (Number(data.dhGmFear) || 0) + 1);
+      rerenderWithLocalData();
+    });
+
+    paneContainer.querySelector("#dh-fear-minus-btn")?.addEventListener("click", () => {
+      collectInitiativeForm(paneContainer, data);
+      data.dhGmFear = Math.max(0, (Number(data.dhGmFear) || 0) - 1);
+      rerenderWithLocalData();
+    });
+
+    paneContainer.querySelectorAll(".dh-fear-pip-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        collectInitiativeForm(paneContainer, data);
+        data.dhGmFear = Number(btn.getAttribute("data-dh-set-fear")) || 0;
+        rerenderWithLocalData();
+      });
+    });
+
+    paneContainer.querySelector(".dh-pc-count-input")?.addEventListener("change", () => {
+      collectInitiativeForm(paneContainer, data);
+      rerenderWithLocalData();
+    });
+
+    paneContainer.querySelectorAll(".dh-spotlight-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        collectInitiativeForm(paneContainer, data);
+        data.dhSpotlightName = btn.getAttribute("data-dh-spotlight") || "";
+        rerenderWithLocalData();
+      });
+    });
+
+    paneContainer.querySelectorAll(".dh-cond-toggle-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        collectInitiativeForm(paneContainer, data);
+        const cond = btn.getAttribute("data-dh-cond");
+        const listKey = btn.getAttribute("data-cond-list");
+        const idx = Number(btn.getAttribute("data-cond-idx"));
+        const row = data[listKey]?.[idx];
+        if (row) {
+          if (!Array.isArray(row.conditions)) row.conditions = [];
+          if (row.conditions.includes(cond)) {
+            row.conditions = row.conditions.filter((c) => c !== cond);
+          } else {
+            row.conditions.push(cond);
+          }
+          rerenderWithLocalData();
+        }
+      });
+    });
+
+    paneContainer.querySelector("#toggle-5e-importer-btn")?.addEventListener("click", () => {
+      collectInitiativeForm(paneContainer, data);
+      showImporterDrawer = !showImporterDrawer;
+      rerenderWithLocalData();
+    });
+
+    const savedChars = state.entities.find((e) => e.type === "character-sheets")?.systemData?.characters || [];
+    const savedAdversaries = state.entities.find((e) => e.type === "enemies")?.systemData?.enemies || [];
+
+    const appendDhPc = (ch) => {
+      const emptyIdx = data.pcNpcs.findIndex((r) => !r.name);
+      const row = {
+        initiative: "",
+        name: ch.characterName || "PC",
+        passive: `0/${ch.dhStressTotal || 6}`,
+        ac: ch.dhEvasion || "10",
+        hp: `0/${ch.dhHpTotal || 6}`,
+        xp: "",
+        conditions: [],
+        statusTracking: `Thresholds: ${ch.dhThresholdMajor || 5}/${ch.dhThresholdSevere || 10} • Armor: ${ch.dhArmorScore || 0}`,
+        role: "pc"
+      };
+      if (emptyIdx >= 0) data.pcNpcs[emptyIdx] = row;
+      else data.pcNpcs.push(row);
+    };
+
+    paneContainer.querySelector("#import-all-pcs-btn")?.addEventListener("click", () => {
+      collectInitiativeForm(paneContainer, data);
+      savedChars.forEach(appendDhPc);
+      rerenderWithLocalData();
+    });
+
+    paneContainer.querySelectorAll(".import-one-pc-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        collectInitiativeForm(paneContainer, data);
+        const idx = Number(btn.getAttribute("data-import-pc-idx"));
+        if (savedChars[idx]) {
+          appendDhPc(savedChars[idx]);
+          rerenderWithLocalData();
+        }
+      });
+    });
+
+    paneContainer.querySelectorAll(".import-one-enemy-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        collectInitiativeForm(paneContainer, data);
+        const idx = Number(btn.getAttribute("data-import-enemy-idx"));
+        const en = savedAdversaries[idx];
+        if (!en) return;
+        const bp = en.battlePoints || String(getDaggerheartBattlePointCost(en.adversaryType));
+        const emptyIdx = data.enemies.findIndex((r) => !r.name);
+        const row = {
+          initiative: "",
+          name: en.name || "Adversary",
+          passive: `0/${en.stress || 3}`,
+          ac: en.difficulty || "12",
+          hp: `0/${en.hitPoints || 5}`,
+          battlePoints: bp,
+          adversaryType: en.adversaryType || "Standard",
+          conditions: [],
+          statusTracking: `Thresh ${en.thresholdMajor || 6}/${en.thresholdSevere || 12} • ${bp} BP`,
+          role: "enemy"
+        };
+        if (emptyIdx >= 0) data.enemies[emptyIdx] = row;
+        else data.enemies.push(row);
+        rerenderWithLocalData();
+      });
+    });
+  }
 
   // D&D 5e Roster Importer & Quick HP/Condition Controls
   if (dndMode) {
