@@ -127,7 +127,7 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
   });
 
   if (activeItemsTab !== "misc-notes") {
-    wireItemListControls(paneContainer, state, existingDoc, data, activeItemsTab);
+    wireItemListControls(paneContainer, state, existingDoc, data, activeItemsTab, dhMode);
   }
 
   // Save to Firestore
@@ -306,7 +306,7 @@ function renderArmorSection(armorList, dndMode, dhMode) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-6">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Armor Name & Tier" : "Name / Type"}</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Armor Name &amp; Tier" : "Name / Type"}</label>
                     <input type="text" data-list-key="armor" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(arm.nameLevel || "")}"
                       placeholder="${dhMode ? "e.g., Runed Chainmail (Tier 2)" : "e.g., Mithral Breastplate (Medium)"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
@@ -326,6 +326,28 @@ function renderArmorSection(armorList, dndMode, dhMode) {
                 </div>
 
                 ${dndMode ? renderRarityAttuneRow("armor", idx, arm) : ""}
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                  <div class="md:col-span-4">
+                    ${renderInlineImageControl("armor", idx, arm.imageUrl)}
+                  </div>
+                  <div class="md:col-span-8">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Armor Feature &amp; Notes" : "Description &amp; Properties"}</label>
+                    <textarea data-list-key="armor" data-row-idx="${idx}" data-row-field="description" rows="4"
+                      placeholder="${dhMode ? "e.g., Flexible (+1 to Evasion), Heavy (-1 to Agility), or warded runes..." : "Stealth disadvantage, strength requirement, resistances, or magical properties..."}"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(arm.description || "")}</textarea>
+                  </div>
+                </div>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        `
+    }
+  `;
+}
+
 function renderWeaponsSection(weaponList, dndMode, dhMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
@@ -354,13 +376,13 @@ function renderWeaponsSection(weaponList, dndMode, dhMode) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div class="sm:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Weapon Name & Tier" : "Name / Category"}</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Weapon Name &amp; Tier" : "Name / Category"}</label>
                     <input type="text" data-list-key="weapons" data-row-idx="${idx}" data-row-field="nameLevel" value="${escapeHtml(wpn.nameLevel || "")}"
                       placeholder="${dhMode ? "e.g., Gilded Longbow (Tier 2 Primary)" : "e.g., Sunforged Longsword +1 (Martial Melee)"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-semibold text-white focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="sm:col-span-4">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Damage Dice & Type" : "Damage"}</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Damage Dice &amp; Type" : "Damage"}</label>
                     <input type="text" data-list-key="weapons" data-row-idx="${idx}" data-row-field="damage" value="${escapeHtml(wpn.damage || "")}"
                       placeholder="${dhMode ? "e.g., d8+3 phy / d10 mag" : "e.g., 1d8 + 1 slashing + 1d4 fire"}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-rose-300 focus:outline-none focus:border-indigo-500" />
@@ -404,11 +426,33 @@ function renderWeaponsSection(weaponList, dndMode, dhMode) {
                 }
 
                 ${dndMode ? renderRarityAttuneRow("weapons", idx, wpn) : ""}
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                  <div class="md:col-span-4">
+                    ${renderInlineImageControl("weapons", idx, wpn.imageUrl)}
+                  </div>
+                  <div class="md:col-span-8">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Weapon Feature &amp; Lore" : "Description &amp; Properties"}</label>
+                    <textarea data-list-key="weapons" data-row-idx="${idx}" data-row-field="description" rows="4"
+                      placeholder="${dhMode ? "e.g., Reliable (+1 to attack rolls), Paired (+2 damage to primary weapon), Grappling..." : "Finesse, reach, thrown range, special attacks, or enchantment history..."}"
+                      class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(wpn.description || "")}</textarea>
+                  </div>
+                </div>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        `
+    }
+  `;
+}
+
 function renderSpellsSection(spellList, dndMode, dhMode) {
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
-        <h3 class="text-sm font-bold text-white">${dhMode ? "Domain Cards & Grimoires" : "Spell List"}</h3>
+        <h3 class="text-sm font-bold text-white">${dhMode ? "Domain Cards &amp; Grimoires" : "Spell List"}</h3>
         <p class="text-xs text-slate-400">${dhMode ? "Catalog custom Domain Cards (Abilities, Spells & Grimoires) across Arcana, Blade, Bone, Codex, Grace, Midnight, Sage, Splendor & Valor." : "Record custom spells, rituals, domain powers, spell levels, damage/effects, and artwork."}</p>
       </div>
       <button type="button" id="add-entry-row-btn" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
@@ -535,9 +579,9 @@ function renderSpellsSection(spellList, dndMode, dhMode) {
                     ${renderInlineImageControl("spells", idx, spl.imageUrl)}
                   </div>
                   <div class="md:col-span-8">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description &amp; At Higher Levels</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">${dhMode ? "Ability / Spell / Grimoire Rules" : "Description &amp; At Higher Levels"}</label>
                     <textarea data-list-key="spells" data-row-idx="${idx}" data-row-field="description" rows="4"
-                      placeholder="Full spell rules, saving throw effects, and At Higher Levels scaling..."
+                      placeholder="${dhMode ? "Spellcast roll difficulty, Hope/Stress costs, range band, and narrative effect..." : "Full spell rules, saving throw effects, and At Higher Levels scaling..."}"
                       class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(spl.description || "")}</textarea>
                   </div>
                 </div>
@@ -556,7 +600,7 @@ function renderInlineImageControl(listKey, idx, imageUrl) {
     <div class="space-y-2">
       <label class="block text-xs font-semibold text-slate-300">Image URL (Optional)</label>
       <input type="url" data-list-key="${listKey}" data-row-idx="${idx}" data-row-field="imageUrl" value="${escapeHtml(imageUrl || "")}"
-        placeholder="https://... (Item or spell icon/art)"
+        placeholder="https://... (Item or card icon/art)"
         class="item-img-url-input w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500" />
       <div id="item-img-preview-${listKey}-${idx}" class="border border-dashed border-slate-700 rounded-lg bg-slate-900/60 p-2 text-center min-h-[76px] flex items-center justify-center">
         ${
@@ -579,7 +623,7 @@ function renderEmptyState(icon, heading, subtext) {
   `;
 }
 
-function wireItemListControls(paneContainer, state, existingDoc, data, tabId) {
+function wireItemListControls(paneContainer, state, existingDoc, data, tabId, dhMode) {
   const tabToKey = {
     "general-items": "items",
     "armor-list": "armor",
@@ -608,18 +652,30 @@ function wireItemListControls(paneContainer, state, existingDoc, data, tabId) {
     } else if (listKey === "armor") {
       data.armor.push({ nameLevel: "", description: "", ac: "", cost: "", rarity: "Common", requiresAttunement: false, imageUrl: "" });
     } else if (listKey === "weapons") {
-      data.weapons.push({ nameLevel: "", description: "", damage: "", rarity: "Common", requiresAttunement: false, imageUrl: "" });
+      data.weapons.push({
+        nameLevel: "",
+        description: "",
+        damage: "",
+        dhTrait: "Agility",
+        dhRange: "Melee",
+        dhTier: "Tier 1 (Lvl 1)",
+        rarity: "Common",
+        requiresAttunement: false,
+        imageUrl: ""
+      });
     } else if (listKey === "spells") {
       data.spells.push({
         nameLevel: "",
-        spellLevel: "1st Level",
+        dhDomain: "Arcana",
+        dhCardType: "Spell",
+        spellLevel: dhMode ? "Level 1" : "1st Level",
         school: "Evocation",
         castingTime: "1 Action",
         range: "60 feet",
         components: "V, S",
         duration: "Instantaneous",
         description: "",
-        damage: "",
+        damage: dhMode ? "0 Stress" : "",
         imageUrl: ""
       });
     }
