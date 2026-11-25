@@ -1,7 +1,7 @@
 // main.js
 // Master application entry point for RealmForge.
 // Connects centralized state, Firebase Authentication, theme management (Stone & Parchment),
-// and the three-tier hierarchical UI views (Auth -> Game Systems -> Campaigns -> Campaign Workspace).
+// the Campaign Muse guide settings, and the three-tier hierarchical UI views.
 
 import { appState, subscribe } from "./state.js";
 import { initAuthListener } from "./firebase-manager.js";
@@ -9,17 +9,20 @@ import { renderAuthView, renderHeaderAuth } from "./ui-auth.js";
 import { renderSystemsView, renderCampaignsView } from "./ui-systems.js";
 import { renderCampaignWorkspace } from "./ui-campaign.js";
 import { initTheme, renderThemeToggle, applyThemeToImages } from "./theme-manager.js";
+import { initGuideSettings, renderHeaderSettingsButton } from "./prompt-guide.js";
 
 const mainContainer = document.getElementById("app-main");
 const headerAuthContainer = document.getElementById("auth-status");
 const themeToggleContainer = document.getElementById("theme-toggle-slot");
+const settingsBtnContainer = document.getElementById("settings-btn-slot");
 
 /**
  * Master render router triggered automatically whenever `appState` updates.
  * @param {Object} state - Current centralized application state.
  */
 function renderApp(state) {
-  // Always keep the top-bar theme toggle and user account controls in sync
+  // Always keep the top-bar settings button, theme toggle, and user account controls in sync
+  renderHeaderSettingsButton(settingsBtnContainer);
   renderThemeToggle(themeToggleContainer);
   renderHeaderAuth(headerAuthContainer, state);
 
@@ -39,6 +42,7 @@ function renderApp(state) {
         </p>
       </div>
     `;
+    if (window.lucide) window.lucide.createIcons();
     applyThemeToImages(document.body);
     return;
   }
@@ -65,8 +69,9 @@ function renderApp(state) {
   applyThemeToImages(document.body);
 }
 
-// Initialize theme, subscribe UI to state updates, perform initial render, and start Auth listener
+// Initialize theme & guide settings, subscribe UI to state updates, and start Auth listener
 initTheme();
+initGuideSettings();
 subscribe(renderApp);
 renderApp(appState);
 initAuthListener();
