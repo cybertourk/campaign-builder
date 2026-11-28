@@ -16,9 +16,9 @@ import {
 } from "./system-rulesets.js";
 
 export const ENEMIES_TABS = [
-  { id: "bbg-hierarchy", label: "Main Villain & Hierarchy", icon: "crown" },
-  { id: "bestiary", label: "Enemy Statblocks", icon: "skull" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "bbg-hierarchy", label: "Masterminds & Forces", icon: "crown" },
+  { id: "bestiary", label: "Threat & Adversary Codex", icon: "skull" },
+  { id: "misc-notes", label: "Tactics & Notes", icon: "sticky-note" }
 ];
 
 let activeEnemiesTab = "bbg-hierarchy";
@@ -92,14 +92,14 @@ export function renderEnemiesChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 4: ${dhMode ? "Adversaries" : "Enemies"}${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
+              Phase II • Villains & Threats${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
             ${
               dhMode
-                ? "Build Daggerheart Adversaries with Tier, Role (Solo, Bruiser, Leader, Minion, etc.), Battle Points, Motives & Tactics, Difficulty, Thresholds, and Fear Features."
-                : `Detail your Big Bad Guy (BBG), enemy hierarchy, allied monster groups, and ${dndMode ? "full D&D 5e monster statblocks" : "enemy statblocks"}.`
+                ? "Design your primary antagonists, enemy hierarchies, and Daggerheart Adversaries with Tier, Role, Battle Points, and Fear Moves."
+                : `Design your primary antagonists, enemy hierarchies, and ${dndMode ? "full D&D 5e monster statblocks" : "custom threat statblocks"}.`
             }
           </p>
         </div>
@@ -192,29 +192,29 @@ function renderEnemiesTabContent(tabId, data, dndMode, dhMode) {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
             ${renderField(
               "mainVillain",
-              "Who is the Main Villain in the Central Plot? (BBG — Big Bad Guy)",
-              "Name, title, appearance, and current stronghold of the primary antagonist...",
+              "Primary Antagonist / Mastermind",
+              "Name, title, appearance, and stronghold of the main villain driving the conflict...",
               data.mainVillain,
               4
             )}
             ${renderField(
               "villainMotivation",
-              "What is Their Motivation?",
+              "Motivation & Endgame",
               "Why are they pursuing their plan? Vengeance, ascension, fanaticism, survival...",
               data.villainMotivation,
               4
             )}
             ${renderField(
               "enemyHierarchy",
-              "What is the Hierarchy of Enemies? (e.g., Kobolds < Gargoyles < Dragons)",
-              "Map the chain of command from low-level minions up to lieutenants and the apex threat...",
+              "Chain of Command & Lieutenants",
+              "Map the hierarchy from low-level foot soldiers up to lieutenants and the apex threat...",
               data.enemyHierarchy,
               4
             )}
             ${renderField(
               "alliedEnemiesList",
-              "Make a List of Enemies That Would Work Together in Your World",
-              "List enemy alliances, mercenary pacts, beast handlers, or symbiotic monster pairings...",
+              "Allied Threats & Mercenary Pacts",
+              "List monster pairings, hired blades, beast handlers, or uneasy villain alliances...",
               data.alliedEnemiesList,
               4
             )}
