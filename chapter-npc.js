@@ -12,10 +12,10 @@ import {
 } from "./system-rulesets.js";
 
 export const NPC_TABS = [
-  { id: "npc-overview", label: "NPC Planning Prompts", icon: "users" },
-  { id: "key-npcs", label: "Key NPCs & Backstory", icon: "star" },
-  { id: "minor-npcs", label: "Town & Minor NPCs", icon: "user" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "npc-overview", label: "Casting Prompts", icon: "users" },
+  { id: "key-npcs", label: "Major Allies & Rivals", icon: "star" },
+  { id: "minor-npcs", label: "Townsfolk & Contacts", icon: "user" },
+  { id: "misc-notes", label: "Name Bank & Notes", icon: "sticky-note" }
 ];
 
 let activeNpcTab = "npc-overview";
@@ -69,14 +69,14 @@ export function renderNpcChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 7: NPC${dhMode ? " • Daggerheart" : ""}
+              Phase II • Cast of Characters${dhMode ? " • Daggerheart" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
             ${
               dhMode
-                ? "Cast your Daggerheart world with Key & Minor NPCs featuring Traits, Community & Ancestry heritage, Experiences, and Difficulty/Threshold quick-stats."
-                : "Cast your world with major plot-driving NPCs (with backstories) and memorable town or minor characters."
+                ? "Populate your Daggerheart world with major patrons, rivals, and memorable townsfolk complete with Traits, Heritage, and Experiences."
+                : "Populate your world with major plot-driving characters and memorable locals your players will love talking to."
             }
           </p>
         </div>
