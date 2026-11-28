@@ -27,130 +27,149 @@ import {
   openPromptInterviewModal
 } from "./prompt-guide.js";
 
+export const PREP_PHASES = [
+  { id: "phase-1", label: "Phase I • The Spark & Story" },
+  { id: "phase-2", label: "Phase II • Cast & Factions" },
+  { id: "phase-3", label: "Phase III • The Living World" },
+  { id: "phase-4", label: "Phase IV • At the Table" }
+];
+
 export const CAMPAIGN_CHAPTERS = [
   {
-    id: "campaign-setting",
-    label: "Campaign Setting",
-    icon: "globe",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/chest-icon.png",
-    parchmentIcon: "./Parchwood_UI_Kit/102-rolled-treasure-map-with-a-dotted-route-and-small-crimson-X-blank-margins.png",
-    mode: "single",
-    description: "World overview, tone, geography, major regions, and foundational truths.",
-    sections: SETTING_TABS
-  },
-  {
     id: "plot-adventures",
-    label: "Plot and Adventures",
+    phaseId: "phase-1",
+    label: "Premise & Story Arcs",
     icon: "compass",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/papyrus-icon.png",
     parchmentIcon: "./Parchwood_UI_Kit/101-circular-compass-rose-with-eight-ivory-points-and-teal-north-tip.png",
     mode: "collection",
-    description: "Main story arcs, adventure hooks, milestones, and branching plotlines.",
+    description: "Start here: define the central conflict, dramatic turning points, and session-ready quest hooks.",
     sections: PLOT_TABS
   },
   {
-    id: "random-encounters",
-    label: "Random Encounters",
-    icon: "dices",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/bar-bottle.png",
-    parchmentIcon: "./Parchwood_UI_Kit/351-trail-sense.png",
-    mode: "collection",
-    description: "Environment-based encounter tables, twists, and quick-roll triggers.",
-    sections: ENCOUNTERS_TABS
-  },
-  {
-    id: "enemies",
-    label: "Enemies",
-    icon: "skull",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/heart-icon.png",
-    parchmentIcon: "./Parchwood_UI_Kit/115-crimson-boss-encounter-crest-with-a-horned-skull.png",
-    mode: "collection",
-    description: "Monsters, villains, stat blocks, tactics, and threat profiles.",
-    sections: ENEMIES_TABS
-  },
-  {
-    id: "deities",
-    label: "Deities",
-    icon: "sun",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/star-icon.png",
-    parchmentIcon: "./Parchwood_UI_Kit/341-sun-ray.png",
-    mode: "collection",
-    description: "Pantheons, domains, alignments, tenets, symbols, and divine boons.",
-    sections: DEITIES_TABS
-  },
-  {
-    id: "faction",
-    label: "Faction",
-    icon: "flag",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/shield-icon.png",
-    parchmentIcon: "./Parchwood_UI_Kit/338-protective-ward.png",
-    mode: "collection",
-    description: "Guilds, kingdoms, cults, leadership, goals, and inter-faction standings.",
-    sections: FACTIONS_TABS
-  },
-  {
-    id: "npc",
-    label: "NPC",
-    icon: "users",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/key-icon.png",
-    parchmentIcon: "./Parchwood_UI_Kit/171-parchment-experience-medallion-with-ochre-open-book-silhouette.png",
-    mode: "collection",
-    description: "Non-player characters, appearances, motivations, secrets, and relationships.",
-    sections: NPC_TABS
-  },
-  {
-    id: "item-list",
-    label: "Item List",
-    icon: "sword",
-    rpgIcon: "./GUI_Fantasy_RPG_Kit/sack-icon.png",
-    parchmentIcon: "./Parchwood_UI_Kit/112-parchment-reward-pouch-card-with-a-drawstring-pouch-illustration-and-blank-lower-field.png",
-    mode: "collection",
-    description: "Magic items, relics, custom gear, economy items, and loot tables.",
-    sections: ITEMS_TABS
-  },
-  {
     id: "character-sheets",
-    label: "Character Sheets",
+    phaseId: "phase-1",
+    label: "Heroes & Party Roster",
     icon: "user-check",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/potion-icon.png",
     parchmentIcon: "./Parchwood_UI_Kit/332-healing-bloom.png",
     mode: "collection",
-    description: "Party roster, player character stats, backstories, and personal quests.",
+    description: "Track your players' heroes, traits, gear, domain cards or spells, and party connections.",
     sections: CHARACTERS_TABS
   },
   {
+    id: "npc",
+    phaseId: "phase-2",
+    label: "Cast of Characters",
+    icon: "users",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/key-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/171-parchment-experience-medallion-with-ochre-open-book-silhouette.png",
+    mode: "collection",
+    description: "Create memorable allies, patrons, shopkeepers, and local townsfolk.",
+    sections: NPC_TABS
+  },
+  {
+    id: "faction",
+    phaseId: "phase-2",
+    label: "Factions & Rivalries",
+    icon: "flag",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/shield-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/338-protective-ward.png",
+    mode: "collection",
+    description: "Map out guilds, orders, syndicates, political alliances, and competing agendas.",
+    sections: FACTIONS_TABS
+  },
+  {
+    id: "enemies",
+    phaseId: "phase-2",
+    label: "Villains & Threats",
+    icon: "skull",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/heart-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/115-crimson-boss-encounter-crest-with-a-horned-skull.png",
+    mode: "collection",
+    description: "Design your primary antagonists, threat hierarchies, and adversary statblocks.",
+    sections: ENEMIES_TABS
+  },
+  {
+    id: "campaign-setting",
+    phaseId: "phase-3",
+    label: "Atlas & Realms",
+    icon: "globe",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/chest-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/102-rolled-treasure-map-with-a-dotted-route-and-small-crimson-X-blank-margins.png",
+    mode: "single",
+    description: "Expand outward into your campaign frame, world truths, realms, settlements, and markets.",
+    sections: SETTING_TABS
+  },
+  {
+    id: "deities",
+    phaseId: "phase-3",
+    label: "Pantheons & Mythos",
+    icon: "sun",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/star-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/341-sun-ray.png",
+    mode: "collection",
+    description: "Establish the gods, cosmic patrons, sacred orders, and creation myths of your world.",
+    sections: DEITIES_TABS
+  },
+  {
+    id: "item-list",
+    phaseId: "phase-3",
+    label: "Vault of Treasures",
+    icon: "sword",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/sack-icon.png",
+    parchmentIcon: "./Parchwood_UI_Kit/112-parchment-reward-pouch-card-with-a-drawstring-pouch-illustration-and-blank-lower-field.png",
+    mode: "collection",
+    description: "Catalog signature weapons, armor, relics, and domain cards or spells.",
+    sections: ITEMS_TABS
+  },
+  {
     id: "session-log",
-    label: "Session Log",
+    phaseId: "phase-4",
+    label: "Chronicle & Recaps",
     icon: "scroll-text",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/papyrus-icon.png",
     parchmentIcon: "./Parchwood_UI_Kit/396-scribing.png",
     mode: "collection",
-    description: "Chronological session recaps, MVP moments, XP/milestones, and next-session prep.",
+    description: "Log session dates, key story beats, handouts, and cliffhangers for next time.",
     sections: SESSION_LOG_TABS
   },
   {
     id: "initiative-tracker",
-    label: "Initiative Tracker",
+    phaseId: "phase-4",
+    label: "Encounter & Spotlight Board",
     icon: "swords",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/sword-icon.png",
     parchmentIcon: "./Parchwood_UI_Kit/301-power-slash.png",
     mode: "tool",
-    description: "Live combat turn order, HP/condition tracking, and round counter.",
+    description: "Run live combat with turn/spotlight tracking, HP/Stress/Fear, and battle maps.",
     sections: INITIATIVE_TABS
   },
   {
+    id: "random-encounters",
+    phaseId: "phase-4",
+    label: "Wilderness & Road Events",
+    icon: "dices",
+    rpgIcon: "./GUI_Fantasy_RPG_Kit/bar-bottle.png",
+    parchmentIcon: "./Parchwood_UI_Kit/351-trail-sense.png",
+    mode: "collection",
+    description: "Build rollable day and night road encounters scaled to your party's tier.",
+    sections: ENCOUNTERS_TABS
+  },
+  {
     id: "overland-travel",
-    label: "Overland Travel Tables",
+    phaseId: "phase-4",
+    label: "Journeys & Exploration",
     icon: "map",
     rpgIcon: "./GUI_Fantasy_RPG_Kit/coins-icon.png",
     parchmentIcon: "./Parchwood_UI_Kit/129-ochre-coin-stack-emblem-with-dark-engraved-diamond-symbols.png",
     mode: "tool",
-    description: "Travel pace, navigation checks, weather tables, and hex/region terrain hazards.",
+    description: "Roll weather, terrain hazards, foraging, camp events, and quick rules references.",
     sections: TRAVEL_TABS
   }
 ];
 
-let activeChapterId = "campaign-setting";
+let activeChapterId = "plot-adventures";
 let isMobileNavOpen = false;
 let activeSectionMap = {
   "campaign-setting": "overview",
@@ -244,30 +263,8 @@ export function renderCampaignWorkspace(container, state) {
                 <span>Guide Me (Prompts)</span>
               </span>
               <span class="text-[10px] px-1.5 py-0.5 rounded bg-black/25">
-                ${promptProgress.answeredCount}/${promptProgress.totalCount}
-              </span>
-            </button>
-          </div>
-
-          <!-- Mobile Active Chapter/Section Summary Pill when Drawer is Collapsed -->
-          <div class="lg:hidden mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2 text-xs">
-            <span class="font-semibold text-amber-200 truncate">
-              ${currentChapterIndex + 1}. ${escapeHtml(currentChapter.label)}${currentSecObj ? ` › ${escapeHtml(currentSecObj.label)}` : ""}
-            </span>
-          </div>
-
-          <div class="rpg-divider mt-2.5 hidden lg:block"></div>
-        </div>
-
-        <nav id="campaign-tome-nav" class="${isMobileNavOpen ? "block" : "hidden"} lg:block p-2.5 space-y-1.5 max-h-[65vh] lg:max-h-[76vh] overflow-y-auto">
-          ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
-            const isSelected = chap.id === currentChapter.id;
-            const sections = chap.sections || [];
-            const activeSecId = activeSectionMap[chap.id] || sections[0]?.id;
-            const count = state.entities.filter(
-              (e) => e.type === chap.id || e.type === chap.label
-            ).length;
-
+        <nav id="campaign-tome-nav" class="${isMobileNavOpen ? "block" : "hidden"} lg:block p-2.5 space-y-3 max-h-[65vh] lg:max-h-[76vh] overflow-y-auto">
+          ${(() => {
             const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
             const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
             const encountersDoc = state.entities.find((e) => e.type === "random-encounters")?.systemData || {};
@@ -279,91 +276,113 @@ export function renderCampaignWorkspace(container, state) {
             const charsDoc = state.entities.find((e) => e.type === "character-sheets")?.systemData || {};
             const sessionsDoc = state.entities.find((e) => e.type === "session-log")?.systemData || {};
 
-            return `
-              <div class="rpg-sidebar-group rounded-lg ${isSelected ? "bg-slate-950/75 border border-amber-500/30 pb-1.5 shadow-inner" : ""}">
-                <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-lg text-left text-xs font-medium transition ${
-                  isSelected
-                    ? "rpg-btn-primary text-amber-100 font-semibold"
-                    : "text-slate-300 hover:bg-slate-900/80 hover:text-amber-100"
-                }">
-                  <span class="flex items-center gap-2 min-w-0">
-                    <span class="rpg-slot-small w-6 h-6 p-0.5 shrink-0">
-                      <img src="${chap.rpgIcon}" data-parchment-src="${chap.parchmentIcon}" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
-                    </span>
-                    <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
-                  </span>
-                  <span class="flex items-center gap-1 shrink-0">
-                    ${
-                      count > 0 && sections.length === 0
-                        ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
+            return PREP_PHASES.map((phase) => {
+              const phaseChapters = CAMPAIGN_CHAPTERS.filter((c) => c.phaseId === phase.id);
+              return `
+                <div class="space-y-1.5">
+                  <div class="px-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-amber-300/80">
+                    ${escapeHtml(phase.label)}
+                  </div>
+                  ${phaseChapters
+                    .map((chap) => {
+                      const idx = CAMPAIGN_CHAPTERS.findIndex((c) => c.id === chap.id);
+                      const isSelected = chap.id === currentChapter.id;
+                      const sections = chap.sections || [];
+                      const activeSecId = activeSectionMap[chap.id] || sections[0]?.id;
+                      const count = state.entities.filter(
+                        (e) => e.type === chap.id || e.type === chap.label
+                      ).length;
+
+                      return `
+                        <div class="rpg-sidebar-group rounded-lg ${isSelected ? "bg-slate-950/75 border border-amber-500/30 pb-1.5 shadow-inner" : ""}">
+                          <button data-chapter-id="${chap.id}" class="chapter-nav-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-lg text-left text-xs font-medium transition ${
                             isSelected
-                              ? "bg-amber-500/20 text-amber-200 border border-amber-400/40"
-                              : "bg-slate-800 text-slate-400"
-                          }">${count}</span>`
-                        : ""
-                    }
-                    ${
-                      sections.length > 0
-                        ? `<i data-lucide="${isSelected ? "chevron-down" : "chevron-right"}" class="w-3.5 h-3.5 opacity-85"></i>`
-                        : ""
-                    }
-                  </span>
-                </button>
+                              ? "rpg-btn-primary text-amber-100 font-semibold"
+                              : "text-slate-300 hover:bg-slate-900/80 hover:text-amber-100"
+                          }">
+                            <span class="flex items-center gap-2 min-w-0">
+                              <span class="rpg-slot-small w-6 h-6 p-0.5 shrink-0">
+                                <img src="${chap.rpgIcon}" data-parchment-src="${chap.parchmentIcon}" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'" />
+                              </span>
+                              <span class="truncate">${idx + 1}. ${escapeHtml(chap.label)}</span>
+                            </span>
+                            <span class="flex items-center gap-1 shrink-0">
+                              ${
+                                count > 0 && sections.length === 0
+                                  ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full ${
+                                      isSelected
+                                        ? "bg-amber-500/20 text-amber-200 border border-amber-400/40"
+                                        : "bg-slate-800 text-slate-400"
+                                    }">${count}</span>`
+                                  : ""
+                              }
+                              ${
+                                sections.length > 0
+                                  ? `<i data-lucide="${isSelected ? "chevron-down" : "chevron-right"}" class="w-3.5 h-3.5 opacity-85"></i>`
+                                  : ""
+                              }
+                            </span>
+                          </button>
 
-                ${
-                  isSelected && sections.length > 0
-                    ? `
-                      <div class="mt-1.5 mx-1.5 pl-2 border-l border-amber-500/30 space-y-1">
-                        ${sections
-                          .map((sec) => {
-                            const isSecActive = sec.id === activeSecId;
-                            let secCount = 0;
-                            if (sec.id === "kingdoms") secCount = (settingDoc.kingdoms || []).length;
-                            if (sec.id === "towns") secCount = (settingDoc.towns || []).length;
-                            if (sec.id === "markets") secCount = (settingDoc.markets || []).length;
-                            if (sec.id === "adventures") secCount = (plotDoc.adventures || []).length;
-                            if (sec.id === "encounter-tables") secCount = (encountersDoc.rows || []).length;
-                            if (sec.id === "bestiary") secCount = (enemiesDoc.enemies || []).length;
-                            if (sec.id === "deity-profiles") secCount = (deitiesDoc.deities || []).length;
-                            if (sec.id === "faction-profiles") secCount = (factionsDoc.factions || []).length;
-                            if (sec.id === "key-npcs") secCount = (npcDoc.keyNpcs || []).length;
-                            if (sec.id === "minor-npcs") secCount = (npcDoc.minorNpcs || []).length;
-                            if (sec.id === "general-items") secCount = (itemsDoc.items || []).length;
-                            if (sec.id === "armor-list") secCount = (itemsDoc.armor || []).length;
-                            if (sec.id === "weapon-list") secCount = (itemsDoc.weapons || []).length;
-                            if (sec.id === "spell-list") secCount = (itemsDoc.spells || []).length;
-                            if (sec.id === "party-roster") secCount = (charsDoc.characters || []).length;
-                            if (sec.id === "session-entries") secCount = (sessionsDoc.sessions || []).length;
+                          ${
+                            isSelected && sections.length > 0
+                              ? `
+                                <div class="mt-1.5 mx-1.5 pl-2 border-l border-amber-500/30 space-y-1">
+                                  ${sections
+                                    .map((sec) => {
+                                      const isSecActive = sec.id === activeSecId;
+                                      let secCount = 0;
+                                      if (sec.id === "kingdoms") secCount = (settingDoc.kingdoms || []).length;
+                                      if (sec.id === "towns") secCount = (settingDoc.towns || []).length;
+                                      if (sec.id === "markets") secCount = (settingDoc.markets || []).length;
+                                      if (sec.id === "adventures") secCount = (plotDoc.adventures || []).length;
+                                      if (sec.id === "encounter-tables") secCount = (encountersDoc.rows || []).length;
+                                      if (sec.id === "bestiary") secCount = (enemiesDoc.enemies || []).length;
+                                      if (sec.id === "deity-profiles") secCount = (deitiesDoc.deities || []).length;
+                                      if (sec.id === "faction-profiles") secCount = (factionsDoc.factions || []).length;
+                                      if (sec.id === "key-npcs") secCount = (npcDoc.keyNpcs || []).length;
+                                      if (sec.id === "minor-npcs") secCount = (npcDoc.minorNpcs || []).length;
+                                      if (sec.id === "general-items") secCount = (itemsDoc.items || []).length;
+                                      if (sec.id === "armor-list") secCount = (itemsDoc.armor || []).length;
+                                      if (sec.id === "weapon-list") secCount = (itemsDoc.weapons || []).length;
+                                      if (sec.id === "spell-list") secCount = (itemsDoc.spells || []).length;
+                                      if (sec.id === "party-roster") secCount = (charsDoc.characters || []).length;
+                                      if (sec.id === "session-entries") secCount = (sessionsDoc.sessions || []).length;
 
-                            return `
-                              <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
-                                class="chapter-section-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md text-left text-[11px] transition ${
-                                  isSecActive
-                                    ? "rpg-slot-long text-amber-200 font-semibold"
-                                    : "text-slate-400 hover:text-amber-100 hover:bg-slate-900/70"
-                                }">
-                                <span class="flex items-center gap-1.5 min-w-0">
-                                  <i data-lucide="${sec.icon}" class="w-3.5 h-3.5 shrink-0 ${
-                                    isSecActive ? "text-amber-300" : "text-slate-500"
-                                  }"></i>
-                                  <span class="truncate">${escapeHtml(sec.label)}</span>
-                                </span>
-                                ${
-                                  secCount > 0
-                                    ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-950/90 text-amber-200/90 border border-amber-500/30 shrink-0">${secCount}</span>`
-                                    : ""
-                                }
-                              </button>
-                            `;
-                          })
-                          .join("")}
-                      </div>
-                    `
-                    : ""
-                }
-              </div>
-            `;
-          }).join("")}
+                                      return `
+                                        <button type="button" data-chapter-id="${chap.id}" data-section-id="${sec.id}"
+                                          class="chapter-section-btn w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md text-left text-[11px] transition ${
+                                            isSecActive
+                                              ? "rpg-slot-long text-amber-200 font-semibold"
+                                              : "text-slate-400 hover:text-amber-100 hover:bg-slate-900/70"
+                                          }">
+                                          <span class="flex items-center gap-1.5 min-w-0">
+                                            <i data-lucide="${sec.icon}" class="w-3.5 h-3.5 shrink-0 ${
+                                              isSecActive ? "text-amber-300" : "text-slate-500"
+                                            }"></i>
+                                            <span class="truncate">${escapeHtml(sec.label)}</span>
+                                          </span>
+                                          ${
+                                            secCount > 0
+                                              ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-950/90 text-amber-200/90 border border-amber-500/30 shrink-0">${secCount}</span>`
+                                              : ""
+                                          }
+                                        </button>
+                                      `;
+                                    })
+                                    .join("")}
+                                </div>
+                              `
+                              : ""
+                          }
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              `;
+            }).join("");
+          })()}
         </nav>
       </aside>
 
@@ -634,7 +653,7 @@ export function renderCampaignWorkspace(container, state) {
     }
   });
   mainPane.querySelectorAll("span.rounded-full").forEach((pill) => {
-    if (pill.textContent.includes("Chapter ")) {
+    if (pill.textContent.includes("Phase ") || pill.textContent.includes("Chapter ")) {
       pill.classList.remove("bg-indigo-950/80", "text-indigo-300", "border", "border-indigo-800/50");
       pill.classList.add("rpg-slot-long", "text-amber-200");
     }
