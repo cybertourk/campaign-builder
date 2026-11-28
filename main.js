@@ -160,11 +160,24 @@ function renderApp(state) {
   applyThemeToImages(document.body);
 }
 
-// Keep dynamically re-rendered chapter sub-tabs enhanced automatically
+// Keep dynamically re-rendered chapter sub-tabs enhanced automatically (disconnected during self-updates)
 if (typeof MutationObserver !== "undefined" && mainContainer) {
+  let enhanceScheduled = false;
   const formObserver = new MutationObserver(() => {
-    enhanceWorkspaceForms(mainContainer);
-    if (window.lucide) window.lucide.createIcons();
+    if (enhanceScheduled) return;
+    enhanceScheduled = true;
+    requestAnimationFrame(() => {
+      enhanceScheduled = false;
+      formObserver.disconnect();
+      try {
+        enhanceWorkspaceForms(mainContainer);
+        if (window.lucide && mainContainer.querySelector("[data-lucide]")) {
+          window.lucide.createIcons();
+        }
+      } finally {
+        formObserver.observe(mainContainer, { childList: true, subtree: true });
+      }
+    });
   });
   formObserver.observe(mainContainer, { childList: true, subtree: true });
 }
