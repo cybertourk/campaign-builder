@@ -17,11 +17,11 @@ import {
 } from "./system-rulesets.js";
 
 export const ITEMS_TABS = [
-  { id: "general-items", label: "Items", icon: "package" },
-  { id: "armor-list", label: "Armor List", icon: "shield" },
-  { id: "weapon-list", label: "Weapon List", icon: "sword" },
-  { id: "spell-list", label: "Spell List", icon: "wand-2" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "general-items", label: "Relics & Curiosities", icon: "package" },
+  { id: "armor-list", label: "Armor & Wardings", icon: "shield" },
+  { id: "weapon-list", label: "Armory & Weapons", icon: "sword" },
+  { id: "spell-list", label: "Grimoire & Spells", icon: "wand-2" },
+  { id: "misc-notes", label: "Loot & Crafting Notes", icon: "sticky-note" }
 ];
 
 let activeItemsTab = "general-items";
@@ -72,7 +72,7 @@ export function renderItemsChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(sectionDisplayLabel)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 8: Item List${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
+              Phase III • Vault of Treasures${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
