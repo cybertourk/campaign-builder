@@ -7,14 +7,14 @@ import { createEntity, updateEntity } from "./firebase-manager.js";
 import { isDaggerheart } from "./system-rulesets.js";
 
 export const SETTING_TABS = [
-  { id: "overview", label: "Core Concept & Prompts", icon: "compass" },
-  { id: "world-profile", label: "World Profile", icon: "globe" },
-  { id: "world-details", label: "Nature, Magic & Society", icon: "sparkles" },
-  { id: "world-map", label: "World Map", icon: "map" },
-  { id: "kingdoms", label: "Kingdoms & Regions", icon: "castle" },
-  { id: "towns", label: "Towns & Cities", icon: "building-2" },
-  { id: "markets", label: "Markets & Shops", icon: "store" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "overview", label: "World Pitch & Tone", icon: "compass" },
+  { id: "world-profile", label: "Realm Identity", icon: "globe" },
+  { id: "world-details", label: "Magic, Nature & Culture", icon: "sparkles" },
+  { id: "world-map", label: "Realm Atlas Map", icon: "map" },
+  { id: "kingdoms", label: "Realms & Provinces", icon: "castle" },
+  { id: "towns", label: "Settlements & Hubs", icon: "building-2" },
+  { id: "markets", label: "Taverns & Bazaars", icon: "store" },
+  { id: "misc-notes", label: "Lore Scratchpad", icon: "sticky-note" }
 ];
 
 let activeSettingTab = "overview";
@@ -117,14 +117,14 @@ export function renderCampaignSettingChapter(paneContainer, state, options = {})
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 1: Campaign Setting${dhMode ? " • Daggerheart" : ""}
+              Phase III • Atlas & Realms${dhMode ? " • Daggerheart" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
             ${
               dhMode
-                ? "Craft your Daggerheart Campaign Frame, world foundations, realms, settlements, and markets."
-                : "Flesh out your world's era, geography, cultures, magic, map, kingdoms, towns, and markets."
+                ? "Expand your world only as you need it: Campaign Frame pitch, realm truths, provinces, settlements, and markets."
+                : "Expand your world at your own pace—start with your opening town and build out regions, cultures, and maps over time."
             }
           </p>
         </div>
@@ -393,19 +393,19 @@ function renderActiveTabContent(tabId, data, dhMode = false) {
         ${renderCollapsibleCard(
           "guidedQuestions",
           "lightbulb",
-          "Guided Worldbuilding Questions (Planner Brainstorm)",
-          "Click to expand optional worldbuilding prompts",
+          "Worldbuilding Spark Questions (Optional Brainstorm)",
+          "Click to expand quick prompts if you want inspiration",
           `
             <div class="text-xs text-slate-300 space-y-1.5 leading-relaxed">
               <ul class="list-disc list-inside text-slate-400 space-y-1">
-                <li>Will different regions be led by opposing rulers? Will different climates be inhabited by distinct races or creatures?</li>
-                <li>Is there an ongoing war and where did it start? What regions are the opposing forces located in?</li>
-                <li>Where is the rarest mineral, animal, plant, or magical artifact located—and who or what is protecting it?</li>
-                <li>Think about trade routes and towns/cities/hamlets near rivers, lakes, and coastlines: will players travel for long periods and what happens along the way?</li>
+                <li>Which neighboring regions or rulers have an uneasy truce or active rivalry?</li>
+                <li>What rare resource, ancient ruin, or magical phenomenon makes this region famous?</li>
+                <li>How do travelers move between settlements—safe royal roads, river barges, or perilous wild trails?</li>
+                <li>What everyday detail (food, festivals, architecture, weather) immediately tells players they are in this world?</li>
               </ul>
             </div>
             <textarea data-field="worldbuildingPrompts" rows="5"
-              placeholder="Brainstorm your answers to the worldbuilding prompts above..."
+              placeholder="Jot down quick answers to whichever prompts spark an idea..."
               class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(data.worldbuildingPrompts)}</textarea>
           `
         )}
