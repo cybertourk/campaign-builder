@@ -5,8 +5,8 @@
 import { createEntity, updateEntity } from "./firebase-manager.js";
 
 export const SESSION_LOG_TABS = [
-  { id: "session-entries", label: "Session Logs", icon: "scroll-text" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "session-entries", label: "Session Chronicles", icon: "scroll-text" },
+  { id: "misc-notes", label: "Timeline & Notes", icon: "sticky-note" }
 ];
 
 let activeSessionTab = "session-entries";
@@ -66,11 +66,11 @@ export function renderSessionLogChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 10: Session Log
+              Phase IV • Chronicle & Recaps
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Record session dates, duration, checkable session events, scene snapshots, and post-session notes.
+            Record session dates, duration, checkable story beats, scene handouts, and cliffhangers for next session.
           </p>
         </div>
       </div>
