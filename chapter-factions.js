@@ -5,9 +5,9 @@
 import { createEntity, updateEntity } from "./firebase-manager.js";
 
 export const FACTIONS_TABS = [
-  { id: "factions-overview", label: "Factions Overview", icon: "flag" },
-  { id: "faction-profiles", label: "Faction Sheets", icon: "shield" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "factions-overview", label: "Power Dynamics", icon: "flag" },
+  { id: "faction-profiles", label: "Faction Dossiers", icon: "shield" },
+  { id: "misc-notes", label: "Intrigue Notes", icon: "sticky-note" }
 ];
 
 let activeFactionsTab = "factions-overview";
@@ -60,11 +60,11 @@ export function renderFactionsChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 6: Faction
+              Phase II • Factions & Rivalries
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Map out guilds, orders, syndicates, political alliances, rivalries, and key faction members.
+            Map out guilds, orders, syndicates, political alliances, rivalries, and key faction leaders.
           </p>
         </div>
       </div>
