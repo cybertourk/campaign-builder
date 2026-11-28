@@ -1,7 +1,7 @@
 // chapter-npc.js
 // Dedicated interactive workbook for Chapter 7: NPC (Pages 136–169+).
-// Includes NPC Overview Prompts, Key NPCs (with Backstory), Minor/Town NPCs, and Misc Notes.
-// Adapts automatically between D&D / Universal Core stats and Daggerheart Traits, Heritage & Quick-Stats.
+// Organized with clean pill sub-tabs (All Sections, Traits & Stats, Identity & Gear,
+// Story & Backstory) and a spacious 2-column desktop layout for wide PC monitors.
 
 import { createEntity, updateEntity } from "./firebase-manager.js";
 import {
@@ -19,23 +19,17 @@ export const NPC_TABS = [
 ];
 
 let activeNpcTab = "npc-overview";
+let activeNpcSubView = "all"; // 'all' | 'stats' | 'identity' | 'story'
 let selectedKeyNpcIndex = 0;
 let selectedMinorNpcIndex = 0;
 
 function getDefaultNpcData() {
   return {
-    // Page 136: NPC Overview Prompts
     mainPlotNpcsNeeded: "",
     townNpcsNeeded: "",
     importantVsMinorNpcs: "",
-
-    // Pages 137–138: Key NPCs (with dedicated Key NPC Backstory)
     keyNpcs: [],
-
-    // Page 169+: Minor / General NPCs
     minorNpcs: [],
-
-    // Chapter 7 Misc Notes
     miscNotes: ""
   };
 }
@@ -104,7 +98,6 @@ export function renderNpcChapter(paneContainer, state, options = {}) {
     </div>
   `;
 
-  // Preserve unsaved edits in memory when switching vertical sections in the sidebar
   const sidebarSectionBtns = document.querySelectorAll('.chapter-section-btn[data-chapter-id="npc"]');
   sidebarSectionBtns.forEach((btn) => {
     btn.addEventListener(
@@ -119,7 +112,6 @@ export function renderNpcChapter(paneContainer, state, options = {}) {
     );
   });
 
-  // Unsaved indicator
   const statusEl = paneContainer.querySelector("#npc-save-status");
   paneContainer.querySelectorAll("input, textarea").forEach((el) => {
     el.addEventListener("input", () => {
@@ -134,7 +126,6 @@ export function renderNpcChapter(paneContainer, state, options = {}) {
     wireNpcListControls(paneContainer, state, existingDoc, data, "minor");
   }
 
-  // Save to Firestore
   paneContainer.querySelector("#save-npc-btn").addEventListener("click", async () => {
     collectNpcForm(paneContainer, data);
     statusEl.textContent = "Saving...";
@@ -175,29 +166,31 @@ function renderNpcTabContent(tabId, data, dhMode = false) {
   switch (tabId) {
     case "npc-overview":
       return `
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-5">
-          ${renderField(
-            "mainPlotNpcsNeeded",
-            "What Types of NPCs Are Needed When Thinking About Main Plot? (Deposed king, senator, etc.)",
-            "List key patrons, rivals, informants, and power brokers required for your central storyline...",
-            data.mainPlotNpcsNeeded,
-            4
-          )}
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-6 space-y-5">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            ${renderField(
+              "mainPlotNpcsNeeded",
+              "What Types of NPCs Are Needed When Thinking About Main Plot?",
+              "List key patrons, rivals, informants, and power brokers required for your central storyline...",
+              data.mainPlotNpcsNeeded,
+              4
+            )}
 
-          ${renderField(
-            "townNpcsNeeded",
-            "What Types of NPCs Are Needed When Thinking About Towns?",
-            "e.g., Blacksmiths, tavern keepers, harbor masters, local guards, herbalists, priests...",
-            data.townNpcsNeeded,
-            4
-          )}
+            ${renderField(
+              "townNpcsNeeded",
+              "What Types of NPCs Are Needed When Thinking About Towns?",
+              "e.g., Blacksmiths, tavern keepers, harbor masters, local guards, herbalists, priests...",
+              data.townNpcsNeeded,
+              4
+            )}
+          </div>
 
           ${renderField(
             "importantVsMinorNpcs",
-            "What NPCs Will Be Most Important, and Which Will Be Minor? (A tavern worker may be a minor character, or could be a major NPC if they are essential to the main plotline.)",
+            "What NPCs Will Be Most Important, and Which Will Be Minor?",
             "Map out which characters anchor recurring scenes and which minor NPCs might unexpectedly rise to prominence...",
             data.importantVsMinorNpcs,
-            6
+            5
           )}
         </div>
       `;
@@ -210,7 +203,7 @@ function renderNpcTabContent(tabId, data, dhMode = false) {
 
     case "misc-notes":
       return `
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-6 space-y-3">
           <h3 class="text-sm font-bold text-white flex items-center gap-2">
             <i data-lucide="sticky-note" class="w-4 h-4 text-amber-400"></i> NPCs — Misc Notes
           </h3>
@@ -230,10 +223,6 @@ function renderNpcTabContent(tabId, data, dhMode = false) {
   }
 }
 
-/**
- * Shared renderer for both Key NPC Sheets (Pages 137–138, includes Backstory)
- * and Minor/Town NPC Sheets (Page 169), adapting to Daggerheart or D&D/Universal stats.
- */
 function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory, dhMode = false) {
   const activeNpc = npcList[selectedIdx] || null;
   const labelSingular = kind === "key" ? "Key NPC" : "NPC";
@@ -247,6 +236,265 @@ function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory, dhMo
     knowledge: "+0"
   };
 
+  const showStats = activeNpcSubView === "all" || activeNpcSubView === "stats";
+  const showIdentity = activeNpcSubView === "all" || activeNpcSubView === "identity";
+  const showStory = activeNpcSubView === "all" || activeNpcSubView === "story";
+  const isTwoColDesktop = activeNpcSubView === "all";
+
+  const statsBlockHtml = dhMode
+    ? `
+      <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Daggerheart NPC Traits</span>
+          <span class="text-[10px] text-slate-400">Reaction / Action Modifiers</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          ${DAGGERHEART_TRAITS.map(
+            (tr) => `
+            <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-2 text-center">
+              <label class="block text-xs font-bold uppercase tracking-wider text-amber-300">${tr.label}</label>
+              <input type="text" data-npc-dh-trait="${tr.key}" value="${escapeHtml(dhTraits[tr.key] || "+0")}"
+                placeholder="+0"
+                class="w-full mt-1 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-sm font-bold text-center text-white" />
+              <div class="text-[9px] text-slate-400 mt-1 leading-tight">${tr.verbs}</div>
+            </div>
+          `
+          ).join("")}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 bg-slate-900/50 border border-slate-800 rounded-xl p-3.5">
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Difficulty</label>
+          <input type="text" data-npc-field="dhDifficulty" value="${escapeHtml(activeNpc?.dhDifficulty || "")}"
+            placeholder="12"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Major Thresh.</label>
+          <input type="text" data-npc-field="dhThresholdMajor" value="${escapeHtml(activeNpc?.dhThresholdMajor || "")}"
+            placeholder="6"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Severe Thresh.</label>
+          <input type="text" data-npc-field="dhThresholdSevere" value="${escapeHtml(activeNpc?.dhThresholdSevere || "")}"
+            placeholder="12"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-rose-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hit Points</label>
+          <input type="text" data-npc-field="dhHp" value="${escapeHtml(activeNpc?.dhHp || "")}"
+            placeholder="5"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-emerald-300" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Stress</label>
+          <input type="text" data-npc-field="dhStress" value="${escapeHtml(activeNpc?.dhStress || "")}"
+            placeholder="3"
+            class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-purple-300" />
+        </div>
+      </div>
+    `
+    : `
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3.5">
+        ${[
+          ["strength", "Strength"],
+          ["dexterity", "Dexterity"],
+          ["constitution", "Constitution"],
+          ["intelligence", "Intelligence"],
+          ["wisdom", "Wisdom"],
+          ["charisma", "Charisma"]
+        ]
+          .map(
+            ([key, label]) => `
+          <div class="text-center">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</label>
+            <input type="text" data-npc-field="${key}" value="${escapeHtml(activeNpc?.[key] || "")}"
+              placeholder="10 (+0)"
+              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm font-semibold text-center text-white" />
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+
+  const identityBlockHtml = dhMode
+    ? `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Age</label>
+          <input type="text" data-npc-field="age" value="${escapeHtml(activeNpc?.age || "")}"
+            placeholder="e.g., 42"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Pronouns / Gender</label>
+          <input type="text" data-npc-field="gender" value="${escapeHtml(activeNpc?.gender || "")}"
+            placeholder="e.g., she/her, they/them"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Community (Heritage)</label>
+          <input type="text" list="dh-npc-communities" data-npc-field="dhCommunity" value="${escapeHtml(activeNpc?.dhCommunity || "")}"
+            placeholder="e.g., Highborne, Slyborne"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+          <datalist id="dh-npc-communities">
+            ${DAGGERHEART_COMMUNITIES.map((c) => `<option value="${c}"></option>`).join("")}
+          </datalist>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Ancestry (Heritage)</label>
+          <input type="text" list="dh-npc-ancestries" data-npc-field="dhAncestry" value="${escapeHtml(activeNpc?.dhAncestry || activeNpc?.race || "")}"
+            placeholder="e.g., Ribbet, Fungril, Elf"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+          <datalist id="dh-npc-ancestries">
+            ${DAGGERHEART_ANCESTRIES.map((a) => `<option value="${a}"></option>`).join("")}
+          </datalist>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Profession / Role</label>
+          <input type="text" data-npc-field="profession" value="${escapeHtml(activeNpc?.profession || "")}"
+            placeholder="e.g., Harbor Master"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Location</label>
+          <input type="text" data-npc-field="location" value="${escapeHtml(activeNpc?.location || "")}"
+            placeholder="e.g., Oakhaven — Crown Ward"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Equipment / Items</label>
+          <textarea data-npc-field="equipmentItems" rows="3"
+            placeholder="Notable weapons, signet rings, keys, spellbooks, valuables..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.equipmentItems || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Appearance</label>
+          <textarea data-npc-field="appearance" rows="3"
+            placeholder="Build, clothing, scars, distinguishing features, posture..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.appearance || "")}</textarea>
+        </div>
+      </div>
+    `
+    : `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Age</label>
+          <input type="text" data-npc-field="age" value="${escapeHtml(activeNpc?.age || "")}"
+            placeholder="e.g., 42"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Gender</label>
+          <input type="text" data-npc-field="gender" value="${escapeHtml(activeNpc?.gender || "")}"
+            placeholder="e.g., Female, Male"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Race / Ancestry</label>
+          <input type="text" data-npc-field="race" value="${escapeHtml(activeNpc?.race || "")}"
+            placeholder="e.g., Human, Elf, Tiefling"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Alignment</label>
+          <input type="text" data-npc-field="alignment" value="${escapeHtml(activeNpc?.alignment || "")}"
+            placeholder="e.g., Neutral Good"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Profession / Role</label>
+          <input type="text" data-npc-field="profession" value="${escapeHtml(activeNpc?.profession || "")}"
+            placeholder="e.g., Harbor Master"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Location</label>
+          <input type="text" data-npc-field="location" value="${escapeHtml(activeNpc?.location || "")}"
+            placeholder="e.g., Oakhaven — Crown Ward"
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Equipment / Items</label>
+          <textarea data-npc-field="equipmentItems" rows="3"
+            placeholder="Notable weapons, signet rings, keys, spellbooks, valuables..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.equipmentItems || "")}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Appearance</label>
+          <textarea data-npc-field="appearance" rows="3"
+            placeholder="Build, clothing, scars, distinguishing features, posture..."
+            class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.appearance || "")}</textarea>
+        </div>
+      </div>
+    `;
+
+  const storyBlockHtml = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      ${
+        dhMode
+          ? `
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">NPC Experiences &amp; Tactics</label>
+              <textarea data-npc-field="dhExperiences" rows="3"
+                placeholder="e.g., Royal Archivist +3, Hears Every Rumor +2; calls for city watch if cornered..."
+                class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-amber-200">${escapeHtml(activeNpc?.dhExperiences || "")}</textarea>
+            </div>
+          `
+          : `
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Languages</label>
+              <textarea data-npc-field="languages" rows="3"
+                placeholder="e.g., Common, Elvish, Thieves' Cant..."
+                class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.languages || "")}</textarea>
+            </div>
+          `
+      }
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Motivation</label>
+        <textarea data-npc-field="motivation" rows="3"
+          placeholder="What do they want most? What are they afraid of losing?"
+          class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.motivation || "")}</textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Plot Hook</label>
+        <textarea data-npc-field="plotHook" rows="3"
+          placeholder="Quests they offer, secrets they hold, favors they need..."
+          class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.plotHook || "")}</textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Personality</label>
+        <textarea data-npc-field="personality" rows="3"
+          placeholder="Mannerisms, speech cadence, ideals, bonds, flaws..."
+          class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100">${escapeHtml(activeNpc?.personality || "")}</textarea>
+      </div>
+    </div>
+
+    ${
+      includeBackstory
+        ? `
+          <div class="pt-2">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-1.5">
+              Key NPC Backstory
+            </label>
+            <textarea data-npc-field="backstory" rows="5"
+              placeholder="Write this Key NPC's history, turning points, hidden loyalties, and connection to the main plot..."
+              class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed">${escapeHtml(activeNpc?.backstory || "")}</textarea>
+          </div>
+        `
+        : ""
+    }
+  `;
+
   return `
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
@@ -254,7 +502,7 @@ function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory, dhMo
         <p class="text-xs text-slate-400">
           ${
             includeBackstory
-              ? "Full 2-page character sheet with stats, traits, equipment, plot hook, and dedicated backstory."
+              ? "Full character sheet with stats, traits, equipment, plot hook, and dedicated backstory."
               : "Quick-reference NPC sheet with stats, profession, location, personality, and plot hooks."
           }
         </p>
@@ -294,7 +542,7 @@ function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory, dhMo
           ${
             activeNpc
               ? `
-                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-5">
+                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 sm:p-6 space-y-5">
                   <!-- Top Header: NPC Name + Remove -->
                   <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
                     <div class="flex-1">
@@ -308,7 +556,27 @@ function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory, dhMo
                     </button>
                   </div>
 
-                  <!-- NPC Portrait Image URL & Preview -->
+                  <!-- Inner Sheet Pill Sub-Tabs -->
+                  <div class="rpg-subtab-bar">
+                    ${[
+                      ["all", "layout-grid", "All Sections"],
+                      ["stats", "shield", "Traits & Stats"],
+                      ["identity", "user", "Identity & Gear"],
+                      ["story", "book-open", includeBackstory ? "Story & Backstory" : "Story & Hooks"]
+                    ]
+                      .map(
+                        ([subId, icon, label]) => `
+                      <button type="button" data-npc-subtab="${subId}"
+                        class="npc-subtab-btn rpg-subtab-btn ${activeNpcSubView === subId ? "is-active" : ""}">
+                        <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+                        <span>${label}</span>
+                      </button>
+                    `
+                      )
+                      .join("")}
+                  </div>
+
+                  <!-- Collapsible Portrait URL & Preview -->
                   <div class="space-y-2.5">
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                       ${labelSingular} Portrait Image URL (Optional)
@@ -326,246 +594,26 @@ function renderNpcSheetEditor(npcList, selectedIdx, kind, includeBackstory, dhMo
                   </div>
 
                   ${
-                    dhMode
+                    isTwoColDesktop
                       ? `
-                        <!-- Daggerheart 6 Character Traits -->
-                        <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-2">
-                          <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Daggerheart NPC Traits</span>
-                            <span class="text-[10px] text-slate-400">Modifier for Reaction / Action Rolls</span>
+                        <!-- Widescreen 2-Column Desktop Layout -->
+                        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                          <div class="xl:col-span-6 space-y-5">
+                            ${statsBlockHtml}
+                            ${identityBlockHtml}
                           </div>
-                          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                            ${DAGGERHEART_TRAITS.map(
-                              (tr) => `
-                              <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-2 text-center">
-                                <label class="block text-xs font-bold uppercase tracking-wider text-amber-300">${tr.label}</label>
-                                <input type="text" data-npc-dh-trait="${tr.key}" value="${escapeHtml(dhTraits[tr.key] || "+0")}"
-                                  placeholder="+0"
-                                  class="w-full mt-1 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-sm font-bold text-center text-white focus:outline-none focus:border-indigo-500" />
-                                <div class="text-[9px] text-slate-400 mt-1 leading-tight">${tr.verbs}</div>
-                              </div>
-                            `
-                            ).join("")}
-                          </div>
-                        </div>
-
-                        <!-- Daggerheart Social / Combat Quick-Stats -->
-                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-                          <div>
-                            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Difficulty</label>
-                            <input type="text" data-npc-field="dhDifficulty" value="${escapeHtml(activeNpc.dhDifficulty || "")}"
-                              placeholder="e.g., 12"
-                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-sky-300" />
-                          </div>
-                          <div>
-                            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Major Threshold</label>
-                            <input type="text" data-npc-field="dhThresholdMajor" value="${escapeHtml(activeNpc.dhThresholdMajor || "")}"
-                              placeholder="e.g., 6"
-                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-amber-300" />
-                          </div>
-                          <div>
-                            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Severe Threshold</label>
-                            <input type="text" data-npc-field="dhThresholdSevere" value="${escapeHtml(activeNpc.dhThresholdSevere || "")}"
-                              placeholder="e.g., 12"
-                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-rose-300" />
-                          </div>
-                          <div>
-                            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Hit Points (HP)</label>
-                            <input type="text" data-npc-field="dhHp" value="${escapeHtml(activeNpc.dhHp || "")}"
-                              placeholder="e.g., 5"
-                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-emerald-300" />
-                          </div>
-                          <div>
-                            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Stress</label>
-                            <input type="text" data-npc-field="dhStress" value="${escapeHtml(activeNpc.dhStress || "")}"
-                              placeholder="e.g., 3"
-                              class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded text-sm font-bold text-center text-purple-300" />
-                          </div>
-                        </div>
-
-                        <!-- Daggerheart Heritage & Identity Grid -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Age</label>
-                            <input type="text" data-npc-field="age" value="${escapeHtml(activeNpc.age || "")}"
-                              placeholder="e.g., 42"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Pronouns / Gender</label>
-                            <input type="text" data-npc-field="gender" value="${escapeHtml(activeNpc.gender || "")}"
-                              placeholder="e.g., she/her, he/him, they/them"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Community (Heritage)</label>
-                            <input type="text" list="dh-npc-communities" data-npc-field="dhCommunity" value="${escapeHtml(activeNpc.dhCommunity || "")}"
-                              placeholder="e.g., Highborne, Loreborne, Slyborne"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                            <datalist id="dh-npc-communities">
-                              ${DAGGERHEART_COMMUNITIES.map((c) => `<option value="${c}"></option>`).join("")}
-                            </datalist>
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Ancestry (Heritage)</label>
-                            <input type="text" list="dh-npc-ancestries" data-npc-field="dhAncestry" value="${escapeHtml(activeNpc.dhAncestry || activeNpc.race || "")}"
-                              placeholder="e.g., Ribbet, Fungril, Katari, Elf"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                            <datalist id="dh-npc-ancestries">
-                              ${DAGGERHEART_ANCESTRIES.map((a) => `<option value="${a}"></option>`).join("")}
-                            </datalist>
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Profession / Role</label>
-                            <input type="text" data-npc-field="profession" value="${escapeHtml(activeNpc.profession || "")}"
-                              placeholder="e.g., Harbor Master, Court Mage"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Location</label>
-                            <input type="text" data-npc-field="location" value="${escapeHtml(activeNpc.location || "")}"
-                              placeholder="e.g., Oakhaven — Crown Ward"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+                          <div class="xl:col-span-6 space-y-5">
+                            ${storyBlockHtml}
                           </div>
                         </div>
                       `
                       : `
-                        <!-- 6 Core Ability Scores (STR, DEX, CON, INT, WIS, CHA) -->
-                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
-                          ${[
-                            ["strength", "Strength"],
-                            ["dexterity", "Dexterity"],
-                            ["constitution", "Constitution"],
-                            ["intelligence", "Intelligence"],
-                            ["wisdom", "Wisdom"],
-                            ["charisma", "Charisma"]
-                          ]
-                            .map(
-                              ([key, label]) => `
-                            <div class="text-center">
-                              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</label>
-                              <input type="text" data-npc-field="${key}" value="${escapeHtml(activeNpc[key] || "")}"
-                                placeholder="10 (+0)"
-                                class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs sm:text-sm font-semibold text-center text-white focus:outline-none focus:border-indigo-500" />
-                            </div>
-                          `
-                            )
-                            .join("")}
-                        </div>
-
-                        <!-- Identity Grid: Age, Gender, Race, Alignment, Profession, Location -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Age</label>
-                            <input type="text" data-npc-field="age" value="${escapeHtml(activeNpc.age || "")}"
-                              placeholder="e.g., 42"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Gender</label>
-                            <input type="text" data-npc-field="gender" value="${escapeHtml(activeNpc.gender || "")}"
-                              placeholder="e.g., Female, Male, Non-binary"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Race / Ancestry</label>
-                            <input type="text" data-npc-field="race" value="${escapeHtml(activeNpc.race || "")}"
-                              placeholder="e.g., Human, Elf, Tiefling"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Alignment</label>
-                            <input type="text" data-npc-field="alignment" value="${escapeHtml(activeNpc.alignment || "")}"
-                              placeholder="e.g., Neutral Good"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Profession / Role</label>
-                            <input type="text" data-npc-field="profession" value="${escapeHtml(activeNpc.profession || "")}"
-                              placeholder="e.g., Harbor Master, Court Mage"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Location</label>
-                            <input type="text" data-npc-field="location" value="${escapeHtml(activeNpc.location || "")}"
-                              placeholder="e.g., Oakhaven — Crown Ward"
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                          </div>
+                        <div class="space-y-5">
+                          ${showStats ? statsBlockHtml : ""}
+                          ${showIdentity ? identityBlockHtml : ""}
+                          ${showStory ? storyBlockHtml : ""}
                         </div>
                       `
-                  }
-
-                  <!-- Equipment/Items & Appearance -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Equipment / Items</label>
-                      <textarea data-npc-field="equipmentItems" rows="4"
-                        placeholder="Notable weapons, signet rings, keys, spellbooks, valuables..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.equipmentItems || "")}</textarea>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Appearance</label>
-                      <textarea data-npc-field="appearance" rows="4"
-                        placeholder="Build, clothing, scars, distinguishing features, posture..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.appearance || "")}</textarea>
-                    </div>
-                  </div>
-
-                  <!-- Experiences / Languages, Motivation, Plot Hook, Personality -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
-                    ${
-                      dhMode
-                        ? `
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">NPC Experiences &amp; Tactics</label>
-                            <textarea data-npc-field="dhExperiences" rows="2"
-                              placeholder="e.g., Royal Archivist +3, Hears Every Rumor +2; calls for city watch if cornered..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-amber-200 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.dhExperiences || "")}</textarea>
-                          </div>
-                        `
-                        : `
-                          <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1">Languages</label>
-                            <textarea data-npc-field="languages" rows="2"
-                              placeholder="e.g., Common, Elvish, Thieves' Cant..."
-                              class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.languages || "")}</textarea>
-                          </div>
-                        `
-                    }
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Motivation</label>
-                      <textarea data-npc-field="motivation" rows="2"
-                        placeholder="What do they want most? What are they afraid of losing?"
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.motivation || "")}</textarea>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Plot Hook</label>
-                      <textarea data-npc-field="plotHook" rows="3"
-                        placeholder="Quests they offer, secrets they hold, favors they need..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.plotHook || "")}</textarea>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-semibold text-slate-300 mb-1">Personality</label>
-                      <textarea data-npc-field="personality" rows="3"
-                        placeholder="Mannerisms, speech cadence, ideals, bonds, flaws..."
-                        class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.personality || "")}</textarea>
-                    </div>
-                  </div>
-
-                  ${
-                    includeBackstory
-                      ? `
-                        <!-- Page 138: KEY NPC BackStory -->
-                        <div class="pt-3 border-t border-slate-800/80">
-                          <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-1.5">
-                            Key NPC Backstory
-                          </label>
-                          <textarea data-npc-field="backstory" rows="6"
-                            placeholder="Write this Key NPC's history, turning points, hidden loyalties, and connection to the main plot..."
-                            class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(activeNpc.backstory || "")}</textarea>
-                        </div>
-                      `
-                      : ""
                   }
                 </div>
               `
@@ -590,6 +638,14 @@ function wireNpcListControls(paneContainer, state, existingDoc, data, kind) {
     });
     if (window.lucide) window.lucide.createIcons();
   };
+
+  paneContainer.querySelectorAll(".npc-subtab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      collectNpcForm(paneContainer, data);
+      activeNpcSubView = btn.getAttribute("data-npc-subtab") || "all";
+      rerenderWithLocalData();
+    });
+  });
 
   paneContainer.querySelector("#add-npc-btn")?.addEventListener("click", () => {
     collectNpcForm(paneContainer, data);
@@ -718,7 +774,7 @@ function renderField(fieldName, label, placeholder, value, rows = 3) {
     <div>
       <label class="block text-xs font-semibold text-slate-300 mb-1.5">${escapeHtml(label)}</label>
       <textarea data-npc-overview-field="${fieldName}" rows="${rows}" placeholder="${escapeHtml(placeholder)}"
-        class="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(value)}</textarea>
+        class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-indigo-500">${escapeHtml(value)}</textarea>
     </div>
   `;
 }
