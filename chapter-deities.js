@@ -5,9 +5,9 @@
 import { createEntity, updateEntity } from "./firebase-manager.js";
 
 export const DEITIES_TABS = [
-  { id: "religion-overview", label: "Religion & Pantheon Overview", icon: "sun" },
-  { id: "deity-profiles", label: "Deity Profiles", icon: "sparkles" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "religion-overview", label: "Faith & Cosmology", icon: "sun" },
+  { id: "deity-profiles", label: "Deity & Patron Profiles", icon: "sparkles" },
+  { id: "misc-notes", label: "Mythos Notes", icon: "sticky-note" }
 ];
 
 let activeDeitiesTab = "religion-overview";
@@ -59,11 +59,11 @@ export function renderDeitiesChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 5: Deities
+              Phase III • Pantheons & Mythos
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Define the role of faith in your plot and build detailed profiles for every god, patron, or cosmic force.
+            Define the role of faith in your world and build detailed profiles for every god, patron, or cosmic force.
           </p>
         </div>
       </div>
