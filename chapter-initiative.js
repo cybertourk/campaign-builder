@@ -18,8 +18,8 @@ import {
 } from "./system-rulesets.js";
 
 export const INITIATIVE_TABS = [
-  { id: "combat-tracker", label: "Initiative & Combat Tracker", icon: "swords" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "combat-tracker", label: "Live Encounter Board", icon: "swords" },
+  { id: "misc-notes", label: "Battlefield Notes", icon: "sticky-note" }
 ];
 
 let activeInitiativeTab = "combat-tracker";
@@ -136,7 +136,7 @@ export function renderInitiativeChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 11: ${dhMode ? "Spotlight & Fear Tracker • Daggerheart" : `Initiative Tracker${dndMode ? " • D&D 5e" : ""}`}
+              Phase IV • ${dhMode ? "Encounter & Spotlight Board • Daggerheart" : `Encounter & Spotlight Board${dndMode ? " • D&D 5e" : ""}`}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
