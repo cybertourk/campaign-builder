@@ -16,16 +16,16 @@ import {
 } from "./system-rulesets.js";
 
 export const TRAVEL_TABS = [
-  { id: "examples", label: "Examples & Reference", icon: "book-open" },
-  { id: "weather", label: "Weather & Time", icon: "cloud-sun" },
-  { id: "terrain", label: "Terrain & Travel Map", icon: "mountain" },
-  { id: "hunting", label: "Hunting (D12)", icon: "crosshair" },
-  { id: "discovery", label: "Discovery (D12)", icon: "compass" },
-  { id: "camping", label: "Camping (D12)", icon: "flame" },
-  { id: "exploration", label: "Exploration (D12)", icon: "map-pin" },
-  { id: "travel-npc", label: "NPC Encounters (D12)", icon: "users" },
-  { id: "bard-performance", label: "Bard Performance (D12)", icon: "music" },
-  { id: "misc-notes", label: "Misc Notes", icon: "sticky-note" }
+  { id: "examples", label: "Rules & Table Guide", icon: "book-open" },
+  { id: "weather", label: "Weather & Watch", icon: "cloud-sun" },
+  { id: "terrain", label: "Biomes & Route Map", icon: "mountain" },
+  { id: "hunting", label: "Foraging & Hunt (D12)", icon: "crosshair" },
+  { id: "discovery", label: "Landmarks & Ruins (D12)", icon: "compass" },
+  { id: "camping", label: "Making Camp (D12)", icon: "flame" },
+  { id: "exploration", label: "Wayfinding (D12)", icon: "map-pin" },
+  { id: "travel-npc", label: "Wayfarers (D12)", icon: "users" },
+  { id: "bard-performance", label: "Tavern Tales (D12)", icon: "music" },
+  { id: "misc-notes", label: "Journey Notes", icon: "sticky-note" }
 ];
 
 let activeTravelTab = "examples";
@@ -110,11 +110,11 @@ export function renderTravelChapter(paneContainer, state, options = {}) {
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-xl font-bold text-white">${escapeHtml(currentSection.label)}</h1>
             <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
-              Chapter 12: Overland Travel Tables${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
+              Phase IV • Journeys & Exploration${dhMode ? " • Daggerheart" : dndMode ? " • D&D 5e" : ""}
             </span>
           </div>
           <p class="text-slate-400 text-xs sm:text-sm mt-1">
-            Customize and roll on your D8 Time, D6 Weather &amp; Terrain, and D12 Hunting, Discovery, Camping, Exploration, NPC &amp; Bard tables.
+            Customize and roll on your D8 Watch, D6 Weather &amp; Biome, and D12 Foraging, Discovery, Camp, Wayfinding, Wayfarer &amp; Tavern tables.
           </p>
         </div>
       </div>
@@ -439,8 +439,8 @@ function renderExamplesReferenceTab(dndMode, dhMode) {
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800 rounded-xl p-4">
       <div>
-        <h3 class="text-sm font-bold text-white">Planner Examples &amp; Quick Reference</h3>
-        <p class="text-xs text-slate-400">Use these examples as inspiration or copy the sample Spring/Summer/Fall weather into your editable Weather table.</p>
+        <h3 class="text-sm font-bold text-white">Journey Table Examples &amp; Quick Reference</h3>
+        <p class="text-xs text-slate-400">Use these examples as inspiration or copy the sample mild-season weather into your editable Weather &amp; Watch table.</p>
       </div>
       <button type="button" id="populate-weather-examples-btn"
         class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition shrink-0">
