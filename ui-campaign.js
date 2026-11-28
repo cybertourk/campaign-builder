@@ -1,7 +1,7 @@
 // ui-campaign.js
 // Level 3: Campaign Builder workspace organized into the 12 Campaign Planner chapters,
-// styled with the carved stone & parchment frames, chapter emblems, dividers, RPG buttons,
-// and integrated with the Campaign Muse guided prompt system.
+// featuring a sleek fixed-width sticky Campaign Tome sidebar on desktop so the active
+// chapter worksheet expands across wide PC monitors without wasted side margins.
 
 import {
   createEntity,
@@ -209,11 +209,11 @@ export function renderCampaignWorkspace(container, state) {
     <!-- Campaign Muse Guided Prompt Banner -->
     <div id="workspace-prompt-banner-slot"></div>
 
-    <!-- Main 2-Column Layout: 12-Chapter Sidebar + Active Chapter Workspace -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+    <!-- Widescreen Desktop Flex Shell: Fixed-Width Sticky Sidebar + Full-Width Active Worksheet -->
+    <div class="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
 
-      <!-- Left Sidebar: Campaign Header & 12-Chapter Nested Vertical Navigation (Collapsible on Mobile) -->
-      <aside class="lg:col-span-3 rpg-panel rounded-xl overflow-hidden">
+      <!-- Left Sidebar: Campaign Header & 12-Chapter Nested Vertical Navigation -->
+      <aside class="w-full lg:w-[295px] xl:w-[315px] shrink-0 lg:sticky lg:top-20 rpg-panel rounded-xl overflow-hidden">
         <div class="p-3 sm:p-3.5 border-b border-slate-800/80">
           <div class="rpg-bar-stamina w-full mb-2 sm:mb-2.5 opacity-90"></div>
           <div class="flex items-center justify-between gap-2">
@@ -259,7 +259,7 @@ export function renderCampaignWorkspace(container, state) {
           <div class="rpg-divider mt-2.5 hidden lg:block"></div>
         </div>
 
-        <nav id="campaign-tome-nav" class="${isMobileNavOpen ? "block" : "hidden"} lg:block p-2.5 space-y-1.5 max-h-[65vh] lg:max-h-[75vh] overflow-y-auto">
+        <nav id="campaign-tome-nav" class="${isMobileNavOpen ? "block" : "hidden"} lg:block p-2.5 space-y-1.5 max-h-[65vh] lg:max-h-[76vh] overflow-y-auto">
           ${CAMPAIGN_CHAPTERS.map((chap, idx) => {
             const isSelected = chap.id === currentChapter.id;
             const sections = chap.sections || [];
@@ -268,7 +268,6 @@ export function renderCampaignWorkspace(container, state) {
               (e) => e.type === chap.id || e.type === chap.label
             ).length;
 
-            // Compute item counts for nested sections
             const settingDoc = state.entities.find((e) => e.type === "campaign-setting")?.systemData || {};
             const plotDoc = state.entities.find((e) => e.type === "plot-adventures")?.systemData || {};
             const encountersDoc = state.entities.find((e) => e.type === "random-encounters")?.systemData || {};
@@ -368,10 +367,9 @@ export function renderCampaignWorkspace(container, state) {
         </nav>
       </aside>
 
-      <!-- Right Main Pane: Active Chapter View -->
-      <section id="chapter-main-pane" class="rpg-workspace-pane lg:col-span-9 rpg-panel-ornate rounded-xl p-3.5 sm:p-6 min-h-[65vh] sm:min-h-[70vh] flex flex-col">
+      <!-- Right Main Pane: Expands Across Full Desktop Screen Width -->
+      <section id="chapter-main-pane" class="rpg-workspace-pane w-full flex-1 min-w-0 rpg-panel-ornate rounded-xl p-4 sm:p-6 xl:p-7 min-h-[65vh] sm:min-h-[72vh] flex flex-col">
         
-        <!-- Fallback Chapter Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
           <div class="flex items-start gap-3">
             <div class="rpg-slot-medium w-11 h-11 p-1.5 shrink-0">
@@ -388,7 +386,6 @@ export function renderCampaignWorkspace(container, state) {
           </button>
         </div>
 
-        <!-- Chapter Entries & Quick Editor -->
         ${
           chapterEntries.length === 0
             ? `
@@ -490,7 +487,6 @@ export function renderCampaignWorkspace(container, state) {
     </div>
   `;
 
-  // Helper to jump directly to a chapter & section from the Campaign Muse prompt modal
   const jumpToChapterSection = (chapId, secId) => {
     activeChapterId = chapId;
     if (secId) {
@@ -502,7 +498,6 @@ export function renderCampaignWorkspace(container, state) {
     document.getElementById("chapter-main-pane")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Render the Campaign Muse prompt banner & wire the sidebar Guide Me button
   const bannerSlot = container.querySelector("#workspace-prompt-banner-slot");
   renderWorkspacePromptBanner(bannerSlot, state, jumpToChapterSection);
 
@@ -510,7 +505,6 @@ export function renderCampaignWorkspace(container, state) {
     openPromptInterviewModal(state, null, jumpToChapterSection);
   });
 
-  // Render active chapter workbook inside #chapter-main-pane
   const mainPane = container.querySelector("#chapter-main-pane");
   if (currentChapter.id === "campaign-setting") {
     renderCampaignSettingChapter(mainPane, state, {
@@ -622,7 +616,6 @@ export function renderCampaignWorkspace(container, state) {
     });
   }
 
-  // Upgrade primary Save buttons inside chapter workbooks to use the carved stone / parchment button aesthetic
   mainPane.querySelectorAll('button[id^="save-"]').forEach((btn) => {
     btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500", "shadow-indigo-600/20");
     btn.classList.add("rpg-btn-primary");
@@ -647,7 +640,6 @@ export function renderCampaignWorkspace(container, state) {
     }
   });
 
-  // Wire Misc Notes on fallback chapters
   const miscBtn = container.querySelector("#save-misc-notes-btn");
   if (miscBtn) {
     const miscInput = container.querySelector("#chapter-misc-notes-input");
@@ -685,7 +677,6 @@ export function renderCampaignWorkspace(container, state) {
     });
   }
 
-  // Breadcrumb Navigation
   container.querySelector("#ws-nav-systems")?.addEventListener("click", () => {
     setState({ activeSystem: null, activeCampaign: null, currentView: "systems" });
   });
@@ -694,14 +685,12 @@ export function renderCampaignWorkspace(container, state) {
     setState({ activeCampaign: null, currentView: "campaigns" });
   });
 
-  // Mobile Chapter Tome Drawer Toggle
   container.querySelector("#mobile-tome-toggle-btn")?.addEventListener("click", () => {
     isMobileNavOpen = !isMobileNavOpen;
     renderCampaignWorkspace(container, state);
     if (window.lucide) window.lucide.createIcons();
   });
 
-  // Switch between the 12 Chapters
   container.querySelectorAll(".chapter-nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const nextChapId = btn.getAttribute("data-chapter-id");
@@ -722,7 +711,6 @@ export function renderCampaignWorkspace(container, state) {
     });
   });
 
-  // Switch nested vertical sections inside an active chapter
   container.querySelectorAll(".chapter-section-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const chapId = btn.getAttribute("data-chapter-id");
@@ -740,7 +728,6 @@ export function renderCampaignWorkspace(container, state) {
     });
   });
 
-  // New Entry Modal
   const modal = container.querySelector("#new-entity-modal");
   const openModal = () => modal.classList.remove("hidden");
   const closeModal = () => modal.classList.add("hidden");
@@ -756,7 +743,6 @@ export function renderCampaignWorkspace(container, state) {
     await createEntity({ type: currentChapter.id, title, content: "" });
   });
 
-  // Select Entry
   container.querySelectorAll(".entity-item").forEach((item) => {
     item.addEventListener("click", () => {
       const id = item.getAttribute("data-entity-id");
@@ -765,7 +751,6 @@ export function renderCampaignWorkspace(container, state) {
     });
   });
 
-  // Save & Delete Active Entry
   if (activeEntry) {
     const saveBtn = container.querySelector("#save-entity-btn");
     const saveIndicator = container.querySelector("#save-indicator");
