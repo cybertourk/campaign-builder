@@ -1,7 +1,8 @@
 /* ============================================================================
 RealmForge Dual-Theme Stylesheet: "Stone" (Dark) & "Parchment" (Light)
 Integrates GUI_Fantasy_RPG_Kit & Parchwood_UI_Kit with 9-slice frames,
-translucent surfaces, custom scrollbars, and mobile/tablet responsiveness.
+widescreen PC ergonomics, inner sheet sub-tabs, auto-grow inputs, and
+mobile/tablet responsiveness.
 ============================================================================ */
 
 /* 1. Typography & Theme Tokens
@@ -87,7 +88,7 @@ color: #fff8eb !important;
 text-shadow: 0 1px 3px rgba(34, 17, 5, 0.85);
 }
 
-/* 4. Carved Stone & Parchment Panels (Alpha-Transparent Corners & Full Bevels)
+/* 4. Carved Stone & Parchment Panels
 ---------------------------------------------------------------------------- */
 .rpg-panel,
 .rpg-panel-ornate {
@@ -98,7 +99,6 @@ border-color: transparent;
 z-index: 0;
 }
 
-/* Stone Standard Panel (Sidebar, Directory Headers) */
 .rpg-panel {
 border-width: 11px;
 box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
@@ -130,7 +130,6 @@ z-index: -1;
 pointer-events: none;
 }
 
-/* Stone Ornate Panel (Main Workspace, Modals, Empty States) */
 .rpg-panel-ornate {
 border-width: 12px;
 box-shadow: 0 14px 36px rgba(0, 0, 0, 0.58);
@@ -162,7 +161,6 @@ z-index: -1;
 pointer-events: none;
 }
 
-/* Parchment Standard Panel (Sidebar & Directory Headers — Stitched Cream Sheet) */
 html[data-theme="parchment"] .rpg-panel {
 border-width: 10px;
 box-shadow: 0 8px 22px rgba(74, 44, 18, 0.28);
@@ -182,7 +180,6 @@ border-image-width: 18px;
 border-image-repeat: round;
 }
 
-/* Parchment Ornate Panel (Main Workspace & Modals — Brass-Riveted Wood Frame) */
 html[data-theme="parchment"] .rpg-panel-ornate {
 border-width: 12px;
 box-shadow: 0 12px 30px rgba(68, 39, 15, 0.34);
@@ -340,7 +337,6 @@ html[data-theme="parchment"] .rpg-slot-small::after {
 background-image: url('./Parchwood_UI_Kit/076-square-parchment-empty-item-slot.png');
 }
 
-/* Long Pill Capsule (Breadcrumbs, Chapter Pills, Active Sub-Sections) */
 .rpg-slot-long {
 display: inline-flex;
 align-items: center;
@@ -464,7 +460,84 @@ filter: brightness(1.15);
 transform: scale(1.04);
 }
 
-/* 8. Dividers & Stat Bars
+/* 8. Inner Sheet Pill Sub-Tabs & Collapsible Section Cards
+---------------------------------------------------------------------------- */
+.rpg-subtab-bar {
+display: flex;
+flex-wrap: wrap;
+align-items: center;
+gap: 0.45rem;
+padding: 0.45rem 0.6rem;
+border-radius: 0.75rem;
+background: rgba(11, 17, 32, 0.65);
+border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.rpg-subtab-btn {
+display: inline-flex;
+align-items: center;
+gap: 0.4rem;
+padding: 0.4rem 0.85rem;
+border-radius: 0.55rem;
+font-size: 0.75rem;
+font-weight: 600;
+color: #cbd5e1;
+background: rgba(15, 23, 42, 0.6);
+border: 1px solid rgba(148, 163, 184, 0.18);
+transition: all 0.15s ease;
+cursor: pointer;
+}
+
+.rpg-subtab-btn:hover {
+color: #fef3c7;
+border-color: rgba(251, 191, 36, 0.45);
+}
+
+.rpg-subtab-btn.is-active {
+background: linear-gradient(180deg, rgba(180, 120, 32, 0.42) 0%, rgba(120, 74, 16, 0.55) 100%);
+border-color: rgba(251, 191, 36, 0.75);
+color: #fef3c7;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="parchment"] .rpg-subtab-bar {
+background: #ead5ae !important;
+border-color: rgba(133, 88, 46, 0.38) !important;
+}
+
+html[data-theme="parchment"] .rpg-subtab-btn {
+background: #fbf4e4 !important;
+border-color: rgba(133, 88, 46, 0.35) !important;
+color: #4a321e !important;
+}
+
+html[data-theme="parchment"] .rpg-subtab-btn:hover {
+border-color: #8b261d !important;
+color: #7c2218 !important;
+}
+
+html[data-theme="parchment"] .rpg-subtab-btn.is-active {
+background: #8b261d !important;
+border-color: #5c1610 !important;
+color: #ffffff !important;
+}
+
+html[data-theme="parchment"] .rpg-subtab-btn.is-active * {
+color: #ffffff !important;
+}
+
+/* Collapsible Section Toggle Header */
+.rpg-collapse-toggle {
+width: 100%;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 0.75rem;
+text-align: left;
+cursor: pointer;
+}
+
+/* 9. Dividers & Stat Bars
 ---------------------------------------------------------------------------- */
 .rpg-divider {
 height: 14px;
@@ -528,7 +601,7 @@ url('./Parchwood_UI_Kit/054-separate-ochre-horizontal-progress-fill.png'),
 url('./Parchwood_UI_Kit/051-empty-dark-wood-horizontal-progress-track.png');
 }
 
-/* 9. Form Controls & Translucent Surfaces
+/* 10. Form Controls, Auto-Grow Textareas & Unclipped Placeholders
 ---------------------------------------------------------------------------- */
 .rpg-panel input[type="text"],
 .rpg-panel input[type="email"],
@@ -548,6 +621,23 @@ background-color: var(--rpg-input-bg);
 border: 1px solid var(--rpg-input-border);
 color: var(--rpg-input-text);
 transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rpg-panel textarea,
+.rpg-panel-ornate textarea {
+line-height: 1.55;
+padding-top: 0.625rem;
+padding-bottom: 0.625rem;
+}
+
+.rpg-panel textarea[rows="2"],
+.rpg-panel-ornate textarea[rows="2"] {
+min-height: 4.85rem;
+}
+
+.rpg-panel textarea[rows="3"],
+.rpg-panel-ornate textarea[rows="3"] {
+min-height: 5.75rem;
 }
 
 .rpg-panel input:focus,
@@ -576,7 +666,7 @@ html[data-theme="parchment"] textarea::placeholder {
 color: #8a6c4e !important;
 }
 
-/* 10. Parchment Theme Typography, Sub-Panels & Utility Overrides
+/* 11. Parchment Theme Typography, Sub-Panels & Utility Overrides
 ---------------------------------------------------------------------------- */
 html[data-theme="parchment"] .rpg-panel h1,
 html[data-theme="parchment"] .rpg-panel h2,
@@ -634,8 +724,7 @@ html[data-theme="parchment"] .rpg-panel-ornate .border-slate-700 {
 border-color: rgba(133, 88, 46, 0.35) !important;
 }
 
-/* Lighten all dark Tailwind sub-panels inside Parchment containers /
-html[data-theme="parchment"] .rpg-panel [class="bg-slate-9"],
+html[data-theme="parchment"] .rpg-panel [class*="bg-slate-9"],
 html[data-theme="parchment"] .rpg-panel-ornate [class*="bg-slate-9"],
 html[data-theme="parchment"] .rpg-workspace-pane [class*="bg-slate-9"] {
 background-color: #f3e4c6 !important;
@@ -675,14 +764,12 @@ border-color: rgba(153, 27, 27, 0.38) !important;
 color: #7f1d1d !important;
 }
 
-/* Active selector pills & round bubbles in Parchment mode */
 html[data-theme="parchment"] .rpg-panel-ornate .bg-indigo-600 {
 background-color: #8b261d !important;
 border-color: #5c1610 !important;
 color: #ffffff !important;
 }
 
-/* Torn Parchment Sticky-Note accent on dashed image-preview / callout boxes */
 html[data-theme="parchment"] .rpg-panel-ornate .border-dashed {
 background-color: rgba(255, 250, 238, 0.85) !important;
 background-image: url('./Parchwood_UI_Kit/024-small-torn-parchment-sticky-note.png');
@@ -692,7 +779,7 @@ background-size: 32px 32px;
 border-color: rgba(133, 88, 46, 0.5) !important;
 }
 
-/* 11. Custom Scrollbars & Modal Inner Scroll Body
+/* 12. Custom Scrollbars & Modal Inner Scroll Body
 ---------------------------------------------------------------------------- */
 .rpg-modal-body {
 overflow-x: hidden;
@@ -730,7 +817,7 @@ html[data-theme="parchment"] ::-webkit-scrollbar-thumb:hover {
 background: rgba(139, 38, 29, 0.75);
 }
 
-/* 12. Mobile & Tablet Responsive Adjustments
+/* 13. Mobile & Tablet Responsive Adjustments
 ---------------------------------------------------------------------------- */
 html,
 body.rpg-stone-body {
@@ -739,7 +826,6 @@ max-width: 100vw;
 }
 
 @media (max-width: 767px) {
-/* Prevent iOS Safari auto-zoom when focusing inputs, textareas, and selects */
 .rpg-panel input[type="text"],
 .rpg-panel input[type="email"],
 .rpg-panel input[type="password"],
@@ -757,7 +843,6 @@ max-width: 100vw;
 font-size: 16px !important;
 }
 
-/* Ensure simple form modals remain scrollable on short mobile screens */
 #new-system-modal > div,
 #new-campaign-modal > div,
 #new-entity-modal > div {
@@ -768,7 +853,6 @@ overflow-y: auto;
 }
 
 @media (max-width: 640px) {
-/* Slimmer wooden topbar side caps so header buttons fit comfortably on phones */
 html[data-theme="parchment"] .rpg-topbar {
 border-width: 10px 18px;
 border-image-width: 10px 18px;
@@ -778,7 +862,6 @@ html[data-theme="parchment"] .rpg-topbar > div {
 min-height: 3.25rem;
 }
 
-/* Scale down decorative 9-slice panel frames so they never clip phone edges */
 .rpg-panel {
 border-width: 9px;
 }
@@ -833,7 +916,6 @@ inset: -7px;
 border-width: 14px;
 }
 
-/* Touch-friendly button height (40px+) with compact horizontal caps */
 .rpg-btn-primary,
 html[data-theme="parchment"] .rpg-btn-primary,
 html[data-theme="parchment"] .rpg-panel .rpg-btn-primary,
