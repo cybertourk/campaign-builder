@@ -120,9 +120,20 @@ export function initTheme() {
 
   if (!observerStarted && typeof MutationObserver !== "undefined") {
     observerStarted = true;
+    let themeSyncScheduled = false;
     const observer = new MutationObserver(() => {
-      ensureParchmentCascadeGuard();
-      applyThemeToImages(document.body);
+      if (themeSyncScheduled) return;
+      themeSyncScheduled = true;
+      requestAnimationFrame(() => {
+        themeSyncScheduled = false;
+        observer.disconnect();
+        try {
+          ensureParchmentCascadeGuard();
+          applyThemeToImages(document.body);
+        } finally {
+          observer.observe(document.documentElement, { childList: true, subtree: true });
+        }
+      });
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
